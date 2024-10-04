@@ -1,8 +1,8 @@
-# Overview
+# 🏴‍☠️ Overview 🏴‍☠️ 
 
 `rakam_systems` is a Python library that provides a framework for building AI and Generative AI systems using the core concept of **Components**. This library is designed to solve key challenges in developing AI systems by providing a modular, scalable, and production-ready solution.
 
-## Problem Statement
+## 🥵 Problem Statement
 
 Building custom AI and Gen AI systems can be challenging due to the need for flexibility, scalability, and production-readiness. Developers often face problems like:
 
@@ -13,7 +13,7 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
 
 `rakam_systems` addresses these challenges by offering a flexible, lean framework that helps developers build AI systems efficiently, while minimizing code maintenance overhead and focusing on ease of deployment.
 
-## Key Features
+## ✨ Key Features
 
 - **Modular Framework**: `rakam_systems` is a framework for building AI and Gen AI systems, with **Components** serving as the core building blocks.
 - **Customizability**: Designed to provide robust tools for developing custom Gen AI solutions. Many classes are abstract, offering flexibility while keeping the codebase streamlined by limiting predefined functionality to common use cases.
@@ -23,17 +23,10 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
   - Includes Docker/Django API templates for easy deployment: [Service Template](https://github.com/Rakam-AI/rakam-systems-service-template).
 - **Lean Design**: Focused on minimizing breaking changes and ensuring code fluidity.
 - **Best-in-Class Supporting Tools**: We select the best libraries for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
-
-  ### Selected Libraries
-
-  - **Models**: [Hugging Face (HF)](https://github.com/huggingface)
-    - Hugging Face was chosen for its extensive support for a wide range of pre-trained models and its active community.
-  - **Vector Stores**: [FAISS](https://github.com/facebookresearch/faiss)
-    - FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches.
-
-  ### Engine Update
-
-  We also introduce an **Engine Update** feature to ensure that the library stays current with the latest advancements, minimizing maintenance challenges.
+- **Selected Libraries**:
+  - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
+  - **Vector Stores**: FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches. [FAISS](https://github.com/facebookresearch/faiss)
+- **Engine Update**: We also deploy regular **Engine Updates** to ensure that the library stays current with the latest advancements in AI, minimizing maintenance challenges.
 
 ## Use Cases
 
