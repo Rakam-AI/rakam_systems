@@ -36,6 +36,8 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
   - **EU LLM**: Mistral AI is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
   - **Transformers & Models**: Hugging Face was chosen for its extensive support for a wide range of pre-trained models and its active community. [Hugging Face (HF)](https://github.com/huggingface/transformers)
   - **Vector Stores**: FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches. [FAISS](https://github.com/facebookresearch/faiss)
+  - **File storage**: While you can work with local files, we allow users to work with buckets using the S3 framework. [S3](https://github.com/facebookresearch/faiss)
+ 
 - **Engine Update**: We also deploy regular **Engine Updates** to ensure that the library stays current with the latest advancements in AI, minimizing maintenance challenges.
 
 ## Use Cases
