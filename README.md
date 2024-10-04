@@ -19,13 +19,18 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
 ## ✨ Key Features
 
 - **Modular Framework**: `rakam_systems` is a framework for building AI and Gen AI systems, with **Components** serving as the core building blocks.
+  
 - **Customizability**: Designed to provide robust tools for developing custom Gen AI solutions. Many classes are abstract, offering flexibility while keeping the codebase streamlined by limiting predefined functionality to common use cases.
+  
 - **Production-Ready**: Built for scalability and ease of deployment:
   - Libraries are chosen for their efficiency and scalability.
   - Components exchange data in a structured way, facilitating API integration.
   - Includes Docker/Django API templates for easy deployment: [Service Template](https://github.com/Rakam-AI/rakam-systems-service-template).
+    
 - **Lean Design**: Focused on minimizing breaking changes and ensuring code fluidity.
+  
 - **Best-in-Class Supporting Tools**: We select the best libraries for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
+  
 - **Selected Libraries**:
   - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
   - **Vector Stores**: FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches. [FAISS](https://github.com/facebookresearch/faiss)
@@ -36,8 +41,11 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
 With `rakam_systems`, you can build:
 
 - **Retrieval-Augmented Generation (RAG) Systems**: Combine vector retrieval with LLM prompt generation for enriched responses. [Learn more](https://rsdocs.readthedocs.io/en/latest/usage.html#retrieval-augmented-generation-rag)
+  
 - **Agent Systems**: Create modular agents that perform specific tasks using LLMs. *Link to come*
+  
 - **Chained Gen AI Systems**: Develop systems that chain multiple AI tasks together for complex workflows. *Link to come*
+  
 - **Any Custom AI System**: Use components to create any AI solution tailored to your needs.
 
 ## Installation
