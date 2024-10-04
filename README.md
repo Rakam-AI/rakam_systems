@@ -32,7 +32,9 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
 - **Best-in-Class Supporting Tools**: We select the best libraries for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
   
 - **Selected Libraries**:
-  - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
+  - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) 
+  - **EU LLM**: Mistral AI is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
+  - **Transformers & Models**: Hugging Face was chosen for its extensive support for a wide range of pre-trained models and its active community. [Hugging Face (HF)](https://github.com/huggingface/transformers)
   - **Vector Stores**: FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches. [FAISS](https://github.com/facebookresearch/faiss)
 - **Engine Update**: We also deploy regular **Engine Updates** to ensure that the library stays current with the latest advancements in AI, minimizing maintenance challenges.
 
