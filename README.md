@@ -1,205 +1,115 @@
+# Overview
 
-### Overview
+`rakam_systems` is a Python library that provides a framework for building AI and Generative AI systems using the core concept of **Components**. This library is designed to solve key challenges in developing AI systems by providing a modular, scalable, and production-ready solution.
 
-This Python library provides an integrated solution for creating **Vector Stores** and **Retrieval-Augmented Generation (RAG)** systems. It offers a modular architecture to build and manage vector-based search systems using embeddings from models such as **SentenceTransformers** and **FAISS** for efficient retrieval. Additionally, it provides flexible interfaces to handle content extraction, node processing, and LLM-driven generation tasks like text classification and RAG-enabled prompt generation.
+## Problem Statement
 
-### Features
+Building custom AI and Gen AI systems can be challenging due to the need for flexibility, scalability, and production-readiness. Developers often face problems like:
 
--   **Vector Store Management**: Create, manage, and search through vector stores using embeddings for fast retrieval.
--   **Retrieval-Augmented Generation (RAG)**: Combines vector store retrieval and large language model (LLM) generation.
--   **Content Extraction**: Extracts content from PDF, URLs, and JSON files, with different parsers for various formats.
--   **Node Processing**: Processes text data by splitting content based on headers or character count to optimize storage and retrieval.
--   **Modular Action-Based Agents**: Supports classification, prompt generation, and custom RAG generation via agents.
+- **Complexity**: Creating AI systems from scratch involves significant complexity, especially when combining different technologies for model management, data processing, and integration.
+- **Scalability**: Ensuring that AI systems can handle large-scale data and provide efficient, real-time responses.
+- **Integration**: Making different components communicate effectively and preparing the system for deployment is often cumbersome.
+- **Maintenance & Updates**: The AI landscape evolves rapidly, and maintaining systems with the latest models and technologies is a significant challenge.
 
-----------
+`rakam_systems` addresses these challenges by offering a flexible, lean framework that helps developers build AI systems efficiently, while minimizing code maintenance overhead and focusing on ease of deployment.
 
-### Key Components
+## Key Features
 
-1.  **Vector Stores**  
-    Vector Stores allow you to create, store, and query vector embeddings of content (e.g., text). This is useful for information retrieval tasks, where content is indexed using vector representations.
-    
-2.  **Content Extraction**  
-    Extracts content from various file formats such as PDFs, URLs, and JSON. This is a preprocessing step to convert unstructured content into nodes that are used by the Vector Store.
-    
-3.  **RAG Generation**  
-    Combines information retrieval from Vector Stores with LLM prompt generation to produce contextually enriched responses using search results from the Vector Store.
-    
-4.  **Agents**  
-    Agents encapsulate different actions, such as query classification, prompt generation, or RAG, to perform specific tasks using an LLM model.
-    
+- **Modular Framework**: `rakam_systems` is a framework for building AI and Gen AI systems, with **Components** serving as the core building blocks.
+- **Customizability**: Designed to provide robust tools for developing custom Gen AI solutions. Many classes are abstract, offering flexibility while keeping the codebase streamlined by limiting predefined functionality to common use cases.
+- **Production-Ready**: Built for scalability and ease of deployment:
+  - Libraries are chosen for their efficiency and scalability.
+  - Components exchange data in a structured way, facilitating API integration.
+  - Includes Docker/Django API templates for easy deployment: [Service Template](https://github.com/Rakam-AI/rakam-systems-service-template).
+- **Lean Design**: Focused on minimizing breaking changes and ensuring code fluidity.
+- **Best-in-Class Supporting Tools**: We select the best libraries for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
 
-----------
+  ### Selected Libraries
 
-### Installation
+  - **Models**: [Hugging Face (HF)](https://github.com/huggingface)
+    - Hugging Face was chosen for its extensive support for a wide range of pre-trained models and its active community.
+  - **Vector Stores**: [FAISS](https://github.com/facebookresearch/faiss)
+    - FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches.
 
-Before getting started, make sure you have installed all dependencies. You can install them using `pip` or by adding the necessary packages to your environment.
+  ### Engine Update
 
-bash
+  We also introduce an **Engine Update** feature to ensure that the library stays current with the latest advancements, minimizing maintenance challenges.
 
-Copy code
+## Use Cases
 
-`pip install -r requirements.txt` 
+With `rakam_systems`, you can build:
 
-**Dependencies**:
+- **Retrieval-Augmented Generation (RAG) Systems**: Combine vector retrieval with LLM prompt generation for enriched responses. [Learn more](https://rsdocs.readthedocs.io/en/latest/usage.html#retrieval-augmented-generation-rag)
+- **Agent Systems**: Create modular agents that perform specific tasks using LLMs. *Link to come*
+- **Chained Gen AI Systems**: Develop systems that chain multiple AI tasks together for complex workflows. *Link to come*
+- **Any Custom AI System**: Use components to create any AI solution tailored to your needs.
 
--   `faiss`
--   `sentence-transformers`
--   `pandas`
--   `openai`
--   `pymupdf`
--   `playwright`
--   `joblib`
--   `requests`
+## Installation
 
-----------
+To install `rakam_systems`, clone the repository and install it in editable mode to include all dependencies:
 
-### Usage Guide
+```bash
+git clone <repository_url> rakam_systems
+cd rakam_systems
+pip install -e .
+```
 
-#### 1. Vector Store Creation
+### Dependencies
 
-The `VectorStores` class manages creating and searching vector embeddings.
+- `faiss`
+- `sentence-transformers`
+- `pandas`
+- `openai`
+- `pymupdf`
+- `playwright`
+- `joblib`
+- `requests`
 
-python
+## Examples
 
-Copy code
+Check out the following links for detailed examples of what you can build using `rakam_systems`:
 
-`from rakam_systems.vector_store import VectorStores
-from rakam_systems.core import VSFile, Node, NodeMetadata
+- **RAG Systems**: [RAG Documentation](https://rsdocs.readthedocs.io/en/latest/usage.html#retrieval-augmented-generation-rag)
+- **Vector Search**: [Vector Store Documentation](https://rsdocs.readthedocs.io/en/latest/usage.html#creating-vector-stores)
+- **Agent Systems**: *Link to come*
+- **Chained Gen AI Systems**: *Link to come*
 
-# Initialize Vector Store
-vector_store = VectorStores(base_index_path="path/to/index", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
+## Core Components
 
-# Create vector store from nodes
-nodes = [
-    Node(content="Text data 1", metadata=NodeMetadata(source_file_uuid="file1", position=1)),
-    Node(content="Text data 2", metadata=NodeMetadata(source_file_uuid="file2", position=2))
-]
-vector_store.create_from_nodes("store_name", nodes)` 
+`rakam_systems` provides several core components to facilitate building AI systems:
 
-#### 2. Retrieval-Augmented Generation (RAG)
+- **Vector Stores**: Manage and query vector embeddings for fast retrieval.
+- **Content Extraction**: Extract data from PDFs, URLs, and JSON files.
+- **Node Processing**: Split content into smaller, manageable chunks.
+- **Modular Agents**: Implement custom tasks such as classification, prompt generation, and RAG.
 
-RAG enables combining vector store search with prompt generation using an LLM model.
+For more details on how to use each of these components, please refer to the [documentation here](https://rsdocs.readthedocs.io/en/latest/usage.html).
 
-python
-
-Copy code
-
-`from rakam_systems.generation.agents import RAGGeneration, Agent
-from rakam_systems.vector_store import VectorStores
-
-# Initialize Vector Store and Agent
-vector_store = VectorStores(base_index_path="path/to/index", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
-agent = Agent(model="gpt-3.5-turbo", api_key="your_openai_api_key")
-
-# Create RAG Action
-rag_action = RAGGeneration(agent, sys_prompt="System Prompt", prompt="User Prompt", vector_stores=vector_store)
-
-# Execute RAG Action
-query = "What is the capital of France?"
-result = rag_action.execute(query=query)
-print(result)` 
-
-#### 3. Content Extraction
-
-The library provides several content extractors for PDFs, URLs, and JSON files.
-
-python
-
-Copy code
-
-`from rakam_systems.ingestion.content_extractors import PDFContentExtractor
-
-# Initialize PDF Content Extractor
-pdf_extractor = PDFContentExtractor(parser_name="SimplePDFParser", output_format="markdown")
-
-# Extract content from a PDF file
-vs_files = pdf_extractor.extract_content(source="path/to/file.pdf")` 
-
-#### 4. Node Processing
-
-Node processors split content into chunks for better handling in Vector Stores.
-
-python
-
-Copy code
-
-`from rakam_systems.ingestion.node_processors import CharacterSplitter
-
-# Initialize Node Processor
-splitter = CharacterSplitter(max_characters=512, overlap=50)
-
-# Process Nodes
-splitter.process(vs_file)` 
-
-#### 5. Classification with Vector Stores
-
-Use vector stores to classify queries based on predefined triggers.
-
-python
-
-Copy code
-
-`from rakam_systems.generation.agents import ClassifyQuery
-import pandas as pd
-
-# Sample Data for Classification
-trigger_queries = pd.Series(["What is the capital of", "Tell me about"])
-class_names = pd.Series(["Geography", "General Info"])
-
-# Initialize Classification Action
-classifier = ClassifyQuery(agent=None, trigger_queries=trigger_queries, class_names=class_names)
-
-# Classify a new query
-result = classifier.execute("What is the capital of France?")
-print(result)` 
-
-----------
-
-### How It Works
-
-1.  **Data Ingestion**: Content is extracted from sources like PDFs, JSON, or URLs.
-2.  **Node Processing**: The extracted content is processed into smaller chunks called **nodes**.
-3.  **Embedding Generation**: Text content is converted into vector embeddings using SentenceTransformers.
-4.  **Vector Store Creation**: The vector embeddings are indexed and stored for fast retrieval using FAISS.
-5.  **LLM Augmentation**: When a query is received, the Vector Store retrieves relevant content, and an LLM uses that content to generate a response.
-
-----------
-
-### Example Use Cases
-
-1.  **Intelligent Search Systems**: Build search systems that return relevant documents, paragraphs, or even sentences based on user queries.
-2.  **Query Classification**: Automatically classify user queries into categories using vector-based classification.
-3.  **RAG Systems**: Use vector search to retrieve relevant documents and use that content to generate augmented answers using LLMs.
-
-----------
-
-### Advanced Features
-
-1.  **Streaming Generation**: Generate responses in real-time using the `stream` option for LLM models.
-2.  **Multi-Format Content Extraction**: Extract content from various sources like PDFs, JSON, and websites using different parsers.
-3.  **Custom Node Processing**: Customize how the content is chunked or split using different node processors.
-4.  **Action-Oriented Agents**: Extend the agents with custom actions for classification, retrieval, or generation tasks.
-
-----------
-
-### Contributing
+## Contributing
 
 We welcome contributions! To contribute:
 
-1.  Fork the repository.
-2.  Create a feature branch (`git checkout -b feature-branch`).
-3.  Commit your changes (`git commit -m 'Add new feature'`).
-4.  Push to the branch (`git push origin feature-branch`).
-5.  Create a pull request.
+1. **Fork the Repository**: Start by forking the `rakam_systems` repository to your GitHub account.
+2. **Clone the Forked Repository**: Clone the forked repository to your local machine:
+   ```bash
+   git clone <forked_repository_url> rakam_systems
+   cd rakam_systems
+   ```
+3. **Install in Editable Mode**: Install `rakam_systems` in editable mode to make development easier:
+   ```bash
+   pip install -e .
+   ```
+4. **Create a Branch**: Create a feature branch (`git checkout -b feature-branch`).
+5. **Make Changes**: Implement your changes and commit them with a meaningful message (`git commit -m 'Add new feature'`).
+6. **Push the Branch**: Push your changes to your feature branch (`git push origin feature-branch`).
+7. **Submit a Pull Request**: Go to the original `rakam_systems` repository on GitHub and submit a pull request for review.
 
-----------
+For more details, refer to the [Contribution Guide](https://rsdocs.readthedocs.io/en/latest/usage.html).
 
-### License
+## License
 
 This project is licensed under the MIT License.
 
-----------
+## Support
 
-### Support
-
-For any issues, questions, or suggestions, please contact mohammed@rakam.ai .
+For any issues, questions, or suggestions, please contact [mohammed@rakam.ai](mailto:mohammed@rakam.ai).
