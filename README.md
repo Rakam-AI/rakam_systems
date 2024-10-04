@@ -29,7 +29,7 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
     
 - **Lean Design**: Focused on minimizing breaking changes and ensuring code fluidity.
   
-- **Best-in-Class Supporting Tools**: We select the best libraries for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
+- **Best-in-Class Supporting Tools & Approaches**: We select the best libraries and technical approaches for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
   
 - **Selected Libraries**:
   - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) 
