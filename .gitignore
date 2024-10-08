@@ -1,0 +1,29 @@
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+
+# Environments
+.env
+*.env
+*.venv*
+venv/
+*venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# VS Code
+.vscode/
+.vscode/*
+
+# PyCharm
+.idea/
+.idea/*
+
+# OS specific
+.DS_Store
+Thumbs.db
