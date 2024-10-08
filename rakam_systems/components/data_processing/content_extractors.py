@@ -12,15 +12,18 @@ import dotenv
 import joblib
 import pymupdf
 import requests
+import pymupdf4llm
 from bs4 import BeautifulSoup
-from llama_parse import LlamaParse
 from playwright.sync_api import sync_playwright
+
+
+# Content extractors look at a raw file ( PDF, URL,... ), transforms to markdown, splits into big chungs (eg. page)
 
 dotenv.load_dotenv()
 
 import logging
 
-from rakam_systems.ingestion import utils
+from rakam_systems.components.data_processing import utils
 
 
 RAKAM_SYSTEMS_DIR = os.path.dirname(
@@ -94,43 +97,34 @@ class SimplePDFParser:
         return text
 
 
-class LlamaPDFParser:
+class AdvancedPDFParser:
     """
-    A PDF parser that extracts text from PDF files using LlamaParse.
-
-    Methods:
-        parse_one_pdf: Parse a single PDF file and return a VSFile
+    A PDF parser that extracts text from PDF files using pymupdf4llm.
     """
 
-    def __init__(self, persist: bool = True) -> None:
-        self.parser = LlamaParse(
-            api_key="llx-8sWCDKd2FxCbLG3q7XXuYBzDox8az9DqgcTTvxC3DRag7PGP", #os.getenv("LLAMA_CLOUD_API_KEY"),
-            result_type="text",
-            num_workers=4,
-            show_progress=True,
-            language="fr",
-            parsing_instruction="",
-            split_by_page=True,
-        )
-        self.persist = persist
+    def __init__(self, output_format: str = "markdown") -> None:
+        self.output_format = output_format
 
     def parse_one_pdf(self, file_path: str):
-        with open(file_path, "rb") as f:
-            extra_info = {"file_name": file_path}
-            documents = self.parser.load_data(f, extra_info=extra_info)
+        # try:
+            # Returns a list of dicts, each representing a page
+        doc = pymupdf4llm.to_markdown(file_path, page_chunks=True)
+        # except Exception as e:
+        #     logging.error(f"Error reading PDF file: {file_path}")
+        #     return None
 
-        if self.persist:
-            persist_dir = os.path.dirname(file_path) + "_parsed"
-            os.makedirs(persist_dir, exist_ok=True)
-            for page_n, doc in enumerate(documents):
-                file_name = os.path.basename(file_path)
-                output_path = os.path.join(
-                    persist_dir, file_name.replace(".pdf", f"_p{page_n+1}.pkl")
+        vs_file = VSFile(file_path)  # create a new VSFile
+        nodes = []
+        for page_num, page_content in enumerate(doc):
+            text = page_content["text"].strip()
+            if text:
+                metadata = NodeMetadata(
+                    source_file_uuid=file_path, position=(page_num + 1)
                 )
-                joblib.dump(doc, output_path)
-
-        VSFile = utils.llama_documents_to_VSFile(documents)
-        return VSFile
+                node = Node(text, metadata)
+                nodes.append(node)
+        vs_file.nodes = nodes
+        return vs_file
 
 
 class PDFContentExtractor(ContentExtractor):
@@ -139,7 +133,9 @@ class PDFContentExtractor(ContentExtractor):
 
     Attributes:
         output_format (str): The desired output format of the extracted content
-        parser_name (str): The name of the parser to use (default: "LlamaParse")
+        parser_name (str): The name of the parser to use (default: "AdvancedPDFParser")
+            - "SimplePDFParser"
+            - "AdvancedPDFParser"
 
         persist (bool): Persist the parsed documents (default: True) (LlamaParse only)
 
@@ -148,20 +144,20 @@ class PDFContentExtractor(ContentExtractor):
         extract_content: Parse content from the PDFs (pass path to file or directory)
     """
 
-    def __init__(self, parser_name: str = "LlamaParse", persist: bool = True, **kwargs):
+    def __init__(self, parser_name: str = "AdvancedPDFParser", persist: bool = True, **kwargs):
         super().__init__(**kwargs)
         self.parser_name = parser_name
         self.persist = persist
         self.parser = self._get_parser(parser_name, persist=persist)
 
     def _get_parser(self, parser_name: str, persist: bool):
-        if parser_name == "LlamaParse":
-            return LlamaPDFParser(persist=persist)
-        elif parser_name == "SimplePDFParser":
+        if parser_name == "SimplePDFParser":
             return SimplePDFParser()
+        elif parser_name == "AdvancedPDFParser":
+            return AdvancedPDFParser(output_format=self.output_format)
         else:
             raise NotImplementedError(
-                f"Unsupported parser: {parser_name}. Use 'LlamaParse' or 'SimplePDFParser'."
+                f"Unsupported parser: {parser_name}. Use 'SimplePDFParser', or 'AdvancedPDFParser'."
             )
 
     def _load_parsed_files(self, parsed_files) -> VSFile:
@@ -218,7 +214,6 @@ class PDFContentExtractor(ContentExtractor):
                 "Source must be a PDF file or a directory containing PDF files."
             )
         return VSFiles
-
 
 ### --- URLs --- ###
 class URLContentExtractor(ContentExtractor):
@@ -382,7 +377,6 @@ class URLContentExtractor(ContentExtractor):
                     self.unique_lines.add(line)
                     return line
                 return ""
-
 
 ### --- JSONs --- ###
 class JSONContentExtractor(ContentExtractor):

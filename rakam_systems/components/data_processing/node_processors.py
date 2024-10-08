@@ -6,13 +6,15 @@ from abc import abstractmethod
 from typing import List
 
 
-RAKAM_SERVICES_DIR = os.path.dirname(
+RAKAM_SYSTEMS_DIR = os.path.dirname(
     os.path.dirname(os.path.abspath(__file__))  # ingestion  # this file
 )
-sys.path.append(RAKAM_SERVICES_DIR)
+sys.path.append(RAKAM_SYSTEMS_DIR)
 
 from rakam_systems.core import VSFile, NodeMetadata, Node
 
+
+# This takes big chunks and split them in more granularity
 
 class NodeProcessor(ABC):
     """

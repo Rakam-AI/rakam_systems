@@ -13,6 +13,8 @@ from rakam_systems.core import VSFile, NodeMetadata, Node
 
 from rakam_systems.core import VSFile
 
+
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -22,7 +24,7 @@ class VectorStores:
     A class for managing multiple vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str, generating: bool = False) -> None:
         """
         Initializes the VectorStores with the specified base index path and embedding model.
 
@@ -33,9 +35,10 @@ class VectorStores:
         if not os.path.exists(self.base_index_path):
             os.makedirs(self.base_index_path)
 
-        self.embedding_model = SentenceTransformer(embedding_model)
+        self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
         self.stores = {}
-        self.load_all_stores()
+
+        if not generating : self.load_all_stores()
 
     def load_all_stores(self) -> None:
         """
@@ -54,21 +57,18 @@ class VectorStores:
         :return: Dictionary containing the store's index, nodes, and metadata.
         """
         store = {}
-        try:
-            store["index"] = faiss.read_index(os.path.join(store_path, "index"))
-            with open(
-                os.path.join(store_path, "category_index_mapping.pkl"), "rb"
-            ) as f:
-                store["category_index_mapping"] = pickle.load(f)
-            with open(
-                os.path.join(store_path, "metadata_index_mapping.pkl"), "rb"
-            ) as f:
-                store["metadata_index_mapping"] = pickle.load(f)
-            with open(os.path.join(store_path, "nodes.pkl"), "rb") as f:
-                store["nodes"] = pickle.load(f)
-            logging.info(f"Store loaded successfully from {store_path}.")
-        except Exception as e:
-            logging.warning(f"Error loading store from {store_path}: {e}")
+        store["index"] = faiss.read_index(os.path.join(store_path, "index"))
+        with open(
+            os.path.join(store_path, "category_index_mapping.pkl"), "rb"
+        ) as f:
+            store["category_index_mapping"] = pickle.load(f)
+        with open(
+            os.path.join(store_path, "metadata_index_mapping.pkl"), "rb"
+        ) as f:
+            store["metadata_index_mapping"] = pickle.load(f)
+        with open(os.path.join(store_path, "nodes.pkl"), "rb") as f:
+            store["nodes"] = pickle.load(f)
+        logging.info(f"Store loaded successfully from {store_path}.")
         return store
 
     def predict_embeddings(self, query: str) -> np.ndarray:
@@ -101,7 +101,7 @@ class VectorStores:
 
         store = self.stores.get(store_name)
         if not store:
-            raise ValueError(f"No store found with name: {store_name}")
+            raise ValueError(f"No store found with name: {store_name} in path : {self.base_index_path}")
 
         query_embedding = self.predict_embeddings(query)
         suggested_nodes = []
