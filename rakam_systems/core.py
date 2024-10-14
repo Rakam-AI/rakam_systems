@@ -8,7 +8,7 @@ from typing import Optional
 
 class VSFile:
     """
-    A data source to be processed. Its nodes will become entries in the VectorStores.
+    A data source to be processed. Its nodes will become entries in the VectorStore.
     """
 
     def __init__(self, file_path: str) -> None:

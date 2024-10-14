@@ -5,12 +5,13 @@ from typing import Any
 
 import dotenv
 import pandas as pd
+from typing import List
 
 from rakam_systems.core import Node
 from rakam_systems.core import NodeMetadata
 from rakam_systems.custom_loggers import prompt_logger
 from rakam_systems.components.base import LLM
-from rakam_systems.components.vector_search import VectorStores
+from rakam_systems.components.vector_search import VectorStore
 
 dotenv.load_dotenv()
 
@@ -41,9 +42,9 @@ class TextSearchMetadata(Action):
 
     def build_vector_store(
         self, text_items: pd.Series, metadatas: pd.Series
-    ) -> VectorStores:
+    ) -> VectorStore:
         """
-        Builds a VectorStores object from the trigger queries and class names.
+        Builds a VectorStore object from the trigger queries and class names.
         """
         # Create nodes from trigger queries and class names
         nodes = []
@@ -54,13 +55,13 @@ class TextSearchMetadata(Action):
             node = Node(content=query, metadata=metadata)
             nodes.append(node)
 
-        # Initialize VectorStores
-        vector_store = VectorStores(
+        # Initialize VectorStore
+        vector_store = VectorStore(
             base_index_path="temp_path", embedding_model=self.embedding_model
         )
 
-        # Use the create_from_nodes method to build the index
-        vector_store.create_from_nodes(store_name="query_classification", nodes=nodes)
+        # Use the create_collection_from_nodes method to build the index
+        vector_store.create_collection_from_nodes(collection_name="query_classification", nodes=nodes)
 
         return vector_store
 
@@ -70,7 +71,7 @@ class TextSearchMetadata(Action):
         """
         # Perform the search using the vector store
         valid_suggestions, _ = self.vector_store.search(
-            store_name="query_classification", query=query, number=2
+            collection_name="query_classification", query=query, number=2
         )
 
         # print("Successfully classified query:", query, "\nFound : ", valid_suggestions)
@@ -92,9 +93,9 @@ class ClassifyQuery(Action):
 
     def build_vector_store(
         self, trigger_queries: pd.Series, class_names: pd.Series
-    ) -> VectorStores:
+    ) -> VectorStore:
         """
-        Builds a VectorStores object from the trigger queries and class names.
+        Builds a VectorStore object from the trigger queries and class names.
         """
         # Create nodes from trigger queries and class names
         nodes = []
@@ -105,13 +106,13 @@ class ClassifyQuery(Action):
             node = Node(content=query, metadata=metadata)
             nodes.append(node)
 
-        # Initialize VectorStores
-        vector_store = VectorStores(
+        # Initialize VectorStore
+        vector_store = VectorStore(
             base_index_path="temp_path", embedding_model=self.embedding_model
         )
 
-        # Use the create_from_nodes method to build the index
-        vector_store.create_from_nodes(store_name="query_classification", nodes=nodes)
+        # Use the create_collection_from_nodes method to build the index
+        vector_store.create_collection_from_nodes(collection_name="query_classification", nodes=nodes)
 
         return vector_store
 
@@ -121,7 +122,7 @@ class ClassifyQuery(Action):
         """
         # Perform the search using the vector store
         _, node_search_results = self.vector_store.search(
-            store_name="query_classification", query=query, number=2
+            collection_name="query_classification", query=query, number=2
         )
 
         # Extract the matched trigger query and class name
@@ -138,8 +139,8 @@ class RAGGeneration(Action):
         agent,
         sys_prompt: str,
         prompt: str,
-        vector_stores: VectorStores,
-        vs_descriptions: dict = None,
+        vector_stores: List[VectorStore],
+        vs_descriptions: List[str] = None,
     ):
         self.agent = agent
         self.sys_prompt = sys_prompt
@@ -150,9 +151,9 @@ class RAGGeneration(Action):
         self.store_separator = "\n====\n"
         self.result_separator = "\n----\n"
 
-    def execute(self, query, prompt_kwargs: dict = {}, stream: bool = False):
+    def execute(self, query, collection_names: List [str], prompt_kwargs: dict = {}, stream: bool = False, **kwargs):
         ### --- Vector Store Search --- ###
-        formatted_search_results = self._perform_vector_store_search(query)
+        formatted_search_results = self._perform_vector_store_search(query, collection_names)
 
         ### --- Format Prompt --- ###
         formatted_prompt = self.prompt.format(
@@ -167,10 +168,8 @@ class RAGGeneration(Action):
         )
 
         ### --- LLM Generation --- ###
-        if stream:
-            return self._generate_stream(formatted_prompt)
-        else:
-            return self._generate_non_stream(formatted_prompt)
+        if stream: return self._generate_stream(formatted_prompt)
+        else: return self._generate_non_stream(formatted_prompt)
 
     # STREAMING (returns a generator)
     def _generate_stream(self, formatted_prompt):
@@ -187,31 +186,28 @@ class RAGGeneration(Action):
         answer = self.agent.llm.call_llm(self.sys_prompt, formatted_prompt)
         return answer
 
-    def _perform_vector_store_search(self, query: str) -> str:
+    def _perform_vector_store_search(self, query: str, collection_names: List[str]) -> str:
         """
         Perform a search across all vector stores and format the results.
         """
-        search_results = {}
-        for store_name, _ in self.vector_stores.stores.items():
-            _, node_search_results = self.vector_stores.search(
-                store_name=store_name, query=query
+
+        formatted_search_results = []
+
+        # If vector_store_descriptions is None, use collection_names as descriptions
+        if self.vs_descriptions is None:
+            self.vs_descriptions = collection_names
+
+        print("self.vector_stores, collection_names, self.vs_descriptions : ", self.vector_stores, collection_names, self.vs_descriptions)
+        for store, collection_name, collection_description in zip(self.vector_stores, collection_names, self.vs_descriptions) :
+            _, node_search_results = store.search(
+                collection_name=collection_name, query=query
             )
             if node_search_results:
                 # Format the search results for one vector store
-                search_results[store_name] = self._format_search_results(
-                    node_search_results
-                )
+                formatted_search_results.append(f"\n**Source:** {collection_description}\n\n")
+                formatted_search_results.append(self._format_search_results(node_search_results))
+                formatted_search_results.append(self.store_separator)
 
-        # Format the search results for all vector stores
-        formatted_search_results = []
-        for store_name, results in search_results.items():
-            if store_name in self.vs_descriptions:
-                description = self.vs_descriptions[store_name]
-            else:
-                description = store_name
-            formatted_search_results.append(f"\n**Source:** {description}\n\n")
-            formatted_search_results.append(results)
-            formatted_search_results.append(self.store_separator)
 
         return "".join(formatted_search_results).rstrip(
             self.store_separator + self.result_separator
@@ -236,7 +232,7 @@ class GenericLLMResponse(Action):
         self.sys_prompt = sys_prompt
         self.prompt = prompt
 
-    def execute(self, query, prompt_kwargs: dict = {}, stream: bool = False):
+    def execute(self, query, prompt_kwargs: dict = {}, stream: bool = False, **kwargs):
         ### --- Format Prompt --- ###
         formatted_prompt = self.prompt.format(query=query, **prompt_kwargs)
         prompt_logger.info(

@@ -19,14 +19,14 @@ from rakam_systems.core import VSFile
 logging.basicConfig(level=logging.INFO)
 
 
-class VectorStores:
+class VectorStore:
     """
-    A class for managing multiple vector stores using FAISS and SentenceTransformers.
+    A class for managing collection-based vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str, generating: bool = False) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str, initialising: bool = False) -> None:
         """
-        Initializes the VectorStores with the specified base index path and embedding model.
+        Initializes the VectorStore with the specified base index path and embedding model.
 
         :param base_index_path: Base path to store the FAISS indexes.
         :param embedding_model: Pre-trained SentenceTransformer model name.
@@ -36,20 +36,20 @@ class VectorStores:
             os.makedirs(self.base_index_path)
 
         self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
-        self.stores = {}
+        self.collections = {}
 
-        if not generating : self.load_all_stores()
+        if not initialising : self.load_vector_store()
 
-    def load_all_stores(self) -> None:
+    def load_vector_store(self) -> None:
         """
-        Loads all vector stores from the base directory.
+        Loads all collections from the base directory.
         """
-        for store_name in os.listdir(self.base_index_path):
-            store_path = os.path.join(self.base_index_path, store_name)
+        for collection_name in os.listdir(self.base_index_path):
+            store_path = os.path.join(self.base_index_path, collection_name)
             if os.path.isdir(store_path):
-                self.stores[store_name] = self.load_store(store_path)
+                self.collections[collection_name] = self.load_collection(store_path)
 
-    def load_store(self, store_path: str) -> Dict[str, Any]:
+    def load_collection(self, store_path: str) -> Dict[str, Any]:
         """
         Loads a single vector store from the specified directory.
 
@@ -84,24 +84,24 @@ class VectorStores:
         return query_embedding
 
     def search(
-        self, store_name: str, query: str, distance_type="cosine", number=5
+        self, collection_name: str, query: str, distance_type="cosine", number=5
     ) -> dict:
         """
-        Searches the specified store for the closest embeddings to the query.
+        Searches the specified collection for the closest embeddings to the query.
 
-        :param store_name: Name of the store to search in.
+        :param collection_name: Name of the collection to search in.
         :param query: Query string to search for.
         :param distance_type: Distance metric to use (default is "cosine").
         :param number: Number of closest embeddings to return.
         :return: Dictionary of search results with suggestion texts and distances.
         """
         logging.info(
-            f"Searching in store: {store_name} for query: {query} with distance type: {distance_type} and number of results: {number}"
+            f"Searching in collection: {collection_name} for query: {query} with distance type: {distance_type} and number of results: {number}"
         )
 
-        store = self.stores.get(store_name)
+        store = self.collections.get(collection_name)
         if not store:
-            raise ValueError(f"No store found with name: {store_name} in path : {self.base_index_path}")
+            raise ValueError(f"No store found with name: {collection_name} in path : {self.base_index_path}")
 
         query_embedding = self.predict_embeddings(query)
         suggested_nodes = []
@@ -139,7 +139,7 @@ class VectorStores:
         logging.info(f"Search results: {valid_suggestions}")
         return valid_suggestions, suggested_nodes
 
-    def get_embeddings(self, sentences: List[str], parallel: bool = True) -> np.ndarray:
+    def get_embeddings(self, sentences: List[str], parallel: bool = True, batch_size: int = 8) -> np.ndarray:
         """
         Generates embeddings for a list of sentences.
 
@@ -148,6 +148,7 @@ class VectorStores:
         :return: Embedding vectors for the sentences.
         """
         logging.info(f"Generating embeddings for {len(sentences)} sentences.")
+        print("GEnerating embeddings...")
         start = time.time()
         if parallel:
             os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -155,14 +156,14 @@ class VectorStores:
                 target_devices=["cpu"] * 5
             )
             embeddings = self.embedding_model.encode_multi_process(
-                sentences, pool, batch_size=16
+                sentences, pool, batch_size=batch_size
             )
             self.embedding_model.stop_multi_process_pool(pool)
         else:
             os.environ["TOKENIZERS_PARALLELISM"] = "true"
             embeddings = self.embedding_model.encode(
                 sentences,
-                batch_size=32,
+                batch_size=batch_size,
                 show_progress_bar=True,
                 convert_to_tensor=True,
             )
@@ -171,40 +172,48 @@ class VectorStores:
         )
         return embeddings.cpu().detach().numpy()
 
-    def create_from_files(self, stores_files: Dict[str, List[VSFile]]) -> None:
+    def create_collection_from_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
         Creates FAISS indexes from dictionaries of store names and VSFile objects.
 
-        :param stores_files: Dictionary where keys are store names and values are lists of VSFile objects.
+        :param collection_files: Dictionary where keys are store names and values are lists of VSFile objects.
         """
-        for store_name, files in stores_files.items():
-            logging.info(f"Creating FAISS index for store: {store_name}")
-            text_chunks = []
-            metadata = []
-            nodes = []
+        logging.info(f"Creating FAISS index for store: {collection_name}")
+        text_chunks = []
+        metadata = []
+        nodes = []
 
-            for file in files:
-                for node in file.nodes:
-                    nodes.append(node)
-                    text_chunks.append(node.content)
-                    formatted_metadata = {
-                        "node_id": node.metadata.node_id,
-                        "source_file_uuid": node.metadata.source_file_uuid,
-                        "position": node.metadata.position,
-                        "custom": node.metadata.custom,
-                    }
-                    metadata.append(formatted_metadata)
+        for file in files:
+            for node in file.nodes:
+                nodes.append(node)
+                text_chunks.append(node.content)
+                formatted_metadata = {
+                    "node_id": node.metadata.node_id,
+                    "source_file_uuid": node.metadata.source_file_uuid,
+                    "position": node.metadata.position,
+                    "custom": node.metadata.custom,
+                }
+                metadata.append(formatted_metadata)
 
-            self._create_and_save_index(store_name, nodes, text_chunks, metadata)
+        self._create_and_save_index(collection_name, nodes, text_chunks, metadata)
 
-    def create_from_nodes(self, store_name: str, nodes: List[Any]) -> None:
+    def create_collections_from_files(self, collection_files: Dict[str, List[VSFile]]) -> None:
         """
-        Creates a FAISS index from a list of nodes and stores it under the given store name.
+        Creates FAISS indexes from dictionaries of store names and VSFile objects.
 
-        :param store_name: Name of the store to create.
+        :param collection_files: Dictionary where keys are store names and values are lists of VSFile objects.
+        """
+        for collection_name, files in collection_files.items():
+            self.create_collection_from_files(collection_name, files)
+    
+    def create_collection_from_nodes(self, collection_name: str, nodes: List[Any]) -> None:
+        """
+        Creates a FAISS index from a list of nodes and collection it under the given collection name.
+
+        :param collection_name: Name of the store to create.
         :param nodes: List of nodes containing the content and metadata.
         """
-        logging.info(f"Creating FAISS index for store: {store_name}")
+        logging.info(f"Creating FAISS index for store: {collection_name}")
         text_chunks = []
         metadata = []
 
@@ -218,11 +227,11 @@ class VectorStores:
             }
             metadata.append(formatted_metadata)
 
-        self._create_and_save_index(store_name, nodes, text_chunks, metadata)
+        self._create_and_save_index(collection_name, nodes, text_chunks, metadata)
 
     def _create_and_save_index(
         self,
-        store_name: str,
+        collection_name: str,
         nodes: List[Any],
         text_chunks: List[str],
         metadata: List[Dict[str, Any]],
@@ -230,12 +239,12 @@ class VectorStores:
         """
         Helper function to create and save a FAISS index.
 
-        :param store_name: Name of the store to create.
+        :param collection_name: Name of the store to create.
         :param nodes: List of nodes.
         :param text_chunks: List of text chunks to encode and index.
         :param metadata: List of metadata associated with the text chunks.
         """
-        store_path = os.path.join(self.base_index_path, store_name)
+        store_path = os.path.join(self.base_index_path, collection_name)
         if not os.path.exists(store_path):
             os.makedirs(store_path)
 
@@ -263,28 +272,28 @@ class VectorStores:
         with open(os.path.join(store_path, "metadata_index_mapping.pkl"), "wb") as f:
             pickle.dump(metadata_index_mapping, f)
 
-        self.stores[store_name] = {
+        self.collections[collection_name] = {
             "index": index,
             "nodes": nodes,
             "category_index_mapping": category_index_mapping,
             "metadata_index_mapping": metadata_index_mapping,
         }
         logging.info(
-            f"FAISS index for store {store_name} created and saved successfully."
+            f"FAISS index for store {collection_name} created and saved successfully."
         )
 
-    def add_nodes(self, store_name: str, nodes: List[Node]) -> None:
+    def add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
         """
         Adds nodes to an existing store and updates the index.
 
-        :param store_name: Name of the store to update.
+        :param collection_name: Name of the store to update.
         :param nodes: List of nodes to be added.
         """
-        logging.info(f"Adding nodes to store: {store_name}")
+        logging.info(f"Adding nodes to store: {collection_name}")
 
-        store = self.stores.get(store_name)
+        store = self.collections.get(collection_name)
         if not store:
-            raise ValueError(f"No store found with name: {store_name}")
+            raise ValueError(f"No store found with name: {collection_name}")
 
         new_text_chunks = [node.content for node in nodes]
         new_metadata = [
@@ -313,20 +322,20 @@ class VectorStores:
         store["nodes"].extend(nodes)
 
         # Save updated store
-        self._save_store(store_name)
+        self._save_collection(collection_name)
 
-    def delete_nodes(self, store_name: str, node_ids: List[int]) -> None:
+    def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
         """
         Deletes nodes from an existing store and updates the index.
 
-        :param store_name: Name of the store to update.
+        :param collection_name: Name of the store to update.
         :param node_ids: List of node IDs to be deleted.
         """
-        logging.info(f"Deleting nodes from store: {store_name}")
+        logging.info(f"Deleting nodes from store: {collection_name}")
 
-        store = self.stores.get(store_name)
+        store = self.collections.get(collection_name)
         if not store:
-            raise ValueError(f"No store found with name: {store_name}")
+            raise ValueError(f"No store found with name: {collection_name}")
 
         # Filter out the nodes to be deleted
         remaining_ids = [
@@ -343,48 +352,48 @@ class VectorStores:
 
         # Re-create the index with remaining nodes
         self._create_and_save_index(
-            store_name, remaining_nodes, remaining_text_chunks, remaining_metadata
+            collection_name, remaining_nodes, remaining_text_chunks, remaining_metadata
         )
 
-    def add_files(self, store_name: str, files: List[VSFile]) -> None:
+    def add_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
         Adds file nodes to the specified store by extracting nodes from the files and adding them to the index.
 
-        :param store_name: Name of the store to update.
+        :param collection_name: Name of the store to update.
         :param files: List of VSFile objects whose nodes are to be added.
         """
-        logging.info(f"Adding files to store: {store_name}")
+        logging.info(f"Adding files to store: {collection_name}")
         all_nodes = []
 
         for file in files:
             all_nodes.extend(file.nodes)
 
-        self.add_nodes(store_name, all_nodes)
+        self.add_nodes(collection_name, all_nodes)
 
-    def delete_files(self, store_name: str, files: List[VSFile]) -> None:
+    def delete_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
         Deletes file nodes from the specified store by removing nodes corresponding to the given files.
 
-        :param store_name: Name of the store to update.
+        :param collection_name: Name of the store to update.
         :param files: List of VSFile objects whose nodes are to be deleted.
         """
-        logging.info(f"Deleting files from store: {store_name}")
+        logging.info(f"Deleting files from store: {collection_name}")
         node_ids_to_delete = []
 
         for file in files:
             for node in file.nodes:
                 node_ids_to_delete.append(node.metadata.node_id)
 
-        self.delete_nodes(store_name, node_ids_to_delete)
+        self.delete_nodes(collection_name, node_ids_to_delete)
 
-    def _save_store(self, store_name: str) -> None:
+    def _save_collection(self, collection_name: str) -> None:
         """
         Helper function to save the updated store back to the file system.
 
-        :param store_name: Name of the store to save.
+        :param collection_name: Name of the store to save.
         """
-        store_path = os.path.join(self.base_index_path, store_name)
-        store = self.stores[store_name]
+        store_path = os.path.join(self.base_index_path, collection_name)
+        store = self.collections[collection_name]
 
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
@@ -399,4 +408,4 @@ class VectorStores:
             pickle.dump(store["nodes"], f)
 
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
-        logging.info(f"Store {store_name} saved successfully.")
+        logging.info(f"Store {collection_name} saved successfully.")

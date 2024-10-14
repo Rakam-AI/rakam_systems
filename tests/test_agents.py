@@ -4,7 +4,7 @@ from typing import Any
 
 from rakam_systems.core import Node, NodeMetadata
 from rakam_systems.generation.llm import LLM
-from rakam_systems.vector_store import VectorStores
+from rakam_systems.vector_store import VectorStore
 from rakam_systems.generation.agents import ClassifyQuery, RAGGeneration, Agent, Action
 
 
@@ -24,7 +24,7 @@ class SimpleLLM(LLM):
 
 
 # Simple Vector Store Implementation
-class SimpleVectorStore(VectorStores):
+class SimpleVectorStore(VectorStore):
     def __init__(
         self,
         base_index_path="temp_path",
@@ -32,11 +32,11 @@ class SimpleVectorStore(VectorStores):
     ):
         self.stores = {}
 
-    def create_from_nodes(self, store_name: str, nodes: list):
-        self.stores[store_name] = nodes
+    def create_collection_from_nodes(self, collection_name: str, nodes: list):
+        self.stores[collection_name] = nodes
 
-    def search(self, store_name: str, query: str, number: int = 2):
-        nodes = self.stores.get(store_name, [])
+    def search(self, collection_name: str, query: str, number: int = 2):
+        nodes = self.stores.get(collection_name, [])
         return None, nodes[:number]
 
 
@@ -75,7 +75,7 @@ def simple_vector_store():
             ),
         ),
     ]
-    vector_store.create_from_nodes("query_classification", nodes)
+    vector_store.create_collection_from_nodes("query_classification", nodes)
     return vector_store
 
 
