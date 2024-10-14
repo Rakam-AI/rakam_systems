@@ -50,6 +50,8 @@ With `rakam_systems`, you can build:
   
 - **Chained Gen AI Systems**: Develop systems that chain multiple AI tasks together for complex workflows. *Link to come*
   
+- **Search Engines**: Develop search engines based on fine-tunned embeddings models on any modality ( text, sound or video ). *Link to come*
+  
 - **Any Custom AI System**: Use components to create any AI solution tailored to your needs.
 
 ## Installation
