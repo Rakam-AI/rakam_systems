@@ -1,6 +1,8 @@
 # 🏴‍☠️ Overview 🏴‍☠️ 
 
-`rakam_systems` is a Python library that provides a framework for building AI and Generative AI systems using the core concept of **Components**. This library is designed to solve challenges in developing & deploying AI systems by providing a modular framework which is very easy to deploy in an optimal infrastructure set-up on your preferred cloud solution. We think of it as the child between [Haystack](https://github.com/deepset-ai/haystack) & [Terraform-OpenTofu](https://github.com/opentofu/opentofu).
+`rakam_systems` is a Python library that provides a framework to easily build & deploy AI and Generative AI systems. 
+
+You can build any System by combining **Components**, where you can either use some from our library or completely customise them. Both ways, they come with a suite of features built for production such as integrated evaluation and automatic deployment on your preferred cloud solution. We like to think of it as the child between [Haystack](https://github.com/deepset-ai/haystack) & [Terraform-OpenTofu](https://github.com/opentofu/opentofu).
 
 ## 🥵 Problem Statement
 
