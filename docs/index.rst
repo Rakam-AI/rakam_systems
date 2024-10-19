@@ -1,1 +1,0 @@
-Welcome to rakam system's documentation!

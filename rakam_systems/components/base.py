@@ -27,7 +27,7 @@ class LLM:
         )
         return completion.choices[0].message.content
 
-    def call_llm_stream(self, sys_prompt: str, prompt: str, temperature: float = 0, seed: int = 0 ):
+    def call_llm_stream(self, sys_prompt: str, prompt: str, temperature: float = 0, seed: int = 0):
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -40,7 +40,10 @@ class LLM:
         )
 
         for chunk in completion:
-            yield chunk.choices[0].delta.content
+            content = chunk.choices[0].delta.content
+            if content:  # Only yield if content is not None
+                yield content
+
 
     def call_llm_output_json(self, sys_prompt: str, prompt: str, temperature: float = 0, seed: int = 0):
         completion = self.client.chat.completions.create(

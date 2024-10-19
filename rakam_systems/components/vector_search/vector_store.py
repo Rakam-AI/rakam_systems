@@ -235,7 +235,7 @@ class VectorStore:
         nodes: List[Any],
         text_chunks: List[str],
         metadata: List[Dict[str, Any]],
-    ) -> None:
+        ) -> None:
         """
         Helper function to create and save a FAISS index.
 
@@ -244,10 +244,22 @@ class VectorStore:
         :param text_chunks: List of text chunks to encode and index.
         :param metadata: List of metadata associated with the text chunks.
         """
+        # Check if the list of nodes or text_chunks is empty
+        if not nodes or not text_chunks:
+            logging.warning(f"Cannot create FAISS index for store '{collection_name}' because nodes or text_chunks are empty.")
+            self.collections[collection_name] = {
+            "index": None,
+            "nodes": [],
+            "category_index_mapping": None,
+            "metadata_index_mapping": None,
+        }
+            return
+
         store_path = os.path.join(self.base_index_path, collection_name)
         if not os.path.exists(store_path):
             os.makedirs(store_path)
 
+        # Get embeddings for the text chunks
         data_embeddings = self.get_embeddings(sentences=text_chunks, parallel=False)
         category_index_mapping = dict(zip(range(len(text_chunks)), text_chunks))
 
@@ -259,6 +271,7 @@ class VectorStore:
         with open(os.path.join(store_path, "nodes.pkl"), "wb") as f:
             pickle.dump(nodes, f)
 
+        # Create FAISS index and add embeddings
         index = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
         faiss.normalize_L2(data_embeddings)
         index.add_with_ids(
@@ -266,18 +279,19 @@ class VectorStore:
         )
         faiss.write_index(index, os.path.join(store_path, "index"))
 
+        # Save metadata index mapping to file
         metadata_index_mapping = dict(zip(range(len(text_chunks)), metadata))
-
-        # Save metadata nodes to file
         with open(os.path.join(store_path, "metadata_index_mapping.pkl"), "wb") as f:
             pickle.dump(metadata_index_mapping, f)
 
+        # Update the collections dictionary
         self.collections[collection_name] = {
             "index": index,
             "nodes": nodes,
             "category_index_mapping": category_index_mapping,
             "metadata_index_mapping": metadata_index_mapping,
         }
+
         logging.info(
             f"FAISS index for store {collection_name} created and saved successfully."
         )
