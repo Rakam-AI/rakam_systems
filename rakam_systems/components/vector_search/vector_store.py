@@ -13,11 +13,8 @@ from rakam_systems.core import VSFile, NodeMetadata, Node
 
 from rakam_systems.core import VSFile
 
-
-
 # Configure logging
 logging.basicConfig(level=logging.INFO)
-
 
 class VectorStore:
     """
