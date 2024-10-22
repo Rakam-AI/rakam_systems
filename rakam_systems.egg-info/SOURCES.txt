@@ -57,5 +57,6 @@ rakam_systems/template_systems/rag.py
 tests/test_actions.py
 tests/test_agents.py
 tests/test_core.py
+tests/test_deleteNodes.py
 tests/test_llm_integration.py
 tests/test_vector_store.py

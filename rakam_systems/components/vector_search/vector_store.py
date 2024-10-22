@@ -340,20 +340,31 @@ class VectorStore:
 
     def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
         """
-        Deletes nodes from an existing store and updates the index.
+        Deletes nodes from an existing store and updates the index without re-creating it from scratch.
 
         :param collection_name: Name of the store to update.
         :param node_ids: List of node IDs to be deleted.
         """
-        logging.info(f"Deleting nodes from store: {collection_name}")
+        logging.info(f"Deleting nodes {node_ids} from store: {collection_name}")
 
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
 
+        existed_ids = store["category_index_mapping"].keys()
+        logging.info(f"Existed IDs before deletion: {existed_ids}")
+
+        missing_ids = []
+        ids_to_delete = []
+        for node_id in node_ids:
+            if node_id not in existed_ids:
+                missing_ids.append(node_id)
+            else:
+                ids_to_delete.append(node_id)
+        
         # Filter out the nodes to be deleted
         remaining_ids = [
-            id_ for id_ in store["category_index_mapping"].keys() if id_ not in node_ids
+            id_ for id_ in store["category_index_mapping"].keys() if id_ not in ids_to_delete
         ]
 
         remaining_text_chunks = [
@@ -364,10 +375,42 @@ class VectorStore:
         ]
         remaining_nodes = [store["nodes"][id_] for id_ in remaining_ids]
 
-        # Re-create the index with remaining nodes
-        self._create_and_save_index(
-            collection_name, remaining_nodes, remaining_text_chunks, remaining_metadata
+        # Get existing index and extract embeddings
+        existed_index = store["index"]
+        base_index = existed_index.index
+        num_vectors = base_index.ntotal
+        data_embeddings = np.empty((num_vectors, base_index.d), dtype=np.float32)
+
+        # Reconstruct embeddings from the current index
+        for i in range(num_vectors):
+            embedding = np.empty((base_index.d,), dtype=np.float32)  # Create a 1D array for the reconstructed embedding
+            base_index.reconstruct(i, embedding)  # Reconstruct the embedding for index i
+            data_embeddings[i] = embedding  # Store it in the embeddings array
+
+        # Remove embeddings for the nodes to be deleted
+        delete_indices = [i for i, id_ in enumerate(store["category_index_mapping"].keys()) if id_ in ids_to_delete]
+        data_embeddings = np.delete(data_embeddings, delete_indices, axis=0)
+
+        # Create a new FAISS index with the remaining embeddings
+        index = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
+        faiss.normalize_L2(data_embeddings)
+        index.add_with_ids(
+            data_embeddings, np.array(list(remaining_ids))
         )
+
+        # Update the store without re-creating the index from scratch
+        store["category_index_mapping"] = {
+            i: chunk for i, chunk in zip(remaining_ids, remaining_text_chunks)
+        }
+        store["metadata_index_mapping"] = {
+            i: metadata for i, metadata in zip(remaining_ids, remaining_metadata)
+        }
+        store["nodes"] = remaining_nodes
+        store["index"] = index
+
+        logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
+        logging.warning(f"Node ID(s) {missing_ids} does not exist in the collection {collection_name}.")
+        logging.info(f"Remaining Node ID(s): {store["category_index_mapping"].keys()}")
 
     def add_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
