@@ -229,6 +229,28 @@ class VectorStore:
 
         self._create_and_save_index(collection_name, nodes, text_chunks, metadata)
 
+    def create_from_nodes(self, nodes: List[Any]) -> None:
+        """
+        Creates a FAISS index from a list of nodes and collection it under the default name "base".
+
+        :param nodes: List of nodes containing the content and metadata. 
+        """
+        logging.info("Creating FAISS index for store: base")
+        text_chunks = []
+        metadata = []
+
+        for node in nodes:
+            text_chunks.append(node.content)
+            formatted_metadata = {
+                "node_id": node.metadata.node_id,
+                "source_file_uuid": node.metadata.source_file_uuid,
+                "position": node.metadata.position,
+                "custom": node.metadata.custom,
+            }
+            metadata.append(formatted_metadata)
+
+        self._create_and_save_index("base", nodes, text_chunks, metadata)
+
     def _create_and_save_index(
         self,
         collection_name: str,
