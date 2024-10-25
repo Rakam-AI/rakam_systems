@@ -509,7 +509,7 @@ class VectorStore(Component):
         self.create_from_nodes(nodes)
         results,_ = self.call_main("base", "This is the first document.")
         
-        return results["0"][1]
+        return results["1"][1]
 
 # Example usage
 if __name__ == "__main__":

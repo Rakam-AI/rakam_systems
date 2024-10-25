@@ -4,6 +4,7 @@ from typing import List, Optional
 from rakam_systems.components.connector import Connector
 from rakam_systems.components.generation.generation import Generator
 from rakam_systems.components.vector_search.vs_manager import VSManager
+from rakam_systems.components.vector_search.vector_store import VectorStore
 
 logging.basicConfig(level=logging.INFO)
 
@@ -40,7 +41,7 @@ class GenerationFeeder(Connector):
         self.vs_manager.inject_vsfiles(directory_path, collection_name)
         
         # Retrieve documents from the vector store for generation
-        valid_suggestions, suggested_nodes = self.vs_manager.search_documents(query=query, collection_name=collection_name)
+        valid_suggestions, suggested_nodes = self.vs_manager.vector_store.search(query=query, collection_name=collection_name)
         
         # Extract relevant documents (assuming the results contain a list of document texts)
         relevant_documents = [doc[1] for doc in valid_suggestions.values()]
@@ -61,10 +62,14 @@ class GenerationFeeder(Connector):
         Returns:
             str: The generated response.
         """
-        # This should call the appropriate method in the Generator to get the generated output.
-        return self.generator.call_main()
-
-    def test(self, query: str, test_directory: str) -> str:
+        vector_store = VectorStore(base_index_path="data/vector_stores_for_test/example_baseIDXpath", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
+        vs_manager = VSManager(vector_store=vector_store)
+        self.vs_manager = vs_manager
+        self.generator_model = "gpt-4o-mini"
+        test_query = "What is attention mechanism?"
+        return self.feed_generation(query=test_query, directory_path="data/files")
+        
+    def test(self) -> str:
         """
         Test the GenerationFeeder functionality.
 
@@ -76,14 +81,20 @@ class GenerationFeeder(Connector):
             str: The generated response.
         """
         logging.info("Running GenerationFeeder test")
-        return self.feed_generation(query=query, directory_path=test_directory)
+        vector_store = VectorStore(base_index_path="data/vector_stores_for_test/example_baseIDXpath", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
+        vs_manager = VSManager(vector_store=vector_store)
+        self.vs_manager = vs_manager
+        self.generator_model = "gpt-4o-mini"
+        test_query = "What is attention mechanism?"
+        return self.feed_generation(query=test_query, directory_path="data/files")
 
 if __name__ == "__main__":
-    # Example usage
-    vs_manager = VSManager(base_index_path="vector_stores_for_test/attention_is_all_you_need")
+    # # Example usage
+    vector_store = VectorStore(base_index_path="data/vector_stores_for_test/example_baseIDXpath", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
+    vs_manager = VSManager(vector_store=vector_store)
     feeder = GenerationFeeder(generator_model="gpt-4o-mini", vs_manager=vs_manager)
     
-    # Test the functionality
-    test_query = "What is attention mechanism?"
-    test_response = feeder.test(query=test_query, test_directory="data")
+    # test_query = "What is attention mechanism?"
+    # test_response = feeder.test(query=test_query, test_directory="data/files")
+    test_response = feeder.test()
     print("Test Response:", test_response)

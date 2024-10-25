@@ -140,6 +140,8 @@ class VSManager(Component):
         # Test document injection
         vs_files = self.inject_vsfiles(test_directory,collection_name=inject_collection_name)
         logging.info(f"Processed {len(vs_files)} test files")
+
+        return len(vs_files[0].nodes)
         
 
 
