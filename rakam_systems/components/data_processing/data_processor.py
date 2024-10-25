@@ -15,9 +15,10 @@ from rakam_systems.components.data_processing import (
     JSONContentExtractor,
 )
 from rakam_systems.components.data_processing.node_processors import MarkdownSplitter
+from rakam_systems.components.component import Component
 
 
-class DataProcessor:
+class DataProcessor(Component):
     def __init__(self) -> None:
         self.default_content_extractors: Dict[str, callable] = {
             "application/pdf": PDFContentExtractor(
@@ -50,8 +51,16 @@ class DataProcessor:
             self.default_node_processors.process(vs_file)
 
         return vs_files
-
+    
+    def call_main(self,directory_path):
+        return self.process_files_from_directory(directory_path)
+    
+    def test(self,directory_path):
+        return self.call_main(directory_path)
+    
+    # def call_url()
 
 if __name__ == "__main__":  # example usage
     processor = DataProcessor()
-    vs_files = processor.process_files_from_directory("path/to/directory")
+    vs_files = processor.test("data")
+    print(vs_files[0].nodes[0].content)

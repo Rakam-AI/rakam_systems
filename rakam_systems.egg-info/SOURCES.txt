@@ -9,6 +9,7 @@ setup.cfg
 ./rakam_systems/custom_loggers.py
 ./rakam_systems/components/__init__.py
 ./rakam_systems/components/base.py
+./rakam_systems/components/component.py
 ./rakam_systems/components/agents/__init__.py
 ./rakam_systems/components/agents/actions.py
 ./rakam_systems/components/agents/agents.py
@@ -38,6 +39,7 @@ rakam_systems/__pycache__/vector_store.cpython-38.pyc
 rakam_systems/components/__init__.py
 rakam_systems/components/base.py
 rakam_systems/components/__pycache__/__init__.cpython-312.pyc
+rakam_systems/components/component.py
 rakam_systems/components/agents/__init__.py
 rakam_systems/components/agents/actions.py
 rakam_systems/components/agents/agents.py
@@ -57,6 +59,7 @@ rakam_systems/template_systems/rag.py
 tests/test_actions.py
 tests/test_agents.py
 tests/test_core.py
+tests/test_create_from_nodes.py
 tests/test_deleteNodes.py
 tests/test_llm_integration.py
 tests/test_vector_store.py
