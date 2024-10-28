@@ -14,6 +14,8 @@ dotenv.load_dotenv()
 class LLM:
     def __init__(self, model: str = "gpt-4o", api_key=None) -> None:
         self.model = model
+        print("os.getenv-OPENAI_API_KEY",os.getenv("OPENAI_API_KEY"))
+
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY") if not api_key else api_key)
 
     def call_llm(self, sys_prompt: str, prompt: str, temperature: float = 0 ) -> str:

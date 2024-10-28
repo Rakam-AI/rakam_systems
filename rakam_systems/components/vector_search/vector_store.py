@@ -490,7 +490,7 @@ class VectorStore(Component):
     def call_main(self, collection_name: str, query: str, distance_type="cosine", number=5) -> dict:
         return self.search(collection_name, query, distance_type, number)
 
-    def test(self) -> bool:
+    def test(self, query = "This is the first document.") -> bool:
         """
         Method for testing the VectorStore.
         """
@@ -507,9 +507,12 @@ class VectorStore(Component):
         ]
         
         self.create_from_nodes(nodes)
-        results,_ = self.call_main("base", "This is the first document.")
+        results,_ = self.call_main("base", query = query)
         
         return results["1"][1]
+    
+    # def test_search_from_index(self):
+        
 
 # Example usage
 if __name__ == "__main__":

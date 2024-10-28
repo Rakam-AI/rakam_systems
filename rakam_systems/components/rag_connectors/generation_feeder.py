@@ -38,7 +38,7 @@ class GenerationFeeder(Connector):
             str: The generated response.
         """
         # Inject documents and get processed files
-        self.vs_manager.inject_vsfiles(directory_path, collection_name)
+        self.vs_manager.create_collection_from_vsfiles(directory_path, collection_name)
         
         # Retrieve documents from the vector store for generation
         valid_suggestions, suggested_nodes = self.vs_manager.vector_store.search(query=query, collection_name=collection_name)
@@ -69,7 +69,7 @@ class GenerationFeeder(Connector):
         test_query = "What is attention mechanism?"
         return self.feed_generation(query=test_query, directory_path="data/files")
         
-    def test(self) -> str:
+    def test(self, test_query = "What is attention mechanism?") -> str:
         """
         Test the GenerationFeeder functionality.
 
@@ -85,7 +85,7 @@ class GenerationFeeder(Connector):
         vs_manager = VSManager(vector_store=vector_store)
         self.vs_manager = vs_manager
         self.generator_model = "gpt-4o-mini"
-        test_query = "What is attention mechanism?"
+        
         return self.feed_generation(query=test_query, directory_path="data/files")
 
 if __name__ == "__main__":
@@ -94,7 +94,5 @@ if __name__ == "__main__":
     vs_manager = VSManager(vector_store=vector_store)
     feeder = GenerationFeeder(generator_model="gpt-4o-mini", vs_manager=vs_manager)
     
-    # test_query = "What is attention mechanism?"
-    # test_response = feeder.test(query=test_query, test_directory="data/files")
     test_response = feeder.test()
     print("Test Response:", test_response)

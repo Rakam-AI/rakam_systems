@@ -21,4 +21,3 @@ class Component(ABC):
         """
         pass
 
-

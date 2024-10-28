@@ -31,7 +31,7 @@ class VSManager(Component):
         self.doc_processor = data_processor
         self.vector_store = vector_store
 
-    def inject_vsfiles(
+    def create_collection_from_vsfiles(
         self,
         directory_path: str,
         collection_name: str = "base"
@@ -121,11 +121,11 @@ class VSManager(Component):
         Returns:
             List[VSFile]: List of processed VSFile objects
         """
-        return self.inject_vsfiles(directory_path, collection_name)
+        return self.create_collection_from_vsfiles(directory_path, collection_name)
 
     def test(
         self,
-        test_directory: str = "test_data",
+        test_directory: str = "data/files",
         inject_collection_name: str = "base"
     ) -> None:
         """
@@ -137,22 +137,19 @@ class VSManager(Component):
         """
         logging.info("Running DocumentInjector test")
         
-        # Test document injection
-        vs_files = self.inject_vsfiles(test_directory,collection_name=inject_collection_name)
+        vs_files = self.create_collection_from_vsfiles(test_directory,collection_name=inject_collection_name)
         logging.info(f"Processed {len(vs_files)} test files")
 
-        return len(vs_files[0].nodes)
-        
-
+        return (vs_files[0].nodes[0].content)
 
 if __name__ == "__main__":
     vector_store = VectorStore(base_index_path="data/vector_stores_for_test/attention_is_all_you_need", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
     print("Before injection, len of collections is:")  
     print(len(vector_store.collections))
 
-    vs_manager = VSManager(vector_store=vector_store)
+    # vs_manager = VSManager(vector_store=vector_store)
 
-    vs_manager.inject_vsfiles("data/files", collection_name="test")
+    # vs_manager.create_collection_from_vsfiles("data/files", collection_name="test")
 
     print("After injection, len of nodes in the  collections is:")
     print((len(vector_store.collections["test"]["nodes"])))

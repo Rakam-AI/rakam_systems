@@ -11,21 +11,12 @@ from rakam_systems.core import Node
 from rakam_systems.core import NodeMetadata
 from rakam_systems.custom_loggers import prompt_logger
 from rakam_systems.components.base import LLM
-from rakam_systems.components.vector_search import VectorStore
+from rakam_systems.components.vector_search.vector_store import VectorStore
+from rakam_systems.components.component import Component
 
 dotenv.load_dotenv()
 
-# Abstract Action class
-class Action(ABC):
-    @abstractmethod
-    def __init__(self, agent, **kwargs):
-        pass
-
-    @abstractmethod
-    def execute(self, **kwargs):
-        pass
-
-class TextSearchMetadata(Action):
+class TextSearchMetadata(Component):
     def __init__(
         self,
         agent,
@@ -33,6 +24,7 @@ class TextSearchMetadata(Action):
         embedding_model: str = "all-MiniLM-L6-v2",
         vector_store_path: str = "temp_path"
     ):
+        super().__init__()
         self.agent = agent
         self.collections = collections
         self.vector_store_path = vector_store_path
@@ -107,7 +99,8 @@ class TextSearchMetadata(Action):
             self._build_collection(vector_store, collection_name, data)
 
         return vector_store
-    def execute(self, query: str, collection: str) -> list:
+
+    def call_main(self, query: str) -> list:
         """
         Classifies the query by finding the closest match in the FAISS index.
         """
@@ -116,10 +109,12 @@ class TextSearchMetadata(Action):
             collection_name=collection, query=query, number=2
         )
 
-        # print("Successfully classified query:", query, "\nFound : ", valid_suggestions)
         return valid_suggestions
+    
+    def test(self) -> bool:
+        return bool(self.vector_store)
 
-class ClassifyQuery(Action):
+class ClassifyQuery(Component):
     def __init__(
         self,
         agent,
@@ -127,6 +122,7 @@ class ClassifyQuery(Action):
         class_names: pd.Series,
         embedding_model: str = "all-MiniLM-L6-v2",
     ):
+        super().__init__()
         self.agent = agent
         self.trigger_queries = trigger_queries
         self.class_names = class_names
@@ -158,7 +154,7 @@ class ClassifyQuery(Action):
 
         return vector_store
 
-    def execute(self, query: str):
+    def call_main(self, query: str):
         """
         Classifies the query by finding the closest match in the FAISS index.
         """
@@ -172,10 +168,12 @@ class ClassifyQuery(Action):
         matched_trigger_query = matched_node.content
         matched_class_name = matched_node.metadata.custom["class_name"]
 
-        print("Successfully classified query:", query)
         return matched_class_name, matched_trigger_query
 
-class RAGGeneration(Action):
+    def test(self) -> bool:
+        return bool(self.vector_store)
+
+class RAGGeneration(Component):
     def __init__(
         self,
         agent,
@@ -184,6 +182,7 @@ class RAGGeneration(Action):
         vector_stores: List[VectorStore],
         vs_descriptions: List[str] = None,
     ):
+        super().__init__()
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
@@ -193,7 +192,7 @@ class RAGGeneration(Action):
         self.store_separator = "\n====\n"
         self.result_separator = "\n----\n"
 
-    def execute(self, query, collection_names: List [str], prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
+    def call_main(self, query, collection_names: List[str], prompt_kwargs: dict = {}, stream: bool = False, **kwargs):
         ### --- Vector Store Search --- ###
         formatted_search_results = self._perform_vector_store_search(query, collection_names)
 
@@ -217,8 +216,7 @@ class RAGGeneration(Action):
         if stream: return self._generate_stream(sys_prompt, formatted_prompt)
         else: return self._generate_non_stream(sys_prompt, formatted_prompt)
 
-    # STREAMING (returns a generator)
-    def _generate_stream(self, sys_prompt, formatted_prompt):
+    def _generate_stream(self, formatted_prompt):
         # Call the LLM to generate the final answer in streaming mode
         response_generator = self.agent.llm.call_llm_stream(
             sys_prompt, formatted_prompt
@@ -226,8 +224,7 @@ class RAGGeneration(Action):
         for chunk in response_generator:
             yield chunk
 
-    # NON-STREAMING (returns a string)
-    def _generate_non_stream(self, sys_prompt, formatted_prompt) -> str:
+    def _generate_non_stream(self, formatted_prompt) -> str:
         # Call the LLM to generate the final answer
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
@@ -243,8 +240,7 @@ class RAGGeneration(Action):
         if self.vs_descriptions is None:
             self.vs_descriptions = collection_names
 
-        print("self.vector_stores, collection_names, self.vs_descriptions : ", self.vector_stores, collection_names, self.vs_descriptions)
-        for store, collection_name, collection_description in zip(self.vector_stores, collection_names, self.vs_descriptions) :
+        for store, collection_name, collection_description in zip(self.vector_stores, collection_names, self.vs_descriptions):
             _, node_search_results = store.search(
                 collection_name=collection_name, query=query
             )
@@ -253,7 +249,6 @@ class RAGGeneration(Action):
                 formatted_search_results.append(f"\n**Source:** {collection_description}\n\n")
                 formatted_search_results.append(self._format_search_results(node_search_results))
                 formatted_search_results.append(self.store_separator)
-
 
         return "".join(formatted_search_results).rstrip(
             self.store_separator + self.result_separator
@@ -272,13 +267,17 @@ class RAGGeneration(Action):
 
         return "".join(formatted_results)
 
-class GenericLLMResponse(Action):
+    def test(self) -> bool:
+        return bool(self.vector_stores)
+
+class GenericLLMResponse(Component):
     def __init__(self, agent, sys_prompt: str, prompt: str):
+        super().__init__()
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
 
-    def execute(self, query, prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
+    def call_main(self, query, prompt_kwargs: dict = {}, stream: bool = False, **kwargs):
         ### --- Format Prompt --- ###
         formatted_prompt = self.prompt.format(query=query, **prompt_kwargs)
 
@@ -295,8 +294,7 @@ class GenericLLMResponse(Action):
         else:
             return self._generate_non_stream(sys_prompt, formatted_prompt)
 
-    # STREAMING (returns a generator)
-    def _generate_stream(self, sys_prompt, formatted_prompt):
+    def _generate_stream(self, formatted_prompt):
         # Call the LLM to generate the final answer in streaming mode
         response_generator = self.agent.llm.call_llm_stream(
             sys_prompt, formatted_prompt
@@ -304,8 +302,10 @@ class GenericLLMResponse(Action):
         for chunk in response_generator:
             yield chunk
 
-    # NON-STREAMING (returns a string)
-    def _generate_non_stream(self, sys_prompt, formatted_prompt) -> str:
+    def _generate_non_stream(self, formatted_prompt) -> str:
         # Call the LLM to generate the final answer
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
+
+    def test(self) -> bool:
+        return True

@@ -13,7 +13,6 @@ python-dotenv==1.0.1
 python-magic==0.4.27
 requests==2.31.0
 sentence-transformers==2.6.1
-torch==2.2.2
 tqdm==4.66.4
 pymupdf==1.24.11
 pymupdf4llm==0.0.17

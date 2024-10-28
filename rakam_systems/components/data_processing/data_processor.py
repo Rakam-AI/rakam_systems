@@ -55,8 +55,10 @@ class DataProcessor(Component):
     def call_main(self,directory_path):
         return self.process_files_from_directory(directory_path)
     
-    def test(self,directory_path):
-        return self.call_main(directory_path)
+    def test(self, directory_path = "data"):
+        vs_files = self.call_main(directory_path)
+        
+        return vs_files[0].nodes[0].content
     
     # def call_url()
 
