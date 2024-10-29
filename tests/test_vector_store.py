@@ -1,4 +1,8 @@
+import sys
 import os
+
+# Add the root directory of rakam_systems to the path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
 import numpy as np
 from rakam_systems.core import Node, NodeMetadata, VSFile
