@@ -49,6 +49,18 @@ class VectorStore(Component):
         :param store_path: Path to the store directory.
         :return: Dictionary containing the store's index, nodes, metadata, and embeddings.
         """
+        required_files = [
+            "index", 
+            "category_index_mapping.pkl", 
+            "metadata_index_mapping.pkl", 
+            "nodes.pkl", 
+            "embeddings_index_mapping.pkl"
+        ]
+        
+        if not all(os.path.exists(os.path.join(store_path, file)) for file in required_files):
+            logging.warning(f"Store at {store_path} is missing required files and will not be loaded.")
+            return None
+        
         store = {}
         store["index"] = faiss.read_index(os.path.join(store_path, "index"))
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "rb") as f:
@@ -122,12 +134,13 @@ class VectorStore(Component):
                     )
                     count += 1
 
-        while count < number:
-            valid_suggestions[f"placeholder_{count}"] = (
-                "No suggestion available",
-                float("inf"),
-            )
-            count += 1
+        # while count < number:
+        #     valid_suggestions[f"placeholder_{count}"] = (
+        #         "No metadata available",
+        #         "No suggestion available",
+        #         float("inf"),
+        #     )
+        #     count += 1
 
         logging.info(f"Search results: {valid_suggestions}")
         return valid_suggestions, suggested_nodes
@@ -281,137 +294,137 @@ class VectorStore(Component):
         print((f"FAISS index and embeddings for store {collection_name} created and saved successfully."))
         logging.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
 
-    def _add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
-        """
-        Adds nodes to an existing store and updates the index.
+    # def _add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
+    #     """
+    #     Adds nodes to an existing store and updates the index.
 
-        :param collection_name: Name of the store to update.
-        :param nodes: List of nodes to be added.
-        """
-        logging.info(f"Adding nodes to store: {collection_name}")
+    #     :param collection_name: Name of the store to update.
+    #     :param nodes: List of nodes to be added.
+    #     """
+    #     logging.info(f"Adding nodes to store: {collection_name}")
 
-        store = self.collections.get(collection_name)
-        if not store:
-            raise ValueError(f"No store found with name: {collection_name}")
+    #     store = self.collections.get(collection_name)
+    #     if not store:
+    #         raise ValueError(f"No store found with name: {collection_name}")
 
-        new_text_chunks = [node.content for node in nodes]
-        new_metadata = [
-            {
-                "node_id": node.metadata.node_id,
-                "source_file_uuid": node.metadata.source_file_uuid,
-                "position": node.metadata.position,
-                "custom": node.metadata.custom,
-            }
-            for node in nodes
-        ]
+    #     new_text_chunks = [node.content for node in nodes]
+    #     new_metadata = [
+    #         {
+    #             "node_id": node.metadata.node_id,
+    #             "source_file_uuid": node.metadata.source_file_uuid,
+    #             "position": node.metadata.position,
+    #             "custom": node.metadata.custom,
+    #         }
+    #         for node in nodes
+    #     ]
 
-        # Add new embeddings to the index
-        new_embeddings = self._get_embeddings(sentences=new_text_chunks, parallel=False)
+    #     # Add new embeddings to the index
+    #     new_embeddings = self._get_embeddings(sentences=new_text_chunks, parallel=False)
 
-        # Add new entries to the index
-        new_ids = range(
-            len(store["category_index_mapping"]),
-            len(store["category_index_mapping"]) + len(new_text_chunks),
-        )
-        store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
+    #     # Add new entries to the index
+    #     new_ids = range(
+    #         len(store["category_index_mapping"]),
+    #         len(store["category_index_mapping"]) + len(new_text_chunks),
+    #     )
+    #     store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
 
-        # Update the mappings
-        store["category_index_mapping"].update(dict(zip(new_ids, new_text_chunks)))
-        store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
-        store["nodes"].extend(nodes)
+    #     # Update the mappings
+    #     store["category_index_mapping"].update(dict(zip(new_ids, new_text_chunks)))
+    #     store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
+    #     store["nodes"].extend(nodes)
 
-        # Save updated store
-        self.collections[collection_name] = store
-        self._save_collection(collection_name)
+    #     # Save updated store
+    #     self.collections[collection_name] = store
+    #     self._save_collection(collection_name)
 
-    def _delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
-        """
-        Deletes nodes from an existing store and updates the index using remove_ids method.
+    # def _delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
+    #     """
+    #     Deletes nodes from an existing store and updates the index using remove_ids method.
 
-        :param collection_name: Name of the store to update.
-        :param node_ids: List of node IDs to be deleted.
-        """
-        logging.info(f"Deleting nodes {node_ids} from store: {collection_name}")
+    #     :param collection_name: Name of the store to update.
+    #     :param node_ids: List of node IDs to be deleted.
+    #     """
+    #     logging.info(f"Deleting nodes {node_ids} from store: {collection_name}")
 
-        store = self.collections.get(collection_name)
-        if not store:
-            raise ValueError(f"No store found with name: {collection_name}")
+    #     store = self.collections.get(collection_name)
+    #     if not store:
+    #         raise ValueError(f"No store found with name: {collection_name}")
 
-        existed_ids = set(store["category_index_mapping"].keys())
-        logging.info(f"Existed IDs before deletion: {existed_ids}")
+    #     existed_ids = set(store["category_index_mapping"].keys())
+    #     logging.info(f"Existed IDs before deletion: {existed_ids}")
 
-        missing_ids = []
-        ids_to_delete = []
+    #     missing_ids = []
+    #     ids_to_delete = []
         
-        # Find the valid ids to delete
-        for node_id in node_ids:
-            if node_id not in existed_ids:
-                missing_ids.append(node_id)
-            else:
-                ids_to_delete.append(node_id)
+    #     # Find the valid ids to delete
+    #     for node_id in node_ids:
+    #         if node_id not in existed_ids:
+    #             missing_ids.append(node_id)
+    #         else:
+    #             ids_to_delete.append(node_id)
         
-        if not ids_to_delete:
-            logging.warning(f"No valid IDs to delete for store: {collection_name}")
-            return
+    #     if not ids_to_delete:
+    #         logging.warning(f"No valid IDs to delete for store: {collection_name}")
+    #         return
 
-        # Remove the IDs from the FAISS index using remove_ids method
-        faiss_index = store["index"]
+    #     # Remove the IDs from the FAISS index using remove_ids method
+    #     faiss_index = store["index"]
         
-        logging.info(f"FAISS Index Size Before Deletion: {faiss_index.ntotal}")
+    #     logging.info(f"FAISS Index Size Before Deletion: {faiss_index.ntotal}")
         
-        faiss_index.remove_ids(np.array(ids_to_delete))
+    #     faiss_index.remove_ids(np.array(ids_to_delete))
         
-        logging.info(f"FAISS Index Size After Deletion: {faiss_index.ntotal}")
+    #     logging.info(f"FAISS Index Size After Deletion: {faiss_index.ntotal}")
 
-        # Remove the nodes and mappings from the store
-        store["category_index_mapping"] = {
-            i: chunk for i, chunk in store["category_index_mapping"].items() if i not in ids_to_delete
-        }
-        store["metadata_index_mapping"] = {
-            i: metadata for i, metadata in store["metadata_index_mapping"].items() if i not in ids_to_delete
-        }
+    #     # Remove the nodes and mappings from the store
+    #     store["category_index_mapping"] = {
+    #         i: chunk for i, chunk in store["category_index_mapping"].items() if i not in ids_to_delete
+    #     }
+    #     store["metadata_index_mapping"] = {
+    #         i: metadata for i, metadata in store["metadata_index_mapping"].items() if i not in ids_to_delete
+    #     }
         
-        # Filter the nodes based on the ID, not based on list index
-        store["nodes"] = [node for node in store["nodes"] if node.metadata.node_id not in ids_to_delete]
+    #     # Filter the nodes based on the ID, not based on list index
+    #     store["nodes"] = [node for node in store["nodes"] if node.metadata.node_id not in ids_to_delete]
         
-        # Filter embeddings to remove those corresponding to deleted IDs
-        store["embeddings"] = {
-            i: emb for i, emb in store["embeddings"].items() if i not in ids_to_delete
-        }
+    #     # Filter embeddings to remove those corresponding to deleted IDs
+    #     store["embeddings"] = {
+    #         i: emb for i, emb in store["embeddings"].items() if i not in ids_to_delete
+    #     }
 
-        # Save the updated store
-        self.collections[collection_name] = store
-        self._save_collection(collection_name)
+    #     # Save the updated store
+    #     self.collections[collection_name] = store
+    #     self._save_collection(collection_name)
 
-        logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
-        logging.warning(f"Node ID(s) {missing_ids} does not exist in the collection {collection_name}.")
-        logging.info(f"Remaining Node ID(s): {store['category_index_mapping'].keys()}")
+    #     logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
+    #     logging.warning(f"Node ID(s) {missing_ids} does not exist in the collection {collection_name}.")
+    #     logging.info(f"Remaining Node ID(s): {store['category_index_mapping'].keys()}")
 
-    def _save_collection(self, collection_name: str) -> None:
-        """
-        Helper function to save the updated store back to the file system.
+    # def _save_collection(self, collection_name: str) -> None:
+    #     """
+    #     Helper function to save the updated store back to the file system.
 
-        :param collection_name: Name of the store to save.
-        """
-        store_path = os.path.join(self.base_index_path, collection_name)
-        store = self.collections[collection_name]
-        if len(store["nodes"]) == 0:
-            logging.warning(f"Cannot save FAISS index for store {collection_name} because nodes are empty.")
-            return
-        # Save category index mapping to file
-        with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
-            pickle.dump(store["category_index_mapping"], f)
+    #     :param collection_name: Name of the store to save.
+    #     """
+    #     store_path = os.path.join(self.base_index_path, collection_name)
+    #     store = self.collections[collection_name]
+    #     if len(store["nodes"]) == 0:
+    #         logging.warning(f"Cannot save FAISS index for store {collection_name} because nodes are empty.")
+    #         return
+    #     # Save category index mapping to file
+    #     with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
+    #         pickle.dump(store["category_index_mapping"], f)
 
-        # Save metadata nodes to file
-        with open(os.path.join(store_path, "metadata_index_mapping.pkl"), "wb") as f:
-            pickle.dump(store["metadata_index_mapping"], f)
+    #     # Save metadata nodes to file
+    #     with open(os.path.join(store_path, "metadata_index_mapping.pkl"), "wb") as f:
+    #         pickle.dump(store["metadata_index_mapping"], f)
 
-        # Save nodes to file
-        with open(os.path.join(store_path, "nodes.pkl"), "wb") as f:
-            pickle.dump(store["nodes"], f)
+    #     # Save nodes to file
+    #     with open(os.path.join(store_path, "nodes.pkl"), "wb") as f:
+    #         pickle.dump(store["nodes"], f)
 
-        faiss.write_index(store["index"], os.path.join(store_path, "index"))
-        logging.info(f"Store {collection_name} saved successfully.")
+    #     faiss.write_index(store["index"], os.path.join(store_path, "index"))
+    #     logging.info(f"Store {collection_name} saved successfully.")
     
     def _get_nodes(self, collection_name: str) -> List[Node]:
         """
@@ -420,6 +433,7 @@ class VectorStore(Component):
         :param collection_name: Name of the collection to retrieve nodes from.
         :return: List of nodes in the collection.
         """
+        self.collections[collection_name] = self._load_collection(os.path.join(self.base_index_path, collection_name))
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
