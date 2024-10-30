@@ -7,7 +7,7 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
-from rakam_systems.core import VSFile, NodeMetadata, Node
+from rakam_systems.core import NodeMetadata, Node
 from rakam_systems.components.component import Component
 
 logging.basicConfig(level=logging.INFO)
@@ -17,7 +17,7 @@ class VectorStore(Component):
     A class for managing collection-based vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str, initialising: bool = False) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str, load_from_local: bool = True) -> None:
         """
         Initializes the VectorStore with the specified base index path and embedding model.
 
@@ -31,7 +31,7 @@ class VectorStore(Component):
         self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
         self.collections = {}
 
-        if not initialising : self._load_vector_store()
+        if load_from_local : self._load_vector_store()
 
     def _load_vector_store(self) -> None:
         """
@@ -42,7 +42,7 @@ class VectorStore(Component):
             if os.path.isdir(store_path):
                 self.collections[collection_name] = self._load_collection(store_path)
 
-    def load_collection(self, store_path: str) -> Dict[str, Any]:
+    def _load_collection(self, store_path: str) -> Dict[str, Any]:
         """
         Loads a single vector store from the specified directory.
 
@@ -64,7 +64,7 @@ class VectorStore(Component):
         logging.info(f"Store loaded successfully from {store_path}.")
         return store
 
-    def predict_embeddings(self, query: str) -> np.ndarray:
+    def _predict_embeddings(self, query: str) -> np.ndarray:
         """
         Predicts embeddings for a given query using the embedding model.
 
@@ -165,44 +165,7 @@ class VectorStore(Component):
             f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
         )
         return embeddings.cpu().detach().numpy()
-
-    ## TODO: move to VS manager class
-    def _create_collection_from_files(self, collection_name: str, files: List[VSFile]) -> None:
-        """
-        Creates FAISS indexes from dictionaries of store names and VSFile objects.
-
-        :param collection_files: Dictionary where keys are store names and values are lists of VSFile objects.
-        """
-        logging.info(f"Creating FAISS index for store: {collection_name}")
-        text_chunks = []
-        metadata = []
-        nodes = []
-
-        for file in files:
-            for node in file.nodes:
-                nodes.append(node)
-                text_chunks.append(node.content)
-                formatted_metadata = {
-                    "node_id": node.metadata.node_id,
-                    "source_file_uuid": node.metadata.source_file_uuid,
-                    "position": node.metadata.position,
-                    "custom": node.metadata.custom,
-                }
-                metadata.append(formatted_metadata)
-
-        self._create_and_save_index(collection_name, nodes, text_chunks, metadata)
     
-    ## TODO: move to VS manager class
-    def create_collections_from_files(self, collection_files: Dict[str, List[VSFile]]) -> None:
-        """
-        Creates FAISS indexes from dictionaries of store names and VSFile objects.
-
-        :param collection_files: Dictionary where keys are store names and values are lists of VSFile objects.
-        """
-        for collection_name, files in collection_files.items():
-            self._create_collection_from_files(collection_name, files)
-    
-    ## TODO: keep
     def create_collection_from_nodes(self, collection_name: str, nodes: List[Any]) -> None:
         """
         Creates a FAISS index from a list of nodes and collection it under the given collection name.
@@ -318,10 +281,7 @@ class VectorStore(Component):
         print((f"FAISS index and embeddings for store {collection_name} created and saved successfully."))
         logging.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
 
-
-
-    ## TODO: keep
-    def add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
+    def _add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
         """
         Adds nodes to an existing store and updates the index.
 
@@ -364,9 +324,7 @@ class VectorStore(Component):
         self.collections[collection_name] = store
         self._save_collection(collection_name)
 
-
-
-    def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
+    def _delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
         """
         Deletes nodes from an existing store and updates the index using remove_ids method.
 
@@ -427,38 +385,7 @@ class VectorStore(Component):
 
         logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
         logging.warning(f"Node ID(s) {missing_ids} does not exist in the collection {collection_name}.")
-        logging.info(f"Remaining Node ID(s): {store["category_index_mapping"].keys()}")
-
-    def add_files(self, collection_name: str, files: List[VSFile]) -> None:
-        """
-        Adds file nodes to the specified store by extracting nodes from the files and adding them to the index.
-
-        :param collection_name: Name of the store to update.
-        :param files: List of VSFile objects whose nodes are to be added.
-        """
-        logging.info(f"Adding files to store: {collection_name}")
-        all_nodes = []
-
-        for file in files:
-            all_nodes.extend(file.nodes)
-
-        self.add_nodes(collection_name, all_nodes)
-
-    def delete_files(self, collection_name: str, files: List[VSFile]) -> None:
-        """
-        Deletes file nodes from the specified store by removing nodes corresponding to the given files.
-
-        :param collection_name: Name of the store to update.
-        :param files: List of VSFile objects whose nodes are to be deleted.
-        """
-        logging.info(f"Deleting files from store: {collection_name}")
-        node_ids_to_delete = []
-
-        for file in files:
-            for node in file.nodes:
-                node_ids_to_delete.append(node.metadata.node_id)
-
-        self.delete_nodes(collection_name, node_ids_to_delete)
+        logging.info(f"Remaining Node ID(s): {store['category_index_mapping'].keys()}")
 
     def _save_collection(self, collection_name: str) -> None:
         """
@@ -466,11 +393,10 @@ class VectorStore(Component):
 
         :param collection_name: Name of the store to save.
         """
-
         store_path = os.path.join(self.base_index_path, collection_name)
         store = self.collections[collection_name]
         if len(store["nodes"]) == 0:
-            logging.warning(f"Cannot sve FAISS index for store {collection_name} because nodes are empty.")
+            logging.warning(f"Cannot save FAISS index for store {collection_name} because nodes are empty.")
             return
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
@@ -486,9 +412,54 @@ class VectorStore(Component):
 
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
         logging.info(f"Store {collection_name} saved successfully.")
+    
+    def _get_nodes(self, collection_name: str) -> List[Node]:
+        """
+        Retrieves the nodes from the specified collection.
 
+        :param collection_name: Name of the collection to retrieve nodes from.
+        :return: List of nodes in the collection.
+        """
+        store = self.collections.get(collection_name)
+        if not store:
+            raise ValueError(f"No store found with name: {collection_name}")
+
+        return store["nodes"]
+    
+    def call_get_nodes(self, collection_name: str) -> List[Node]:
+        """
+        Main method to retrieve nodes from a collection.
+
+        :param collection_name: Name of the collection to retrieve nodes from.
+        :return: List of nodes in the collection.
+        """
+        nodes = self._get_nodes(collection_name)
+        serialzied_nodes = [node.to_dict() for node in nodes]
+        response = {
+            "length": len(serialzied_nodes),
+            "nodes": serialzied_nodes
+        }
+        return response
+    
     def call_main(self, collection_name: str, query: str, distance_type="cosine", number=5) -> dict:
-        return self.search(collection_name, query, distance_type, number)
+        # Perform the search
+        valid_suggestions, suggested_nodes = self.search(collection_name, query, distance_type, number)
+        
+        # Format `valid_suggestions` for JSON compatibility
+        formatted_suggestions = {
+            suggestion_id: {
+                "metadata": metadata,
+                "text": text,
+                "distance": distance
+            } 
+            for suggestion_id, (metadata, text, distance) in valid_suggestions.items()
+        }
+        
+        # Return the formatted suggestions as a JSON-compatible dictionary
+        return {
+            "suggestions": formatted_suggestions,
+            # "suggested_nodes": suggested_nodes 
+        }
 
     def test(self, query = "This is the first document.") -> bool:
         """
@@ -507,14 +478,10 @@ class VectorStore(Component):
         ]
         
         self.create_from_nodes(nodes)
-        results,_ = self.call_main("base", query = query)
+        results,_ = self.call_main(collection_name = "base", query = query)
         
         return results["1"][1]
-    
-    # def test_search_from_index(self):
-        
 
-# Example usage
 if __name__ == "__main__":
     vector_store = VectorStore(base_index_path="data/vector_stores_for_test/example_baseIDXpath", embedding_model="sentence-transformers/all-MiniLM-L6-v2")
     print(vector_store.test())

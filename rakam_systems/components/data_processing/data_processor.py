@@ -1,3 +1,4 @@
+import logging
 import mimetypes
 import os
 import sys
@@ -27,6 +28,7 @@ class DataProcessor(Component):
             "application/json": JSONContentExtractor(),
         }
         self.default_node_processors = MarkdownSplitter()
+        logging.info("Data Processor initialized")
 
     def process_files_from_directory(self, directory_path: str) -> List[VSFile]:
         # Extract content from files
@@ -53,15 +55,15 @@ class DataProcessor(Component):
         return vs_files
     
     def call_main(self,directory_path):
-        return self.process_files_from_directory(directory_path)
+        vs_files = self.process_files_from_directory(directory_path)
+        serialized_files = [vs_file.to_dict() for vs_file in vs_files]
+        return serialized_files
     
     def test(self, directory_path = "data"):
-        vs_files = self.call_main(directory_path)
+        vs_files = self.call_search_from_collection(directory_path)
         
         return vs_files[0].nodes[0].content
     
-    # def call_url()
-
 if __name__ == "__main__":  # example usage
     processor = DataProcessor()
     vs_files = processor.test("data")

@@ -100,7 +100,7 @@ class TextSearchMetadata(Component):
 
         return vector_store
 
-    def call_main(self, query: str) -> list:
+    def call_main(self, collection: str,query: str) -> list:
         """
         Classifies the query by finding the closest match in the FAISS index.
         """
@@ -216,7 +216,7 @@ class RAGGeneration(Component):
         if stream: return self._generate_stream(sys_prompt, formatted_prompt)
         else: return self._generate_non_stream(sys_prompt, formatted_prompt)
 
-    def _generate_stream(self, formatted_prompt):
+    def _generate_stream(self, sys_prompt, formatted_prompt):
         # Call the LLM to generate the final answer in streaming mode
         response_generator = self.agent.llm.call_llm_stream(
             sys_prompt, formatted_prompt
@@ -224,7 +224,7 @@ class RAGGeneration(Component):
         for chunk in response_generator:
             yield chunk
 
-    def _generate_non_stream(self, formatted_prompt) -> str:
+    def _generate_non_stream(self, sys_prompt, formatted_prompt) -> str:
         # Call the LLM to generate the final answer
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
@@ -294,7 +294,7 @@ class GenericLLMResponse(Component):
         else:
             return self._generate_non_stream(sys_prompt, formatted_prompt)
 
-    def _generate_stream(self, formatted_prompt):
+    def _generate_stream(self, sys_prompt, formatted_prompt):
         # Call the LLM to generate the final answer in streaming mode
         response_generator = self.agent.llm.call_llm_stream(
             sys_prompt, formatted_prompt
@@ -302,7 +302,7 @@ class GenericLLMResponse(Component):
         for chunk in response_generator:
             yield chunk
 
-    def _generate_non_stream(self, formatted_prompt) -> str:
+    def _generate_non_stream(self, sys_prompt, formatted_prompt) -> str:
         # Call the LLM to generate the final answer
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer

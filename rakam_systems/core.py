@@ -20,6 +20,16 @@ class VSFile:
         self.processed: bool = (
             False  # whether the nodes of this file have been processed
         )
+    
+    def to_dict(self) -> Dict:
+        return {
+            "uuid": self.uuid,
+            "file_path": self.file_path,
+            "file_name": self.file_name,
+            "mime_type": self.mime_type,
+            "nodes": [node.to_dict() for node in self.nodes] if self.nodes else [],
+            "processed": self.processed,
+        }
 
 
 class NodeMetadata:
@@ -40,6 +50,14 @@ class NodeMetadata:
             f"position={self.position}, custom={{ {custom_str} }})"
         )
 
+    def to_dict(self) -> Dict:
+        return {
+            "node_id": self.node_id,
+            "source_file_uuid": self.source_file_uuid,
+            "position": self.position,
+            "custom": self.custom,
+        }
+
 
 class Node:
     """
@@ -53,3 +71,10 @@ class Node:
 
     def __str__(self) -> str:
         return f"Node(content='{self.content[:30]}...', metadata={self.metadata})"
+    
+    def to_dict(self) -> Dict:
+        return {
+            "content": self.content,
+            "metadata": self.metadata.to_dict() if self.metadata else None,
+            "embedding": None,  # Modify if embedding is serializable
+        }

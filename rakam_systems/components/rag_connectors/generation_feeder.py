@@ -13,7 +13,7 @@ class GenerationFeeder(Connector):
     A class that feeds generated responses based on documents processed by VSManager.
     """
 
-    def __init__(self, generator_model: str, vs_manager: VSManager):
+    def __init__(self, generator_model, vs_manager: VSManager):
         """
         Initialize the GenerationFeeder with the necessary components.
 
@@ -21,7 +21,7 @@ class GenerationFeeder(Connector):
             generator_model (str): The LLM model to use for text generation.
             vs_manager (VSManager): An instance of VSManager to manage documents.
         """
-        self.generator = Generator(model=generator_model)
+        self.generator = generator_model
         self.vs_manager = vs_manager
         logging.info(f"GenerationFeeder initialized with model: {generator_model}")
 
@@ -38,7 +38,7 @@ class GenerationFeeder(Connector):
             str: The generated response.
         """
         # Inject documents and get processed files
-        self.vs_manager.create_collection_from_vsfiles(directory_path, collection_name)
+        self.vs_manager._create_collection_from_directory(directory_path, collection_name)
         
         # Retrieve documents from the vector store for generation
         valid_suggestions, suggested_nodes = self.vs_manager.vector_store.search(query=query, collection_name=collection_name)
@@ -50,7 +50,7 @@ class GenerationFeeder(Connector):
         self.generator.setup_generation(query=query, documents=relevant_documents)
 
         # Generate text using the LLM
-        generated_response = self.generator.call_main()
+        generated_response = self.generator.call_search_from_collection()
         
         logging.info(f"Generated response for query '{query}': {generated_response}")
         return generated_response

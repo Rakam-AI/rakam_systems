@@ -5,10 +5,8 @@ import dotenv
 from rakam_systems.components.base import LLM
 from rakam_systems.components.component import Component
 
-# Load environment variables
 dotenv.load_dotenv()
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 
 class Generator(Component):
@@ -25,8 +23,9 @@ class Generator(Component):
         self.documents: Optional[List[str]] = None
         self.sys_prompt: str = "You are a helpful assistant."  # Default system prompt
         self.user_prompt: Optional[str] = None
+        logging.info(f"Generator initialized with model: {model}")
 
-    def setup_generation(self, query: str, documents: List[str], sys_prompt: Optional[str] = None, temperature: Optional[float] = None):
+    def _setup_generation(self, query: str, documents: List[str], sys_prompt: Optional[str] = None, temperature: Optional[float] = None):
         """Set the query and documents for generation.
 
         Args:
@@ -41,7 +40,7 @@ class Generator(Component):
         if temperature is not None:
             self.set_temperature(temperature)
         
-        self._generate_user_prompt(mode="RAG")
+        self._setup_user_prompt(mode="RAG")
 
     def set_temperature(self, temperature: float):
         """Set the temperature for text generation.
@@ -56,7 +55,7 @@ class Generator(Component):
             raise ValueError("Temperature must be between 0 and 1.")
         self.temperature = temperature
 
-    def _generate_user_prompt(self, mode: str):
+    def _setup_user_prompt(self, mode: str):
         """Generate a prompt based on the loaded documents and the set query.
 
         Args:
@@ -66,7 +65,7 @@ class Generator(Component):
             ValueError: If no documents are loaded.
         """
         if self.documents is None:
-            raise ValueError("No documents loaded. Please load documents before generating a prompt.")
+            raise ValueError("No documents loaded. Please load documents before setting up a prompt.")
         
         if mode == "RAG":
             combined_documents = "\n".join(self.documents)
@@ -75,7 +74,7 @@ class Generator(Component):
                 f"Please generate a response for this query: {self.query}"
             )
 
-    def generate_text(self, stream=False) -> str:
+    def _generate_text(self, stream=False) -> str:
         """Generate text using the LLM.
 
         Returns:
@@ -101,13 +100,30 @@ class Generator(Component):
                 temperature=self.temperature
             )
 
-    def call_main(self) -> str:
+    def call_direct_generation(self, query:str) -> str:
+        """Generate text directly using the LLM.
+
+        Args:
+            query (str): The query to respond to.
+
+        Returns:
+            str: The generated text.
+        """
+        self.query = query
+        return self.llm.call_llm(
+            sys_prompt=self.sys_prompt,
+            prompt=query,
+            temperature=self.temperature
+        )
+
+    def call_main(self, query, documents) -> str:
         """Main method to generate text.
 
         Returns:
             str: The generated text.
         """
-        return self.generate_text()
+        self._setup_generation(query=query, documents=documents)
+        return self._generate_text()
 
     def test(self) -> bool:
         """Method for testing the VectorStore.
@@ -117,14 +133,4 @@ class Generator(Component):
         """
         logging.info("Running test for VectorStore.")
         return self.call_main()
-
-if __name__ == "__main__":
-    generator = Generator(model="gpt-4o-mini")
-    documents = [
-        "Paris is the capital of France.",
-        "London is the capital of the UK.",
-        "New York is the biggest city in the US."
-    ]
-    generator.setup_generation(query="Where is Paris?", documents=documents)
-    print(generator.test())
 
