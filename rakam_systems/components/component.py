@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 
+
 class Component(ABC):
     """
     An abstract base class for components that can be extended for various functionalities.
     """
-    def __init__(self, system_config_path: str, **kwargs) -> None:
+    def __init__(self, system_manager: SystemManager, **kwargs) -> None:
         pass
     
     @abstractmethod
