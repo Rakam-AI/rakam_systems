@@ -11,7 +11,7 @@ dotenv.load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 
-class ComponentConnector():
+class SystemManager():
 
     def __init__(self, system_config:str) :
 
