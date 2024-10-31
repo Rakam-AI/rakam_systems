@@ -7,6 +7,7 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from rakam_systems.system_manager import SystemManager
 from rakam_systems.core import NodeMetadata, Node
 from rakam_systems.components.component import Component
 
@@ -17,7 +18,7 @@ class VectorStore(Component):
     A class for managing collection-based vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str, load_from_local: bool = True) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str, system_manager: SystemManager, load_from_local: bool = True) -> None:
         """
         Initializes the VectorStore with the specified base index path and embedding model.
 
@@ -30,6 +31,7 @@ class VectorStore(Component):
 
         self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
         self.collections = {}
+        self.system_manager = system_manager
 
         if load_from_local : self._load_vector_store()
 
@@ -470,10 +472,7 @@ class VectorStore(Component):
         }
         
         # Return the formatted suggestions as a JSON-compatible dictionary
-        return {
-            "suggestions": formatted_suggestions,
-            # "suggested_nodes": suggested_nodes 
-        }
+        return formatted_suggestions
 
     def test(self, query = "This is the first document.") -> bool:
         """

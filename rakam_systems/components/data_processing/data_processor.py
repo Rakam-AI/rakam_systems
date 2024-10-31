@@ -10,6 +10,7 @@ RAKAM_SYSTEMS_DIR = os.path.dirname(
 )
 sys.path.append(RAKAM_SYSTEMS_DIR)
 
+from rakam_systems.system_manager import SystemManager
 from rakam_systems.core import VSFile
 from rakam_systems.components.data_processing import (
     PDFContentExtractor,
@@ -20,7 +21,7 @@ from rakam_systems.components.component import Component
 
 
 class DataProcessor(Component):
-    def __init__(self) -> None:
+    def __init__(self, system_manager: SystemManager) -> None:
         self.default_content_extractors: Dict[str, callable] = {
             "application/pdf": PDFContentExtractor(
                 parser_name="AdvancedPDFParser", output_format="markdown", persist=True
@@ -28,6 +29,7 @@ class DataProcessor(Component):
             "application/json": JSONContentExtractor(),
         }
         self.default_node_processors = MarkdownSplitter()
+        self.system_manager = system_manager
         logging.info("Data Processor initialized")
 
     def process_files_from_directory(self, directory_path: str) -> List[VSFile]:

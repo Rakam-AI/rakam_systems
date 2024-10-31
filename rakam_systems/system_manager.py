@@ -2,18 +2,18 @@ import requests
 import yaml
 
 class SystemManager:
-    def __init__(self, system_config: str):
+    def __init__(self, system_config_path: str):
         # Load system configuration from YAML file
-        self.system_config = system_config
+        self.system_config_path = system_config_path
         self.config_data = self._load_system_config()
 
     def _load_system_config(self):
         """Load and parse the system configuration from YAML."""
         try:
-            with open(self.system_config, 'r') as config_file:
+            with open(self.system_config_path, 'r') as config_file:
                 return yaml.safe_load(config_file)
         except FileNotFoundError:
-            raise Exception(f"System configuration file '{self.system_config}' not found.")
+            raise Exception(f"System configuration file '{self.system_config_path}' not found.")
         except yaml.YAMLError as e:
             raise Exception(f"Error parsing YAML configuration: {e}")
 
@@ -43,19 +43,3 @@ class SystemManager:
         endpoint_path = self.config_data['components'][component_name]['functions'][function_name]
         url = f"{base_url}/{endpoint_path}"
         return url
-
-if __name__ == "__main__":
-    # Example usage
-    system_manager = SystemManager(system_config='system_config.yaml')
-    # print(system_manager.config_data['components']["VectorStore"]['functions']["search"])
-    # input_data = {"query": "What is attention?"}
-    # response = system_manager.execute_component_function(component_name='VectorStore', function_name='search', input_data=input_data)
-    # print(response)
-
-    input_data = {"directory": "data", "collection_name": "base"}
-    vs_files = system_manager.execute_component_function(
-        component_name="DataProcessor",
-        function_name="process_from_directory",
-        input_data=input_data
-    )
-    print(vs_files)
