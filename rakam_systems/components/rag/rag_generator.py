@@ -82,6 +82,38 @@ class RAGGenerator(Component):
                 prompt=user_prompt,
                 temperature=self.temperature
             )
+    
+    def _split_query(self, query: str) -> List[str]:
+        """Split the query into multiple queries.
+
+        Args:
+            query (str): The query to split.
+
+        Returns:
+            List[str]: The split queries.
+        """
+        sys_prompt = """
+        Given a query, split it into multiple(at most 5) simple sub-queries.
+        
+        Respond in this format:
+        ["Sub-query 1", "Sub-query 2", ...]
+
+        Only respond the list of sub-queries and nothing else.
+        """
+        user_prompt = f"Split the following query into multiple simple sub-queries: {query}"
+        generated_text = self._generate_text(sys_prompt, user_prompt)
+        try:
+            sub_queries = eval(generated_text)
+            # Ensure that the evaluated response is a list
+            if isinstance(sub_queries, list):
+                return sub_queries
+            else:
+                # If not a list, log an error and return as a single-item list
+                logging.error("Generated text is not in the expected list format.")
+                return [generated_text]
+        except Exception as e:
+            logging.error(f"Error splitting query: {e}")
+            return [generated_text]
 
     def set_sys_prompt(self, sys_prompt: str):
         """Set the system prompt for text generation.
@@ -104,7 +136,39 @@ class RAGGenerator(Component):
             raise ValueError("Temperature must be between 0 and 1.")
         self.temperature = temperature
 
+    def call_split_query(self, query: str):
+        """
+        External function to split a query into multiple sub-queries using the LLM.
+        """
+        sub_queries = self._split_query(query)
+        response = {
+            "sub_queries": sub_queries,
+            "query": query,
+            "status": "success",
+        }
+        return response
+
+    def call_rag_with_split_query(self, query: str):
+        sub_queries = self._split_query(query)
+        documents = []
+        for sub_query in sub_queries:
+            documents.extend(self._retrive(sub_query))
+        user_prompt = self._get_user_prompt(documents, query)
+        generated_text = self._generate_text(self.sys_prompt, user_prompt, stream=False)
+        response = {
+            "generated_text": generated_text,
+            "query": query,
+            "sub_queries": sub_queries,
+            "retreived_documents": documents,
+            "status": "success",
+        }
+        return response
+
     def call_main(self, query):
+        """
+        Simple RAG generation with a single query.
+        Vector Search in default 'base' collection.
+        """
         documents = self._retrive(query)
         user_prompt = self._get_user_prompt(documents, query)
         generated_text = self._generate_text(self.sys_prompt, user_prompt, stream=False)

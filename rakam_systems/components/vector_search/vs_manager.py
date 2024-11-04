@@ -525,7 +525,42 @@ class VSManager(Component):
         serialized_files = [vs_file.to_dict() for vs_file in vs_files]
         return serialized_files
     
-    def call_add_vsfiles(
+    def call_create_from_file(
+            self,
+            file_path: str,
+            collection_name: str = "base"
+    ) -> List[VSFile]:
+        """
+        Main method to process and inject a single document.
+
+        Args:
+            file_path (str): Path to the file to process
+            collection_name (str): Name of the collection to store the document in
+
+        Returns:
+            List[VSFile]: List of processed VSFile objects
+        """
+        input_data = {"file_path": file_path}
+        serialized_files = self.system_manager.execute_component_function(
+            component_name="DataProcessor",
+            function_name="process_from_file",
+            input_data=input_data
+        )
+        vs_files = [VSFile.from_dict(data=file) for file in serialized_files]
+        
+        if not vs_files:
+            logging.warning(f"No files were processed from file: {file_path}")
+            return []
+
+        # Create collection in vector store
+        collection_files = {collection_name: vs_files}
+        self._create_collections_from_files(collection_files)
+        
+        logging.info(f"Successfully injected file into collection: {collection_name}")
+
+        return serialized_files
+    
+    def call_add_from_directory(
         self,
         directory_path: str,
         collection_name: str = "base"
@@ -542,6 +577,40 @@ class VSManager(Component):
         """
         vs_files = self._add_vsfiles_to_collection_from_directory(directory_path, collection_name)
         serialized_files = [vs_file.to_dict() for vs_file in vs_files]
+        return serialized_files
+    
+    def call_add_from_file(
+            self,
+            file_path: str,
+            collection_name: str = "base"
+    ) -> List[VSFile]:
+        """
+        Main method to process and add a single document to an existing collection.
+
+        Args:
+            file_path (str): Path to the file to add
+            collection_name (str): Name of the collection to add the document to
+
+        Returns:
+            List[VSFile]: List of processed VSFile objects
+        """
+        input_data = {"file_path": file_path}
+        serialized_files = self.system_manager.execute_component_function(
+            component_name="DataProcessor",
+            function_name="process_from_file",
+            input_data=input_data
+        )
+        vs_files = [VSFile.from_dict(data=file) for file in serialized_files]
+        
+        if not vs_files:
+            logging.warning(f"No files were processed from file: {file_path}")
+            return []
+
+        # Add to existing collection
+        self._add_files(collection_name, vs_files)
+        
+        logging.info(f"Successfully added file to collection: {collection_name}")
+
         return serialized_files
     
     def call_delete_vsfiles(
