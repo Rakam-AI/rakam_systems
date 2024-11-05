@@ -25,21 +25,25 @@ class SystemManager:
             response.raise_for_status()  # Raise an error for bad HTTP status
             return response.json()  # Return the response in JSON format
         except requests.exceptions.RequestException as e:
-            raise Exception(f"Error executing {function_name} on {component_name}: {e}")
+            # Capture server response text if available for debugging
+            error_message = f"Error executing {function_name} on {component_name}: {e} | URL: {url} | response: {response}"
+            if response is not None and response.text:
+                error_message += f" | Server response: {response.text}"
+            raise Exception(error_message)
 
     def _get_component_url(self, component_name: str, function_name: str):
-        """Generate the URL for the specified component and function."""
-        # Ensure base_url is retrieved from config or defaulted
-        base_url = self.config_data.get('base_url', 'http://localhost')
+        """Generate the URL for the specified component and function within server groups."""
+        base_url = self.config_data.get('base_url', 'http://localhost:8000/api')
+
+        # Locate the server group and component
+        for server_group in self.config_data.get('ServerGroups', []):
+            for component in server_group.get('components', []):
+                # Check if component_name exists within this component dictionary
+                if component_name in component:
+                    functions = component[component_name].get('functions', {})
+                    if function_name in functions:
+                        endpoint_path = functions[function_name]
+                        return f"{base_url}/{endpoint_path}"
         
-        # Verify component and function existence
-        if component_name not in self.config_data.get('components', {}):
-            raise ValueError(f"Component '{component_name}' not found in configuration.")
-        
-        if function_name not in self.config_data['components'][component_name].get('functions', []):
-            raise ValueError(f"Function '{function_name}' not found for component '{component_name}' in configuration.")
-        
-        # Construct full URL
-        endpoint_path = self.config_data['components'][component_name]['functions'][function_name]
-        url = f"{base_url}/{endpoint_path}"
-        return url
+        # Raise an error if component or function is not found
+        raise ValueError(f"Function '{function_name}' for component '{component_name}' not found in configuration.")
