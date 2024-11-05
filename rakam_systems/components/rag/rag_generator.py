@@ -1,9 +1,10 @@
 import logging
 from typing import List
+from textwrap import dedent
+
 import dotenv
 
 from rakam_systems.system_manager import SystemManager
-from rakam_systems.components.base import LLM
 from rakam_systems.components.component import Component
 
 dotenv.load_dotenv()
@@ -11,15 +12,12 @@ dotenv.load_dotenv()
 logging.basicConfig(level=logging.INFO)
 
 class RAGGenerator(Component):
-    def __init__(self, model: str, system_manager: SystemManager, temperature: float = 0.7):
+    def __init__(self, system_manager: SystemManager, temperature: float = 0.7):
         """Initialize the Generator with the specified LLM model and temperature.
 
         Args:
-            model (str): The LLM model to use.
             temperature (float): A parameter to control randomness in generation (default is 0.7).
         """
-
-        self.llm = LLM(model=model)
         self.temperature = temperature
         self.system_manager = system_manager
         self.sys_prompt = "You are a helpful assistant."
@@ -40,25 +38,36 @@ class RAGGenerator(Component):
             input_data=input_data
         )
 
-        # Extract the texts from the response
         documents = [item["text"] for item in response.values() if "text" in item]
         return documents
 
-    def _get_user_prompt(self, documents: List[str], query: str):
+    def _get_user_prompt(self, documents: List[str], query: str) -> str:
         """Generate a prompt based on the loaded documents and the set query.
 
         Args:
-            mode (str): The mode of prompt generation (e.g., "RAG").
+            documents (List[str]): List of document strings.
+            query (str): The query for which the response is generated.
         
         Raises:
             ValueError: If no documents are loaded.
         """
-        combined_documents = "---\n".join(documents)
-        
-        return (
-            f"Based on the following documents:\n{combined_documents}\n"
-            f"Please generate a response for this query: {query}"
-        )
+        if not documents:
+            raise ValueError("No documents loaded.")
+
+        try:
+            # Clean each document to ensure no special characters interfere with the formatting.
+            cleaned_documents = [doc.replace("\n", " ").replace("\t", " ") for doc in documents]
+            combined_documents = "\n".join(cleaned_documents)
+        except Exception as e:
+            # Handle any unexpected errors in document processing.
+            raise ValueError(f"Error processing documents: {e}")
+
+        return dedent(f"""\
+            Given the following documents, generate a response to the query: {query}
+
+            Documents:
+            {combined_documents}
+        """)
 
     def _generate_text(self, sys_prompt: str, user_prompt:str,  stream=False) -> str:
         """Generate text using the LLM.
@@ -70,18 +79,27 @@ class RAGGenerator(Component):
             ValueError: If the prompt is not set.
         """
         if stream:
-            self.llm.call_llm_stream(
-                sys_prompt=sys_prompt,
-                prompt=user_prompt,
-                temperature=self.temperature
+            self.system_manager.execute_component_function(
+                component_name="LLMConnector",
+                function_name="call_llm_stream",
+                input_data={
+                    "sys_prompt": sys_prompt,
+                    "prompt": user_prompt,
+                    "temperature": self.temperature
+                }
             )
         else:
             logging.info(f"******System Prompt Sent: {sys_prompt}\n User Prompt Sent: {user_prompt} \n ******")
-            return self.llm.call_llm(
-                sys_prompt=sys_prompt,
-                prompt=user_prompt,
-                temperature=self.temperature
+            response = self.system_manager.execute_component_function(
+                component_name="LLMConnector",
+                function_name="call_llm",
+                input_data={
+                    "sys_prompt": sys_prompt,
+                    "prompt": user_prompt,
+                    "temperature": self.temperature
+                }
             )
+            return response['response']
     
     def _split_query(self, query: str) -> List[str]:
         """Split the query into multiple queries.
@@ -171,10 +189,13 @@ class RAGGenerator(Component):
         """
         documents = self._retrive(query)
         user_prompt = self._get_user_prompt(documents, query)
+        # user_prompt = user_prompt[:200]
         generated_text = self._generate_text(self.sys_prompt, user_prompt, stream=False)
         response = {
             "generated_text": generated_text,
             "query": query,
+            "sys_prompt": self.sys_prompt,
+            "user_prompt": user_prompt,
             "retreived_documents": documents,
             "status": "success",
         }

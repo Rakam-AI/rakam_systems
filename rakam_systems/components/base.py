@@ -5,11 +5,9 @@ from typing import Dict
 from typing import List
 from typing import Optional
 
-import dotenv
 from openai import OpenAI
 
 logging.basicConfig(level=logging.INFO)
-dotenv.load_dotenv()
 
 class LLM:
     def __init__(self, model: str = "gpt-4o", api_key=None) -> None:
