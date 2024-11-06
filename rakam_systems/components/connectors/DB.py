@@ -18,7 +18,7 @@ class SQLDB(Component):
         
         return sqlite3.connect(self.db_path)
 
-    def execute_query(self, query: str, data: Tuple = ()) -> None:
+    def execute_query(self, query: str, data: Tuple = ()) -> None: 
         # Open a new connection each time
         try:
             with sqlite3.connect(self.db_path) as connection:

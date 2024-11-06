@@ -40,10 +40,11 @@ class SystemManager:
             for component in server_group.get('components', []):
                 # Check if component_name exists within this component dictionary
                 if component_name in component:
-                    functions = component[component_name].get('functions', {})
+                    functions = component[component_name]
                     if function_name in functions:
                         endpoint_path = functions[function_name]
                         return f"{base_url}/{endpoint_path}"
         
         # Raise an error if component or function is not found
-        raise ValueError(f"Function '{function_name}' for component '{component_name}' not found in configuration.")
+        raise ValueError(f"Function '{function_name}' for component '{component_name}' not found in configuration.")  
+

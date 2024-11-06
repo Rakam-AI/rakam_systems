@@ -6,7 +6,7 @@ from mistralai import Mistral
 from rakam_systems.system_manager import SystemManager
 from rakam_systems.components.component import Component
 
-class LLMConnector(Component):
+class LLMManager(Component):
     def __init__(self, system_manager: SystemManager, model: str = "gpt-4o", api_key=None) -> None:
         self.model = model
         if model in ["gpt-4o", "gpt-4o-mini", "o1-preview", "o1-mini"]:

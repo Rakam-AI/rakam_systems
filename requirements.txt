@@ -13,9 +13,8 @@ psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 python-magic==0.4.27
 requests==2.31.0
-sentence-transformers==2.6.1
+sentence-transformers==3.2.1
 tqdm==4.66.4
 pymupdf==1.24.11
 pymupdf4llm==0.0.17
 boto3==1.34.115
-# docling == 2.3.1
