@@ -183,12 +183,14 @@ class RAGGeneration(Action):
         prompt: str,
         vector_stores: List[VectorStore],
         vs_descriptions: List[str] = None,
+        name: str = ""
     ):
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
         self.vector_stores = vector_stores
         self.vs_descriptions = vs_descriptions
+        self.name = name
 
         self.store_separator = "\n====\n"
         self.result_separator = "\n----\n"
@@ -207,7 +209,7 @@ class RAGGeneration(Action):
         # Use the provided sys_prompt or fall back to the default
         sys_prompt = sys_prompt or self.default_sys_prompt
 
-        prompt_logger.info(f"\nSYSPROMPT:\n---\n{self.default_sys_prompt}\n---\n")
+        prompt_logger.info(f"\nSYSPROMPT:\n---\n{sys_prompt}\n---\n")
         prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
         prompt_logger.info(
             f"\nFORMATTED PROMPT (RAGGeneration):\n---\n{formatted_prompt}\n---\n"
@@ -246,7 +248,7 @@ class RAGGeneration(Action):
         print("self.vector_stores, collection_names, self.vs_descriptions : ", self.vector_stores, collection_names, self.vs_descriptions)
         for store, collection_name, collection_description in zip(self.vector_stores, collection_names, self.vs_descriptions) :
             _, node_search_results = store.search(
-                collection_name=collection_name, query=query
+                collection_name=collection_name, query=query, number=10,
             )
             if node_search_results:
                 # Format the search results for one vector store

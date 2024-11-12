@@ -156,6 +156,7 @@ class VectorStore:
             count += 1
 
         logging.info(f"Search results: {valid_suggestions}")
+        print(f"Search results: {valid_suggestions}")
         return valid_suggestions, suggested_nodes
 
     def get_embeddings(self, sentences: List[str], parallel: bool = True, batch_size: int = 8) -> np.ndarray:
