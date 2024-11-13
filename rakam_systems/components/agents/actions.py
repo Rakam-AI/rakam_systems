@@ -279,6 +279,7 @@ class GenericLLMResponse(Action):
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
+        self.name = "GenericLLMResponse"
 
     def execute(self, query, prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
         ### --- Format Prompt --- ###
