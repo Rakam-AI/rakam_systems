@@ -103,35 +103,85 @@ class VectorStore:
         return query_embedding
 
     def search(
-        self, collection_name: str, query: str, distance_type="cosine", number=5
+        self, collection_name: str, query: str, distance_type="cosine", number=5, meta_data_filters: List = None
     ) -> dict:
         """
         Searches the specified collection for the closest embeddings to the query.
-
-        :param collection_name: Name of the collection to search in.
-        :param query: Query string to search for.
-        :param distance_type: Distance metric to use (default is "cosine").
-        :param number: Number of closest embeddings to return.
-        :return: Dictionary of search results with suggestion texts and distances.
         """
-        logging.info(
-            f"Searching in collection: {collection_name} for query: {query} with distance type: {distance_type} and number of results: {number}"
-        )
+        logging.info(f"Searching in collection: {collection_name} for query: '{query}'")
 
+        # Step 1: Retrieve the collection
         store = self.collections.get(collection_name)
         if not store:
-            raise ValueError(f"No store found with name: {collection_name} in path : {self.base_index_path}")
+            raise ValueError(f"No store found with name: {collection_name}")
 
+        # Step 2: Apply metadata filters if provided
+        if meta_data_filters:
+            logging.info(f"Applying metadata filters: {meta_data_filters}")
+            filtered_nodes = [store["nodes"][node_id] for node_id in meta_data_filters if node_id in store["nodes"]]
+            mapping_indices = []
+            for node in filtered_nodes:
+                matching_ids = [
+                    id_ for id_, content in store["category_index_mapping"].items()
+                    if content == node.content
+                ]
+                mapping_indices.extend(matching_ids)
+            logging.info(f"Filtered node indices: {mapping_indices}")
+
+            # Reconstruct embeddings from the original FAISS index based on mapping indices
+            embedding_dim = store["index"].d
+            filtered_index = faiss.IndexIDMap(faiss.IndexFlatIP(embedding_dim))
+
+            filtered_embeddings = []
+            filtered_ids = []
+            for idx in mapping_indices:
+                try:
+                    vector = store["index"].reconstruct(idx)
+                    filtered_embeddings.append(vector)
+                    filtered_ids.append(idx)
+                except RuntimeError:
+                    logging.warning(f"ID {idx} not found in the original index.")
+
+            logging.info(f"Number of filtered embeddings: {len(filtered_embeddings)}")
+
+            if not filtered_embeddings:
+                logging.warning("No embeddings found for the given filters.")
+                return {}, []
+
+            # Normalize if cosine similarity is used
+            filtered_embeddings = np.array(filtered_embeddings).astype('float32')
+            if distance_type == "cosine":
+                faiss.normalize_L2(filtered_embeddings)
+
+            filtered_index.add_with_ids(filtered_embeddings, np.array(filtered_ids))
+            logging.info(f"Filtered index size after adding embeddings: {filtered_index.ntotal}")
+        else:
+            # No filters provided; use the original index
+            logging.info("No metadata filters provided. Using the entire index for search.")
+            filtered_index = store["index"]
+
+        # Step 3: Generate the query embedding
         query_embedding = self.predict_embeddings(query)
-        suggested_nodes = []
-
+        logging.info(f"Query embedding shape: {query_embedding.shape}")
         if distance_type == "cosine":
             faiss.normalize_L2(query_embedding)
-        D, I = store["index"].search(query_embedding, number)
 
+        # Step 4: Perform the search
+        logging.info("Performing search on the index...")
+        D, I = filtered_index.search(query_embedding, number)
+        logging.debug(f"Search distances: {D}")
+        logging.debug(f"Search indices: {I}")
+
+        if I.shape[1] == 0 or np.all(I == -1):
+            logging.error("Search returned no results.")
+            return {}, []
+
+        # Step 5: Prepare search results
+        suggested_nodes = []
         seen_texts = set()
         valid_suggestions = {}
         count = 0
+
         for i, id_ in enumerate(I[0]):
             if count >= number:
                 break
@@ -148,14 +198,7 @@ class VectorStore:
                     )
                     count += 1
 
-        while count < number:
-            valid_suggestions[f"placeholder_{count}"] = (
-                "No suggestion available",
-                float("inf"),
-            )
-            count += 1
-
-        logging.info(f"Search results: {valid_suggestions}")
+        logging.info(f"Final search results: {valid_suggestions}")
         return valid_suggestions, suggested_nodes
 
     def get_embeddings(self, sentences: List[str], parallel: bool = True, batch_size: int = 8) -> np.ndarray:
