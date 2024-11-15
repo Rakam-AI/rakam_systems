@@ -26,3 +26,6 @@ nltk==3.9.1
 # for realtime chatter
 websockets==10.4
 pyaudio==0.2.11
+
+# for advanced data processor
+docling==2.5.2
