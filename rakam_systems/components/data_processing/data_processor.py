@@ -94,9 +94,4 @@ class DataProcessor(Component):
         
         return vs_files[0].nodes[0].content
     
-if __name__ == "__main__":  # example usage
-    system_manager = SystemManager(system_config_path="system_config.yaml")
-    processor = DataProcessor(system_manager=system_manager)
-    
-    vs_files = processor.call_process_file("data/files/1706.03762v7.pdf")
-    print(vs_files)
+
