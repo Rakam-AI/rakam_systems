@@ -393,6 +393,24 @@ class VectorStore:
         data_embeddings = self.get_embeddings(sentences=text_chunks, parallel=False)
         category_index_mapping = dict(zip(range(len(text_chunks)), text_chunks))
 
+        for node in nodes:
+            content = getattr(node, 'content', None)
+            if not content:
+                logging.warning("Node content is missing or None.")
+                continue
+
+            # Find the index of the content in the category mapping
+            index = next((i for i, chunk in category_index_mapping.items() if chunk == content), None)
+            
+            if index is not None:
+                if getattr(node, 'metadata', None):
+                    setattr(node.metadata, 'node_id', index)
+                    logging.info(f"Assigned node_id: {index} for content: '{content}'")
+                else:
+                    logging.warning(f"Node metadata is None for content: '{content}'")
+            else:
+                logging.warning(f"No matching index found for content: '{content}'")
+
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
             pickle.dump(category_index_mapping, f)
@@ -695,3 +713,27 @@ class VectorStore:
 
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
         logging.info(f"Store {collection_name} saved successfully.")
+
+
+# if __name__ == "__main__":
+#     vsfiles_example = [
+#         VSFile("data/1.txt"),
+#         VSFile("data/2.txt"),
+#     ]
+#     nodes_1 = [
+#         Node("This is a test", NodeMetadata("1", 1)),
+#         Node("This is another test", NodeMetadata("1", 2)),
+#     ]
+#     nodes_2 = [
+#         Node("This is a test", NodeMetadata("2", 1)),
+#         Node("This is another test", NodeMetadata("2", 2)),
+#     ]
+
+#     vsfiles_example[0].nodes = nodes_1
+#     vsfiles_example[1].nodes = nodes_2
+#     vs = VectorStore(base_index_path="data", embedding_model="paraphrase-MiniLM-L6-v2")
+
+#     vs.create_collection_from_files("test", vsfiles_example)
+
+#     print(vs.collections["test"]["nodes"][0].metadata.node_id)
+       
