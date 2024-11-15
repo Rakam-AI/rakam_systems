@@ -57,6 +57,14 @@ class Advanced_Data_Processor(Component):
                 vs_files.append(vs_file)
 
         return vs_files
+    
+    def process_file(self, file_path: str) -> VSFile:
+        result = self.converter.convert(file_path)
+        md_text = result.document.export_to_markdown()
+        chunks = self.chunk_markdown_by_headers(md_text)
+        vs_file = VSFile(file_path)
+        vs_file.nodes = [Node(metadata=NodeMetadata(vs_file.uuid, i), content=chunk['content']) for i, chunk in enumerate(chunks)]
+        return vs_file
 
     def call_main(self, **kwargs) -> dict:
         return super().call_main(**kwargs)
@@ -66,15 +74,23 @@ class Advanced_Data_Processor(Component):
 
 # if __name__ == "__main__":
 #     processor = Advanced_Data_Processor()
-#     vs_files = processor.process_files_from_directory("data/pdfs")
-#     for vs_file in vs_files:
-#         print(vs_file)
-#         for node in vs_file.nodes:
-#             print(node)
-#             print("-" * 50)
-#             print(node.content)
-#             print("#" * 50)
-#         print("=" * 50)
-#         print()
+    # vs_files = processor.process_files_from_directory("data/pdfs")
+    # for vs_file in vs_files:
+    #     print(vs_file)
+    #     for node in vs_file.nodes:
+    #         print(node)
+    #         print("-" * 50)
+    #         print(node.content)
+    #         print("#" * 50)
+    #     print("=" * 50)
+    #     print()
+
+    # vs_file = processor.process_file("https://ds4sd.github.io/docling/examples/custom_convert/")
+    # print(vs_file)
+    # for node in vs_file.nodes:
+    #     print(node)
+    #     print("-" * 50)
+    #     print(node.content)
+    #     print("#" * 50)
 
 
