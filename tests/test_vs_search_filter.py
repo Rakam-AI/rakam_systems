@@ -63,12 +63,21 @@ def sample_nodes():
                 custom={"type": "sample"}
             )
         ),
+        Node(
+            content="More test content 4.",
+            metadata=NodeMetadata(
+                source_file_uuid="file4",
+                position=3,
+                custom={"type": "example"}
+            )
+        )
     ]
     
     # Manually set the node_id attribute if necessary
-    nodes[0].metadata.node_id = 1
-    nodes[1].metadata.node_id = 2
-    nodes[2].metadata.node_id = 3
+    nodes[0].metadata.node_id = 0
+    nodes[1].metadata.node_id = 1
+    nodes[2].metadata.node_id = 2
+    nodes[3].metadata.node_id = 3
     
     return nodes
 
@@ -97,14 +106,21 @@ def test_search_with_metadata_filter(vector_store, sample_nodes):
 
     # Create a collection with sample nodes
     vector_store.create_collection_from_nodes(collection_name, sample_nodes)
+    assert collection_name in vector_store.collections, "Collection not created successfully."
 
-    # Search with a metadata filter
+    # Define a query and metadata filters
     query = "test content"
-    meta_data_filters = [1, 2]  # Filter by node IDs
-    results, nodes = vector_store.search(collection_name, query, meta_data_filters=meta_data_filters, number=3)
+    meta_data_filters = [0, 1]  # Filter by node IDs
+    results, nodes = vector_store.search(
+        collection_name, query, meta_data_filters=meta_data_filters, number=3
+    )
 
-    # Validate search results
-    assert len(results) <= 3, "Search returned more results than requested."
+    # Ensure that the results match the filters
+    actual_results = {k: v for k, v in results.items() if "No suggestion" not in v[1]}
+
+    # Assertions to validate correctness
+    assert len(actual_results) <= 2, f"Expected at most 2 results, got {len(actual_results)}."
+    assert len(nodes) == len(actual_results), "Returned nodes count mismatch with results."
     assert all(
         node.metadata.node_id in meta_data_filters for node in nodes
     ), "Search results do not match the metadata filter."

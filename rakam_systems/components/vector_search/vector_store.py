@@ -107,6 +107,12 @@ class VectorStore:
     ) -> dict:
         """
         Searches the specified collection for the closest embeddings to the query.
+
+        :param collection_name: Name of the collection to search.
+        :param query: Query string to search for.
+        :param distance_type: Type of distance metric to use (default is cosine).
+        :param number: Number of results to return (default is 5).
+        :param meta_data_filters: List of Node IDs to filter the search results.
         """
         logging.info(f"Searching in collection: {collection_name} for query: '{query}'")
 
@@ -118,43 +124,18 @@ class VectorStore:
         # Step 2: Apply metadata filters if provided
         if meta_data_filters:
             logging.info(f"Applying metadata filters: {meta_data_filters}")
-            filtered_nodes = [store["nodes"][node_id] for node_id in meta_data_filters if node_id in store["nodes"]]
-            mapping_indices = []
-            for node in filtered_nodes:
-                matching_ids = [
-                    id_ for id_, content in store["category_index_mapping"].items()
-                    if content == node.content
-                ]
-                mapping_indices.extend(matching_ids)
-            logging.info(f"Filtered node indices: {mapping_indices}")
+            
+            all_ids = store["category_index_mapping"].keys()
+            logging.info(f"Total IDs in the index: {all_ids}")
+            
+            ids_to_remove = list(all_ids - set(meta_data_filters))
+            logging.info(f"IDs to remove: {ids_to_remove}")
 
-            # Reconstruct embeddings from the original FAISS index based on mapping indices
-            embedding_dim = store["index"].d
-            filtered_index = faiss.IndexIDMap(faiss.IndexFlatIP(embedding_dim))
+            filtered_index = store["index"]
+            logging.info(f"Original index size: {filtered_index.ntotal}")
 
-            filtered_embeddings = []
-            filtered_ids = []
-            for idx in mapping_indices:
-                try:
-                    vector = store["index"].reconstruct(idx)
-                    filtered_embeddings.append(vector)
-                    filtered_ids.append(idx)
-                except RuntimeError:
-                    logging.warning(f"ID {idx} not found in the original index.")
-
-            logging.info(f"Number of filtered embeddings: {len(filtered_embeddings)}")
-
-            if not filtered_embeddings:
-                logging.warning("No embeddings found for the given filters.")
-                return {}, []
-
-            # Normalize if cosine similarity is used
-            filtered_embeddings = np.array(filtered_embeddings).astype('float32')
-            if distance_type == "cosine":
-                faiss.normalize_L2(filtered_embeddings)
-
-            filtered_index.add_with_ids(filtered_embeddings, np.array(filtered_ids))
-            logging.info(f"Filtered index size after adding embeddings: {filtered_index.ntotal}")
+            filtered_index.remove_ids(np.array(ids_to_remove))
+            logging.info(f"Filtered index size: {filtered_index.ntotal}")
         else:
             # No filters provided; use the original index
             logging.info("No metadata filters provided. Using the entire index for search.")
@@ -393,6 +374,7 @@ class VectorStore:
         data_embeddings = self.get_embeddings(sentences=text_chunks, parallel=False)
         category_index_mapping = dict(zip(range(len(text_chunks)), text_chunks))
 
+        # Update the node_id in the metadata in the nodes
         for node in nodes:
             content = getattr(node, 'content', None)
             if not content:
@@ -410,6 +392,11 @@ class VectorStore:
                     logging.warning(f"Node metadata is None for content: '{content}'")
             else:
                 logging.warning(f"No matching index found for content: '{content}'")
+
+        # Update the node_id in the metadata for metadata_index_mapping
+        for i, meta in enumerate(metadata):
+            meta['node_id'] = i
+        logging.info(f"Assigned node IDs to metadata successfully. For example: {metadata[0]['node_id']}")
 
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
