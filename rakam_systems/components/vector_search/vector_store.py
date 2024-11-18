@@ -365,6 +365,8 @@ class VectorStore:
                 "embeddings": None  # No embeddings
             }
             return
+        
+        assert len(nodes) == len(text_chunks) == len(metadata), "Length of nodes, text_chunks, and metadata should be equal."
 
         store_path = os.path.join(self.base_index_path, collection_name)
         if not os.path.exists(store_path):
@@ -374,29 +376,14 @@ class VectorStore:
         data_embeddings = self.get_embeddings(sentences=text_chunks, parallel=False)
         category_index_mapping = dict(zip(range(len(text_chunks)), text_chunks))
 
-        # Update the node_id in the metadata in the nodes
-        for node in nodes:
-            content = getattr(node, 'content', None)
-            if not content:
-                logging.warning("Node content is missing or None.")
-                continue
-
-            # Find the index of the content in the category mapping
-            index = next((i for i, chunk in category_index_mapping.items() if chunk == content), None)
-            
-            if index is not None:
-                if getattr(node, 'metadata', None):
-                    setattr(node.metadata, 'node_id', index)
-                    logging.info(f"Assigned node_id: {index} for content: '{content}'")
-                else:
-                    logging.warning(f"Node metadata is None for content: '{content}'")
-            else:
-                logging.warning(f"No matching index found for content: '{content}'")
-
         # Update the node_id in the metadata for metadata_index_mapping
         for i, meta in enumerate(metadata):
             meta['node_id'] = i
         logging.info(f"Assigned node IDs to metadata successfully. For example: {metadata[0]['node_id']}")
+
+        # Update the node_id in the metadata in the nodes
+        for i, node in enumerate(nodes):
+            node.metadata.node_id = i
 
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
