@@ -2,6 +2,9 @@ import os
 import pytest
 import numpy as np
 import faiss
+import sys
+# Add the root directory of rakam_systems to the path
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sentence_transformers import SentenceTransformer
 from rakam_systems.core import VSFile, Node, NodeMetadata
 from rakam_systems.components.vector_search.vector_store import VectorStore
@@ -119,6 +122,8 @@ def test_search_with_metadata_filter(vector_store, sample_nodes):
     actual_results = {k: v for k, v in results.items() if "No suggestion" not in v[1]}
 
     # Assertions to validate correctness
+    assert nodes[0].content in ["This is a test content 1.","Another test content 2."]
+    assert nodes[0].content not in ["Additional content 3.","More test content 4."]
     assert len(actual_results) <= 2, f"Expected at most 2 results, got {len(actual_results)}."
     assert len(nodes) == len(actual_results), "Returned nodes count mismatch with results."
     assert all(
