@@ -102,6 +102,15 @@ class VectorStore:
         query_embedding = np.asarray([query_embedding], dtype="float32")
         return query_embedding
 
+    def get_index_copy(self, store):
+        category_index_mapping = store["category_index_mapping"]
+        data_embeddings = np.array(list(store["embeddings"].values()))
+        index_copy = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
+        faiss.normalize_L2(data_embeddings)
+        index_copy.add_with_ids(data_embeddings, np.array(list(category_index_mapping.keys())))
+
+        return index_copy
+
     def search(
         self, collection_name: str, query: str, distance_type="cosine", number=5, meta_data_filters: List = None
     ) -> dict:
@@ -121,6 +130,8 @@ class VectorStore:
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
 
+        index_copy = self.get_index_copy(store)    
+
         # Step 2: Apply metadata filters if provided
         if meta_data_filters:
             logging.info(f"Applying metadata filters: {meta_data_filters}")
@@ -131,7 +142,8 @@ class VectorStore:
             ids_to_remove = list(all_ids - set(meta_data_filters))
             logging.info(f"IDs to remove: {ids_to_remove}")
 
-            filtered_index = store["index"]
+            # filtered_index = faiss.clone_index(store["index"])
+            filtered_index = index_copy
             logging.info(f"Original index size: {filtered_index.ntotal}")
 
             filtered_index.remove_ids(np.array(ids_to_remove))
@@ -139,7 +151,7 @@ class VectorStore:
         else:
             # No filters provided; use the original index
             logging.info("No metadata filters provided. Using the entire index for search.")
-            filtered_index = store["index"]
+            filtered_index = index_copy
 
         # Step 3: Generate the query embedding
         query_embedding = self.predict_embeddings(query)
@@ -180,6 +192,7 @@ class VectorStore:
                     count += 1
 
         logging.info(f"Final search results: {valid_suggestions}")
+        
         return valid_suggestions, suggested_nodes
 
     def get_embeddings(self, sentences: List[str], parallel: bool = True, batch_size: int = 8) -> np.ndarray:
