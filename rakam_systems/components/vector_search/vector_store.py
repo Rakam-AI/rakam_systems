@@ -102,7 +102,12 @@ class VectorStore:
         query_embedding = np.asarray([query_embedding], dtype="float32")
         return query_embedding
 
-    def get_index_copy(self, store):
+    def get_index_copy(self, store: Dict[str, Any]) -> faiss.IndexIDMap:
+        """
+        Creates a copy of the index from the store and returns it.
+        """
+        assert len(store["embeddings"]) == len(store["category_index_mapping"]), "Mismatch between embeddings and category index mapping."
+
         category_index_mapping = store["category_index_mapping"]
         data_embeddings = np.array(list(store["embeddings"].values()))
         index_copy = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
@@ -448,7 +453,34 @@ class VectorStore:
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
 
+        # Get the existing text chunks from the given nodes
         new_text_chunks = [node.content for node in nodes]
+        
+        # Get embeddings for the new text chunks
+        new_embeddings = self.get_embeddings(sentences=new_text_chunks, parallel=False)
+
+        # Get the new Mapping Indices for the new nodes
+        new_ids = list(range(
+            len(store["category_index_mapping"]),
+            len(store["category_index_mapping"]) + len(new_text_chunks),
+        ))
+
+        # Check if the length of new embeddings and new Indices are equal
+        assert len(new_embeddings) == len(new_ids), "Mismatch between new embeddings and IDs."
+
+        # Add the new embeddings to the existing index
+        store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
+
+        # Store new embeddings persistently
+        for idx, embedding in zip(new_ids, new_embeddings):
+            store["embeddings"][idx] = embedding        
+
+        # Update the node_ids in metadata for the new nodes
+        for idx, node in enumerate(nodes):
+            node.metadata.node_id = new_ids[idx]
+        store["nodes"].extend(nodes)
+
+        # Update the node_id in metadata index mapping from the new nodes
         new_metadata = [
             {
                 "node_id": node.metadata.node_id,
@@ -459,25 +491,13 @@ class VectorStore:
             for node in nodes
         ]
 
-        # Add new embeddings to the index
-        new_embeddings = self.get_embeddings(sentences=new_text_chunks, parallel=False)
-
-        # Add new entries to the index
-        new_ids = range(
-            len(store["category_index_mapping"]),
-            len(store["category_index_mapping"]) + len(new_text_chunks),
-        )
-        store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
-
         # Update the mappings
         store["category_index_mapping"].update(dict(zip(new_ids, new_text_chunks)))
         store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
-        store["nodes"].extend(nodes)
 
         # Save updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
-
 
 
     def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
