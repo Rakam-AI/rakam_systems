@@ -119,6 +119,14 @@ def test_create_collection_from_nodes(setup_vector_store):
 
     vs.add_nodes(collection_name, nodes_to_add)
 
+    new_nodes =[
+        Node("New node 1", NodeMetadata(source_file_uuid="file_1", position=1, custom={"key": "value"})),
+        Node("New node 2", NodeMetadata(source_file_uuid="file_1", position=2, custom={"key": "value"})),
+        Node("New node 3", NodeMetadata(source_file_uuid="file_2", position=3, custom={"key": "another"})),
+        Node("New node 4", NodeMetadata(source_file_uuid="file_2", position=1, custom={"key": "another"})),
+    ]
+    vs.add_nodes(collection_name, new_nodes)
+
     # Validate the collection has been created
     assert collection_name in vs.collections, f"Collection '{collection_name}' should exist."
 
@@ -166,7 +174,7 @@ def test_create_collection_from_nodes(setup_vector_store):
     assert nodes[0].metadata.node_id == 2, "Node ID for the first node should be 0"
     assert nodes[1].metadata.node_id == 3, "Node ID for the second node should be 1"
 
-    for i in range(100):
+    for i in range(10):
         query = "Node content 1"
         results, nodes = vs.search(collection_name, query, number=100, meta_data_filters= [0, 1])
         print(f"Search results: {results}")
@@ -196,6 +204,74 @@ def test_create_collection_from_nodes(setup_vector_store):
         assert nodes[0].metadata.node_id in [7,6], "Node ID for the first node should be in filtering ids"
         assert nodes[1].metadata.node_id in [7,6], "Node ID for the second node should be in filtering ids"
 
+
+
+    vs.delete_nodes(collection_name, [0, 1, 2, 3])
+
+    nodes = vs.collections[collection_name]["nodes"]
+    for node in nodes:
+        print(f"Node ID: {node.metadata.node_id}")
+
+    store = vs.collections.get(collection_name)
+    print(store["metadata_index_mapping"][6])
+    print(store["nodes"][6].metadata.node_id)
+
+    query = "Node content 1"
+    results, nodes = vs.search(collection_name, query, number=100, meta_data_filters= [6,7])
+    print(f"Search results after deleting: {results}")
+    print(f"Nodes after deleting: {[node.content for node in nodes]}")
+    print(f"Node IDs after deleting: {[node.metadata.node_id for node in nodes]}")
+    assert nodes[0].metadata.node_id in [6,7], "Node ID for the first node should be in filtering ids"
+    assert nodes[1].metadata.node_id in [6,7], "Node ID for the second node should be in filtering ids"
+
+    for i in range(10):
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [4, 5])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [5,4], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [5,4], "Node ID for the second node should be in filtering ids"
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [7, 6])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [7,6], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [7,6], "Node ID for the second node should be in filtering ids"
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [8, 9])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [8,9], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [8,9], "Node ID for the second node should be in filtering ids"
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [10,11])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [10,11], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [10,11], "Node ID for the second node should be in filtering ids"
+
+
+    vs.delete_nodes(collection_name, [4, 5, 6, 7])
+
+    for i in range(10):
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [8, 9])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [8,9], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [8,9], "Node ID for the second node should be in filtering ids"
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [10,11])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [10,11], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [10,11], "Node ID for the second node should be in filtering ids"
 
 if __name__ == "__main__":
     pytest.main()

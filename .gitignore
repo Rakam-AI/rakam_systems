@@ -29,3 +29,4 @@ venv.bak/
 Thumbs.db
 
 data/
+dist/

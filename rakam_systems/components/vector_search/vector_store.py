@@ -186,7 +186,9 @@ class VectorStore:
             if id_ != -1 and id_ in store["category_index_mapping"]:
                 suggestion_text = store["category_index_mapping"][id_]
                 node_metadata = store["metadata_index_mapping"][id_]
-                suggested_nodes.append(store["nodes"][id_])
+                for node in store["nodes"]:
+                    if node.metadata.node_id == id_:
+                        suggested_nodes.append(node)
                 if suggestion_text not in seen_texts:
                     seen_texts.add(suggestion_text)
                     valid_suggestions[str(id_)] = (
@@ -439,7 +441,6 @@ class VectorStore:
         logging.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
 
 
-
     def add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
         """
         Adds nodes to an existing store and updates the index.
@@ -449,9 +450,15 @@ class VectorStore:
         """
         logging.info(f"Adding nodes to store: {collection_name}")
 
+        if not nodes:
+            logging.warning("No nodes to add.")
+            return
+
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
+        
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
 
         # Get the existing text chunks from the given nodes
         new_text_chunks = [node.content for node in nodes]
@@ -459,11 +466,21 @@ class VectorStore:
         # Get embeddings for the new text chunks
         new_embeddings = self.get_embeddings(sentences=new_text_chunks, parallel=False)
 
-        # Get the new Mapping Indices for the new nodes
-        new_ids = list(range(
-            len(store["category_index_mapping"]),
-            len(store["category_index_mapping"]) + len(new_text_chunks),
-        ))
+        existing_ids = set(store["category_index_mapping"].keys())
+        max_existing_id = max(existing_ids) if existing_ids else -1
+        new_ids = []
+        next_id = max_existing_id + 1
+        for _ in range(len(new_text_chunks)):
+            while next_id in existing_ids:
+                next_id += 1
+            new_ids.append(next_id)
+            next_id += 1
+
+        # # Get the new Mapping Indices for the new nodes
+        # new_ids = list(range(
+        #     len(store["category_index_mapping"]),
+        #     len(store["category_index_mapping"]) + len(new_text_chunks),
+        # ))
 
         # Check if the length of new embeddings and new Indices are equal
         assert len(new_embeddings) == len(new_ids), "Mismatch between new embeddings and IDs."
@@ -495,6 +512,8 @@ class VectorStore:
         store["category_index_mapping"].update(dict(zip(new_ids, new_text_chunks)))
         store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
 
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+
         # Save updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
@@ -512,6 +531,8 @@ class VectorStore:
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
+
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
 
         existed_ids = set(store["category_index_mapping"].keys())
         logging.info(f"Existed IDs before deletion: {existed_ids}")
@@ -555,6 +576,8 @@ class VectorStore:
             i: emb for i, emb in store["embeddings"].items() if i not in ids_to_delete
         }
 
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        
         # Save the updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
