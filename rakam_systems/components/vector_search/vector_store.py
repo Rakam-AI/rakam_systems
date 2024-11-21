@@ -459,6 +459,8 @@ class VectorStore:
             raise ValueError(f"No store found with name: {collection_name}")
         
         assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
+        assert all(node.metadata.node_id not in {n.metadata.node_id for n in store["nodes"]} for node in nodes), "Duplicate node IDs detected in the new nodes."
 
         # Get the existing text chunks from the given nodes
         new_text_chunks = [node.content for node in nodes]
@@ -475,6 +477,10 @@ class VectorStore:
                 next_id += 1
             new_ids.append(next_id)
             next_id += 1
+
+        logging.info(f"New IDs: {new_ids}")
+        logging.info(f"Existing IDs: {existing_ids}")
+        logging.info(f"New text chunks count: {len(new_text_chunks)}")
 
         # # Get the new Mapping Indices for the new nodes
         # new_ids = list(range(
@@ -513,11 +519,17 @@ class VectorStore:
         store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
 
         assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         # Save updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
 
+        self.load_collection(os.path.join(self.base_index_path, collection_name))
+        saved_store = self.collections[collection_name]
+        assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
+        
 
     def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
         """
@@ -533,6 +545,7 @@ class VectorStore:
             raise ValueError(f"No store found with name: {collection_name}")
 
         assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         existed_ids = set(store["category_index_mapping"].keys())
         logging.info(f"Existed IDs before deletion: {existed_ids}")
@@ -577,10 +590,16 @@ class VectorStore:
         }
 
         assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
-        
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
+
         # Save the updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
+
+        self.load_collection(os.path.join(self.base_index_path, collection_name))
+        saved_store = self.collections[collection_name]
+        assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
         if missing_ids:
@@ -741,29 +760,13 @@ class VectorStore:
         with open(os.path.join(store_path, "nodes.pkl"), "wb") as f:
             pickle.dump(store["nodes"], f)
 
+        # Save embeddings to file
+        with open(os.path.join(store_path, "embeddings_index_mapping.pkl"), "wb") as f:
+            pickle.dump(store["embeddings"], f)
+
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
         logging.info(f"Store {collection_name} saved successfully.")
 
 
-# if __name__ == "__main__":
-#     vsfiles_example = [
-#         VSFile("data/1.txt"),
-#         VSFile("data/2.txt"),
-#     ]
-#     nodes_1 = [
-#         Node("This is a test", NodeMetadata("1", 1)),
-#         Node("This is another test", NodeMetadata("1", 2)),
-#     ]
-#     nodes_2 = [
-#         Node("This is a test", NodeMetadata("2", 1)),
-#         Node("This is another test", NodeMetadata("2", 2)),
-#     ]
 
-#     vsfiles_example[0].nodes = nodes_1
-#     vsfiles_example[1].nodes = nodes_2
-#     vs = VectorStore(base_index_path="data", embedding_model="paraphrase-MiniLM-L6-v2")
-
-#     vs.create_collection_from_files("test", vsfiles_example)
-
-#     print(vs.collections["test"]["nodes"][0].metadata.node_id)
-       
+ 

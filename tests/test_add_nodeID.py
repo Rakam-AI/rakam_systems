@@ -273,5 +273,138 @@ def test_create_collection_from_nodes(setup_vector_store):
         assert nodes[0].metadata.node_id in [10,11], "Node ID for the first node should be in filtering ids"
         assert nodes[1].metadata.node_id in [10,11], "Node ID for the second node should be in filtering ids"
 
+    print(len(vs.collections[collection_name]["nodes"]))
+
+    nodes_to_add_after_delete = [
+        Node("Added node 1", NodeMetadata(source_file_uuid="file_1", position=1, custom={"key": "value"})),
+        # Node("Added node 2", NodeMetadata(source_file_uuid="file_1", position=2, custom={"key": "value"})),
+        # Node("Added node 3", NodeMetadata(source_file_uuid="file_2", position=3, custom={"key": "another"})),
+        # Node("Added node 4", NodeMetadata(source_file_uuid="file_2", position=1, custom={"key": "another"})),
+    ]
+
+    vs.add_nodes(collection_name, nodes_to_add_after_delete)
+    print((vs.collections[collection_name]["nodes"]))
+    print((vs.collections[collection_name]["metadata_index_mapping"]))
+
+    for i in range(10):
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [8, 9])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [8,9], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [8,9], "Node ID for the second node should be in filtering ids"
+
+        results, nodes = vs.search(collection_name, query, number=2, meta_data_filters= [10,11])
+        print(f"Search results: {results}")
+        print(f"Nodes: {[node.content for node in nodes]}")
+        print(f"Node IDs: {[node.metadata.node_id for node in nodes]}")
+        assert nodes[0].metadata.node_id in [10,11], "Node ID for the first node should be in filtering ids"
+        assert nodes[1].metadata.node_id in [10,11], "Node ID for the second node should be in filtering ids"
+    
+
+    nodes = vs.collections[collection_name]["nodes"]
+    for i,node in enumerate(nodes):
+        print(f"INDEX:{i}, Node ID: {node.metadata.node_id}")
+
+    vs.delete_nodes(collection_name, [12])
+    nodes = vs.collections[collection_name]["nodes"]
+    for i,node in enumerate(nodes):
+        print(f"INDEX:{i}, Node ID: {node.metadata.node_id}")
+
+    metadata = vs.collections[collection_name]["metadata_index_mapping"]
+    print(metadata)
+
+    # print(len(vs.collections[collection_name]["nodes"]))
+    # for node in vs.collections[collection_name]["nodes"]:
+    #     print(node.content)
+    #     print(node.metadata.node_id)
+    
+    # store = vs.collections.get(collection_name)
+    # print(len(store["nodes"]))
+    # print(len(store["metadata_index_mapping"]))
+    # print(len(store["embeddings"]))
+
+
+    # vs.delete_nodes(collection_name, [12])
+    # vs.delete_nodes(collection_name, [12])
+
+    # print(len(vs.collections[collection_name]["nodes"]))
+    # for node in vs.collections[collection_name]["nodes"]:
+    #     print(node.content)
+    #     print(node.metadata.node_id)
+
+# def test_large_collection(setup_vector_store):
+#     vs = setup_vector_store
+
+#     # Generate 100 nodes dynamically
+#     nodes = [
+#         Node(
+#             f"Node content {i}",
+#             NodeMetadata(source_file_uuid=f"file_{i // 10}", position=i % 10, custom={"key": f"value_{i}"})
+#         )
+#         for i in range(100)
+#     ]
+
+#     collection_name = "large_collection"
+
+#     # Create a collection from 100 nodes
+#     vs.create_collection_from_nodes(collection_name, nodes)
+
+#     # Validate the collection has been created
+#     assert collection_name in vs.collections, f"Collection '{collection_name}' should exist."
+
+#     # Validate the nodes in the collection
+#     created_nodes = vs.collections[collection_name]["nodes"]
+#     assert len(created_nodes) == len(nodes), "Number of nodes in the collection should match the input nodes."
+
+#     # Check if the metadata is correctly stored
+#     for i, node in enumerate(created_nodes):
+#         assert node.content == nodes[i].content, f"Content mismatch for node {i}"
+#         assert node.metadata.source_file_uuid == nodes[i].metadata.source_file_uuid, f"Metadata mismatch for node {i}"
+#         assert node.metadata.position == nodes[i].metadata.position, f"Position mismatch for node {i}"
+#         assert node.metadata.custom == nodes[i].metadata.custom, f"Custom metadata mismatch for node {i}"
+#         assert node.metadata.node_id == i, f"Node ID mismatch for node {i}"
+
+#     # Perform multiple searches with different filters
+#     for i in range(10):
+#         query = f"Node content {i}"
+#         results, searched_nodes = vs.search(collection_name, query, number=10, meta_data_filters=[i, i + 10])
+#         assert len(searched_nodes) > 0, f"Search should return results for query: {query}"
+#         # for node in searched_nodes:
+#         #     assert node.content == query, f"Search result content mismatch for query: {query}"
+
+#     # Test deletion of nodes
+#     nodes_to_delete = [0, 1, 2, 3, 4]
+#     vs.delete_nodes(collection_name, nodes_to_delete)
+#     remaining_nodes = vs.collections[collection_name]["nodes"]
+#     remaining_ids = {node.metadata.node_id for node in remaining_nodes}
+#     for node_id in nodes_to_delete:
+#         assert node_id not in remaining_ids, f"Deleted node ID {node_id} should not exist."
+
+#     # Add new nodes after deletion
+#     new_nodes = [
+#         Node(f"New node content {i}", NodeMetadata(source_file_uuid="new_file", position=i, custom={"new_key": "new_value"}))
+#         for i in range(5)
+#     ]
+#     vs.add_nodes(collection_name, new_nodes)
+
+#     # Validate new nodes have been added
+#     updated_nodes = vs.collections[collection_name]["nodes"]
+#     new_node_ids = {node.metadata.node_id for node in updated_nodes[-5:]}
+#     for i, new_node in enumerate(new_nodes):
+#         assert updated_nodes[-5 + i].content == new_node.content, "Mismatch in new node content"
+#         assert updated_nodes[-5 + i].metadata.source_file_uuid == new_node.metadata.source_file_uuid, "Mismatch in new node metadata"
+
+#     # Perform a complex search after all operations
+#     complex_query = "Node content 50"
+#     results, searched_nodes = vs.search(collection_name, complex_query, number=10, meta_data_filters=[50, 51, 52])
+#     assert len(searched_nodes) > 0, "Complex query should return results."
+#     for node in searched_nodes:
+#         assert node.metadata.node_id in [50, 51, 52], f"Node ID {node.metadata.node_id} should match the filter."
+
+#     print(f"Final node count: {len(vs.collections[collection_name]['nodes'])}")
+
+
 if __name__ == "__main__":
     pytest.main()
