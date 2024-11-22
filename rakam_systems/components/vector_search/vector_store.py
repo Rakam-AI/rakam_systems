@@ -9,10 +9,16 @@ from typing import List
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import torch
+
+import dotenv
+import os
+from openai import OpenAI
+
 from rakam_systems.core import VSFile, NodeMetadata, Node
 
-from rakam_systems.core import VSFile
-
+dotenv.load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -21,7 +27,7 @@ class VectorStore:
     A class for managing collection-based vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str, initialising: bool = False) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2", initialising: bool = False, use_embedding_api: bool = False, api_model: str = "text-embedding-3-small") -> None:
         """
         Initializes the VectorStore with the specified base index path and embedding model.
 
@@ -32,7 +38,14 @@ class VectorStore:
         if not os.path.exists(self.base_index_path):
             os.makedirs(self.base_index_path)
 
-        self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
+        self.use_embedding_api = use_embedding_api
+        
+        if self.use_embedding_api:
+            self.client = OpenAI(api_key=api_key)
+            self.api_model = api_model
+        else:
+            self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
+
         self.collections = {}
 
         if not initialising : self.load_vector_store()
@@ -98,8 +111,14 @@ class VectorStore:
         :return: Embedding vector for the query.
         """
         logging.info(f"Predicting embeddings for query: {query}")
-        query_embedding = self.embedding_model.encode(query)
-        query_embedding = np.asarray([query_embedding], dtype="float32")
+
+        if self.use_embedding_api:
+            query_embedding = self.client.embeddings.create(input = [query], model=self.api_model).data[0].embedding
+            query_embedding = np.asarray([query_embedding], dtype="float32")
+        else:
+            query_embedding = self.embedding_model.encode(query)
+            query_embedding = np.asarray([query_embedding], dtype="float32")
+
         return query_embedding
 
     def get_index_copy(self, store: Dict[str, Any]) -> faiss.IndexIDMap:
@@ -214,28 +233,41 @@ class VectorStore:
         print(f"Generating embeddings for {len(sentences)} sentences.")
         print("GEnerating embeddings...")
         start = time.time()
-        if parallel:
-            os.environ["TOKENIZERS_PARALLELISM"] = "false"
-            pool = self.embedding_model.start_multi_process_pool(
-                target_devices=["cpu"] * 5
-            )
-            embeddings = self.embedding_model.encode_multi_process(
-                sentences, pool, batch_size=batch_size
-            )
-            self.embedding_model.stop_multi_process_pool(pool)
-        else:
-            os.environ["TOKENIZERS_PARALLELISM"] = "true"
-            embeddings = self.embedding_model.encode(
-                sentences,
-                batch_size=batch_size,
-                show_progress_bar=True,
-                convert_to_tensor=True,
-            )
-        logging.info(
-            f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
-        )
-        return embeddings.cpu().detach().numpy()
 
+        if self.use_embedding_api:
+            embeddings = []
+            for sentence in sentences:
+                embedding = self.predict_embeddings(sentence)
+                embedding = np.squeeze(embedding)
+                embeddings.append(embedding)
+            embeddings = np.array(embeddings)
+            logging.info(
+                f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
+            )
+            return embeddings
+        else:
+            if parallel:
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                pool = self.embedding_model.start_multi_process_pool(
+                    target_devices=["cpu"] * 5
+                )
+                embeddings = self.embedding_model.encode_multi_process(
+                    sentences, pool, batch_size=batch_size
+                )
+                self.embedding_model.stop_multi_process_pool(pool)
+            else:
+                os.environ["TOKENIZERS_PARALLELISM"] = "true"
+                embeddings = self.embedding_model.encode(
+                    sentences,
+                    batch_size=batch_size,
+                    show_progress_bar=True,
+                    convert_to_tensor=True,
+                )
+            logging.info(
+                f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
+            )
+            return embeddings.cpu().detach().numpy()
+                
     def create_collection_from_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
         Creates FAISS indexes from dictionaries of store names and VSFile objects.
@@ -529,7 +561,7 @@ class VectorStore:
         saved_store = self.collections[collection_name]
         assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
         assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
-        
+
 
     def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
         """
