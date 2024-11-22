@@ -9,10 +9,16 @@ from typing import List
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import torch
+
+import dotenv
+import os
+from openai import OpenAI
+
 from rakam_systems.core import VSFile, NodeMetadata, Node
 
-from rakam_systems.core import VSFile
-
+dotenv.load_dotenv()
+api_key = os.getenv("OPENAI_API_KEY")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 
@@ -21,7 +27,7 @@ class VectorStore:
     A class for managing collection-based vector stores using FAISS and SentenceTransformers.
     """
 
-    def __init__(self, base_index_path: str, embedding_model: str, initialising: bool = False) -> None:
+    def __init__(self, base_index_path: str, embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2", initialising: bool = False, use_embedding_api: bool = False, api_model: str = "text-embedding-3-small") -> None:
         """
         Initializes the VectorStore with the specified base index path and embedding model.
 
@@ -32,7 +38,14 @@ class VectorStore:
         if not os.path.exists(self.base_index_path):
             os.makedirs(self.base_index_path)
 
-        self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
+        self.use_embedding_api = use_embedding_api
+        
+        if self.use_embedding_api:
+            self.client = OpenAI(api_key=api_key)
+            self.api_model = api_model
+        else:
+            self.embedding_model = SentenceTransformer(embedding_model, trust_remote_code=True)
+
         self.collections = {}
 
         if not initialising : self.load_vector_store()
@@ -98,15 +111,41 @@ class VectorStore:
         :return: Embedding vector for the query.
         """
         logging.info(f"Predicting embeddings for query: {query}")
-        query_embedding = self.embedding_model.encode(query)
-        query_embedding = np.asarray([query_embedding], dtype="float32")
+
+        if self.use_embedding_api:
+            query_embedding = self.client.embeddings.create(input = [query], model=self.api_model).data[0].embedding
+            query_embedding = np.asarray([query_embedding], dtype="float32")
+        else:
+            query_embedding = self.embedding_model.encode(query)
+            query_embedding = np.asarray([query_embedding], dtype="float32")
+
         return query_embedding
+
+    def get_index_copy(self, store: Dict[str, Any]) -> faiss.IndexIDMap:
+        """
+        Creates a copy of the index from the store and returns it.
+        """
+        assert len(store["embeddings"]) == len(store["category_index_mapping"]), "Mismatch between embeddings and category index mapping."
+
+        category_index_mapping = store["category_index_mapping"]
+        data_embeddings = np.array(list(store["embeddings"].values()))
+        index_copy = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
+        faiss.normalize_L2(data_embeddings)
+        index_copy.add_with_ids(data_embeddings, np.array(list(category_index_mapping.keys())))
+
+        return index_copy
 
     def search(
         self, collection_name: str, query: str, distance_type="cosine", number=5, meta_data_filters: List = None
     ) -> dict:
         """
         Searches the specified collection for the closest embeddings to the query.
+
+        :param collection_name: Name of the collection to search.
+        :param query: Query string to search for.
+        :param distance_type: Type of distance metric to use (default is cosine).
+        :param number: Number of results to return (default is 5).
+        :param meta_data_filters: List of Node IDs to filter the search results.
         """
         logging.info(f"Searching in collection: {collection_name} for query: '{query}'")
 
@@ -115,50 +154,28 @@ class VectorStore:
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
 
+        index_copy = self.get_index_copy(store)    
+
         # Step 2: Apply metadata filters if provided
         if meta_data_filters:
             logging.info(f"Applying metadata filters: {meta_data_filters}")
-            filtered_nodes = [store["nodes"][node_id] for node_id in meta_data_filters if node_id in store["nodes"]]
-            mapping_indices = []
-            for node in filtered_nodes:
-                matching_ids = [
-                    id_ for id_, content in store["category_index_mapping"].items()
-                    if content == node.content
-                ]
-                mapping_indices.extend(matching_ids)
-            logging.info(f"Filtered node indices: {mapping_indices}")
+            
+            all_ids = store["category_index_mapping"].keys()
+            logging.info(f"Total IDs in the index: {all_ids}")
+            
+            ids_to_remove = list(all_ids - set(meta_data_filters))
+            logging.info(f"IDs to remove: {ids_to_remove}")
 
-            # Reconstruct embeddings from the original FAISS index based on mapping indices
-            embedding_dim = store["index"].d
-            filtered_index = faiss.IndexIDMap(faiss.IndexFlatIP(embedding_dim))
+            # filtered_index = faiss.clone_index(store["index"])
+            filtered_index = index_copy
+            logging.info(f"Original index size: {filtered_index.ntotal}")
 
-            filtered_embeddings = []
-            filtered_ids = []
-            for idx in mapping_indices:
-                try:
-                    vector = store["index"].reconstruct(idx)
-                    filtered_embeddings.append(vector)
-                    filtered_ids.append(idx)
-                except RuntimeError:
-                    logging.warning(f"ID {idx} not found in the original index.")
-
-            logging.info(f"Number of filtered embeddings: {len(filtered_embeddings)}")
-
-            if not filtered_embeddings:
-                logging.warning("No embeddings found for the given filters.")
-                return {}, []
-
-            # Normalize if cosine similarity is used
-            filtered_embeddings = np.array(filtered_embeddings).astype('float32')
-            if distance_type == "cosine":
-                faiss.normalize_L2(filtered_embeddings)
-
-            filtered_index.add_with_ids(filtered_embeddings, np.array(filtered_ids))
-            logging.info(f"Filtered index size after adding embeddings: {filtered_index.ntotal}")
+            filtered_index.remove_ids(np.array(ids_to_remove))
+            logging.info(f"Filtered index size: {filtered_index.ntotal}")
         else:
             # No filters provided; use the original index
             logging.info("No metadata filters provided. Using the entire index for search.")
-            filtered_index = store["index"]
+            filtered_index = index_copy
 
         # Step 3: Generate the query embedding
         query_embedding = self.predict_embeddings(query)
@@ -188,7 +205,9 @@ class VectorStore:
             if id_ != -1 and id_ in store["category_index_mapping"]:
                 suggestion_text = store["category_index_mapping"][id_]
                 node_metadata = store["metadata_index_mapping"][id_]
-                suggested_nodes.append(store["nodes"][id_])
+                for node in store["nodes"]:
+                    if node.metadata.node_id == id_:
+                        suggested_nodes.append(node)
                 if suggestion_text not in seen_texts:
                     seen_texts.add(suggestion_text)
                     valid_suggestions[str(id_)] = (
@@ -199,6 +218,7 @@ class VectorStore:
                     count += 1
 
         logging.info(f"Final search results: {valid_suggestions}")
+        
         return valid_suggestions, suggested_nodes
 
     def get_embeddings(self, sentences: List[str], parallel: bool = True, batch_size: int = 8) -> np.ndarray:
@@ -213,28 +233,41 @@ class VectorStore:
         print(f"Generating embeddings for {len(sentences)} sentences.")
         print("GEnerating embeddings...")
         start = time.time()
-        if parallel:
-            os.environ["TOKENIZERS_PARALLELISM"] = "false"
-            pool = self.embedding_model.start_multi_process_pool(
-                target_devices=["cpu"] * 5
-            )
-            embeddings = self.embedding_model.encode_multi_process(
-                sentences, pool, batch_size=batch_size
-            )
-            self.embedding_model.stop_multi_process_pool(pool)
-        else:
-            os.environ["TOKENIZERS_PARALLELISM"] = "true"
-            embeddings = self.embedding_model.encode(
-                sentences,
-                batch_size=batch_size,
-                show_progress_bar=True,
-                convert_to_tensor=True,
-            )
-        logging.info(
-            f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
-        )
-        return embeddings.cpu().detach().numpy()
 
+        if self.use_embedding_api:
+            embeddings = []
+            for sentence in sentences:
+                embedding = self.predict_embeddings(sentence)
+                embedding = np.squeeze(embedding)
+                embeddings.append(embedding)
+            embeddings = np.array(embeddings)
+            logging.info(
+                f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
+            )
+            return embeddings
+        else:
+            if parallel:
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
+                pool = self.embedding_model.start_multi_process_pool(
+                    target_devices=["cpu"] * 5
+                )
+                embeddings = self.embedding_model.encode_multi_process(
+                    sentences, pool, batch_size=batch_size
+                )
+                self.embedding_model.stop_multi_process_pool(pool)
+            else:
+                os.environ["TOKENIZERS_PARALLELISM"] = "true"
+                embeddings = self.embedding_model.encode(
+                    sentences,
+                    batch_size=batch_size,
+                    show_progress_bar=True,
+                    convert_to_tensor=True,
+                )
+            logging.info(
+                f"Time taken to encode {len(sentences)} items: {round(time.time() - start, 2)} seconds"
+            )
+            return embeddings.cpu().detach().numpy()
+                
     def create_collection_from_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
         Creates FAISS indexes from dictionaries of store names and VSFile objects.
@@ -384,6 +417,8 @@ class VectorStore:
                 "embeddings": None  # No embeddings
             }
             return
+        
+        assert len(nodes) == len(text_chunks) == len(metadata), "Length of nodes, text_chunks, and metadata should be equal."
 
         store_path = os.path.join(self.base_index_path, collection_name)
         if not os.path.exists(store_path):
@@ -392,6 +427,15 @@ class VectorStore:
         # Get embeddings for the text chunks
         data_embeddings = self.get_embeddings(sentences=text_chunks, parallel=False)
         category_index_mapping = dict(zip(range(len(text_chunks)), text_chunks))
+
+        # Update the node_id in the metadata for metadata_index_mapping
+        for i, meta in enumerate(metadata):
+            meta['node_id'] = i
+        logging.info(f"Assigned node IDs to metadata successfully. For example: {metadata[0]['node_id']}")
+
+        # Update the node_id in the metadata in the nodes
+        for i, node in enumerate(nodes):
+            node.metadata.node_id = i
 
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
@@ -429,7 +473,6 @@ class VectorStore:
         logging.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
 
 
-
     def add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
         """
         Adds nodes to an existing store and updates the index.
@@ -439,11 +482,60 @@ class VectorStore:
         """
         logging.info(f"Adding nodes to store: {collection_name}")
 
+        if not nodes:
+            logging.warning("No nodes to add.")
+            return
+
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
+        
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
+        assert all(node.metadata.node_id not in {n.metadata.node_id for n in store["nodes"]} for node in nodes), "Duplicate node IDs detected in the new nodes."
 
+        # Get the existing text chunks from the given nodes
         new_text_chunks = [node.content for node in nodes]
+        
+        # Get embeddings for the new text chunks
+        new_embeddings = self.get_embeddings(sentences=new_text_chunks, parallel=False)
+
+        existing_ids = set(store["category_index_mapping"].keys())
+        max_existing_id = max(existing_ids) if existing_ids else -1
+        new_ids = []
+        next_id = max_existing_id + 1
+        for _ in range(len(new_text_chunks)):
+            while next_id in existing_ids:
+                next_id += 1
+            new_ids.append(next_id)
+            next_id += 1
+
+        logging.info(f"New IDs: {new_ids}")
+        logging.info(f"Existing IDs: {existing_ids}")
+        logging.info(f"New text chunks count: {len(new_text_chunks)}")
+
+        # # Get the new Mapping Indices for the new nodes
+        # new_ids = list(range(
+        #     len(store["category_index_mapping"]),
+        #     len(store["category_index_mapping"]) + len(new_text_chunks),
+        # ))
+
+        # Check if the length of new embeddings and new Indices are equal
+        assert len(new_embeddings) == len(new_ids), "Mismatch between new embeddings and IDs."
+
+        # Add the new embeddings to the existing index
+        store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
+
+        # Store new embeddings persistently
+        for idx, embedding in zip(new_ids, new_embeddings):
+            store["embeddings"][idx] = embedding        
+
+        # Update the node_ids in metadata for the new nodes
+        for idx, node in enumerate(nodes):
+            node.metadata.node_id = new_ids[idx]
+        store["nodes"].extend(nodes)
+
+        # Update the node_id in metadata index mapping from the new nodes
         new_metadata = [
             {
                 "node_id": node.metadata.node_id,
@@ -454,25 +546,21 @@ class VectorStore:
             for node in nodes
         ]
 
-        # Add new embeddings to the index
-        new_embeddings = self.get_embeddings(sentences=new_text_chunks, parallel=False)
-
-        # Add new entries to the index
-        new_ids = range(
-            len(store["category_index_mapping"]),
-            len(store["category_index_mapping"]) + len(new_text_chunks),
-        )
-        store["index"].add_with_ids(new_embeddings, np.array(list(new_ids)))
-
         # Update the mappings
         store["category_index_mapping"].update(dict(zip(new_ids, new_text_chunks)))
         store["metadata_index_mapping"].update(dict(zip(new_ids, new_metadata)))
-        store["nodes"].extend(nodes)
+
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         # Save updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
 
+        self.load_collection(os.path.join(self.base_index_path, collection_name))
+        saved_store = self.collections[collection_name]
+        assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
 
     def delete_nodes(self, collection_name: str, node_ids: List[int]) -> None:
@@ -487,6 +575,9 @@ class VectorStore:
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name}")
+
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         existed_ids = set(store["category_index_mapping"].keys())
         logging.info(f"Existed IDs before deletion: {existed_ids}")
@@ -530,9 +621,17 @@ class VectorStore:
             i: emb for i, emb in store["embeddings"].items() if i not in ids_to_delete
         }
 
+        assert len(store["category_index_mapping"]) == len(store["metadata_index_mapping"]) == len(store["embeddings"]) == len(store["nodes"]) , "Mismatch between mappings and embeddings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
+
         # Save the updated store
         self.collections[collection_name] = store
         self._save_collection(collection_name)
+
+        self.load_collection(os.path.join(self.base_index_path, collection_name))
+        saved_store = self.collections[collection_name]
+        assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
+        assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
         if missing_ids:
@@ -693,5 +792,13 @@ class VectorStore:
         with open(os.path.join(store_path, "nodes.pkl"), "wb") as f:
             pickle.dump(store["nodes"], f)
 
+        # Save embeddings to file
+        with open(os.path.join(store_path, "embeddings_index_mapping.pkl"), "wb") as f:
+            pickle.dump(store["embeddings"], f)
+
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
         logging.info(f"Store {collection_name} saved successfully.")
+
+
+
+ 
