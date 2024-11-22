@@ -61,5 +61,6 @@ tests/test_core.py
 tests/test_create_from_nodes.py
 tests/test_deleteNodes.py
 tests/test_llm_integration.py
+tests/test_llm_mistral.py
 tests/test_vector_store.py
 tests/test_vs_search_filter.py

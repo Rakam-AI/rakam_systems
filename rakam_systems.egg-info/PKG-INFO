@@ -19,7 +19,7 @@ Requires-Dist: drf-spectacular==0.27.1
 Requires-Dist: faiss-cpu==1.8.0.post1
 Requires-Dist: joblib==1.4.2
 Requires-Dist: openai==1.37.0
-Requires-Dist: pandas==2.0.0
+Requires-Dist: pandas==2.2.3
 Requires-Dist: playwright==1.45.0
 Requires-Dist: pre-commit==3.5.0
 Requires-Dist: psycopg2-binary==2.9.9
@@ -31,6 +31,7 @@ Requires-Dist: torch==2.2.2
 Requires-Dist: tqdm==4.66.4
 Requires-Dist: pymupdf==1.24.11
 Requires-Dist: pymupdf4llm==0.0.17
+Requires-Dist: mistralai==1.2.3
 
 # 🏴‍☠️ Overview 🏴‍☠️ 
 
