@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: rakam-systems
-Version: 0.2.3
+Version: 0.2.4
 Summary: rakam_systems package.
 Home-page: https://github.com/Rakam-AI/rakam_systems
 Author: Mohamed Hilel
@@ -25,13 +25,14 @@ Requires-Dist: pre-commit==3.5.0
 Requires-Dist: psycopg2-binary==2.9.9
 Requires-Dist: python-dotenv==1.0.1
 Requires-Dist: python-magic==0.4.27
-Requires-Dist: requests==2.31.0
+Requires-Dist: requests==2.32.3
 Requires-Dist: sentence-transformers==2.6.1
-Requires-Dist: torch==2.2.2
+Requires-Dist: torch==2.5.1
 Requires-Dist: tqdm==4.66.4
 Requires-Dist: pymupdf==1.24.11
 Requires-Dist: pymupdf4llm==0.0.17
 Requires-Dist: mistralai==1.2.3
+Requires-Dist: docling==2.8.1
 
 # 🏴‍☠️ Overview 🏴‍☠️ 
 

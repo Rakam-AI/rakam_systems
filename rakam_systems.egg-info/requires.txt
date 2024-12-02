@@ -11,10 +11,11 @@ pre-commit==3.5.0
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 python-magic==0.4.27
-requests==2.31.0
+requests==2.32.3
 sentence-transformers==2.6.1
-torch==2.2.2
+torch==2.5.1
 tqdm==4.66.4
 pymupdf==1.24.11
 pymupdf4llm==0.0.17
 mistralai==1.2.3
+docling==2.8.1
