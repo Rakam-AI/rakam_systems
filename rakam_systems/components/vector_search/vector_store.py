@@ -11,7 +11,9 @@ import numpy as np
 from rakam_systems.core import VSFile, NodeMetadata, Node
 from rakam_systems.components.base import EmbeddingModel
 
+import dotenv
 dotenv.load_dotenv()
+
 api_key = os.getenv("OPENAI_API_KEY")
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -37,6 +39,9 @@ class VectorStore:
 
         if not initialising:
             self.load_vector_store()
+
+        self.use_embedding_api = use_embedding_api
+        self.api_model = api_model
 
     def load_vector_store(self) -> None:
         """

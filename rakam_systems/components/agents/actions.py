@@ -324,24 +324,20 @@ class RAGComparison(Action):
         sys_prompt: str,
         prompt: str,
         vector_stores_map: dict,
-        name: str = ""
+        vector_stores_info: dict,
     ):
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
         self.vector_stores_map = vector_stores_map
-        self.name = name
+        self.vector_stores_info = vector_stores_info
 
         self.offering_separator = "\n=== {} ===\n"
         self.result_separator = "\n----\n"
 
-    def execute(self, query: str, collection_names: List[str], prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
-        # collection_names = ['External_vs', 'lesfurets-test']
-        # Exclude External_vs from search (TMP)
-        collection_names = ['lesfurets-test']
-
+    def execute(self, query: str, prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
         ### --- Vector Store Search --- ###
-        formatted_search_results = self._perform_vector_store_search(query, collection_names)
+        formatted_search_results = self._perform_vector_store_search(query)
 
         ### --- Format Prompt --- ###
         formatted_prompt = self.prompt.format(
@@ -376,14 +372,14 @@ class RAGComparison(Action):
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
 
-    def _perform_vector_store_search(self, query: str, collection_names: List[str]) -> str:
+    def _perform_vector_store_search(self, query: str) -> str:
         """
         Perform a search across all vector stores and format the results by offering.
         """
         formatted_search_results = []
 
         for offering, vs in self.vector_stores_map.items():
-            offering_dict = self.vector_stores_map[offering]
+            offering_dict = self.vector_stores_info[offering]
             collection_name = offering_dict['collection_name']
 
             _, node_search_results = vs.search(
