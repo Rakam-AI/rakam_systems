@@ -11,6 +11,7 @@ from rakam_systems.core import Node
 from rakam_systems.core import NodeMetadata
 from rakam_systems.custom_loggers import prompt_logger
 from rakam_systems.components.base import LLM
+from rakam_systems.components.base import EmbeddingModel
 from rakam_systems.components.vector_search import VectorStore
 
 dotenv.load_dotenv()
@@ -37,13 +38,17 @@ class TextSearchMetadata(Action):
         self.collections = collections
         self.vector_store_path = vector_store_path
 
-        self.embedding_model = embedding_model
+        # Initialize the embedding model
+        self.embedding_model = EmbeddingModel.get_instance(embedding_model)
 
         # Initialize the VectorStore
         self.vector_store = self.initialize_vector_store()
 
     def initialize_vector_store(self) -> VectorStore:
-        if not self.vector_store_path:
+        # VectorStore will contain multiple collections
+        
+        # If vector_store_path doesn't exist or the dir is empty, create new VectorStore
+        if not os.path.exists(self.vector_store_path) or not os.listdir(self.vector_store_path):
             # Check the format of collections
             if self._validate_collections_format(self.collections):
                 # Create directory if it doesn't exist
@@ -95,6 +100,7 @@ class TextSearchMetadata(Action):
         vector_store.create_collection_from_nodes(collection_name=collection_name, nodes=nodes)
 
     def _build_vector_store(self) -> VectorStore:
+        print("Building vector store:", self.vector_store_path)
         # Initialize VectorStore
         vector_store = VectorStore(
             base_index_path=self.vector_store_path,
@@ -107,6 +113,7 @@ class TextSearchMetadata(Action):
             self._build_collection(vector_store, collection_name, data)
 
         return vector_store
+
     def execute(self, query: str, collection: str) -> list:
         """
         Classifies the query by finding the closest match in the FAISS index.
@@ -309,3 +316,97 @@ class GenericLLMResponse(Action):
         # Call the LLM to generate the final answer
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
+
+class RAGComparison(Action):
+    def __init__(
+        self,
+        agent,
+        sys_prompt: str,
+        prompt: str,
+        vector_stores_map: dict,
+        name: str = ""
+    ):
+        self.agent = agent
+        self.default_sys_prompt = sys_prompt
+        self.prompt = prompt
+        self.vector_stores_map = vector_stores_map
+        self.name = name
+
+        self.offering_separator = "\n=== {} ===\n"
+        self.result_separator = "\n----\n"
+
+    def execute(self, query: str, collection_names: List[str], prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
+        # collection_names = ['External_vs', 'lesfurets-test']
+        # Exclude External_vs from search (TMP)
+        collection_names = ['lesfurets-test']
+
+        ### --- Vector Store Search --- ###
+        formatted_search_results = self._perform_vector_store_search(query, collection_names)
+
+        ### --- Format Prompt --- ###
+        formatted_prompt = self.prompt.format(
+            query=query,
+            search_results=formatted_search_results,
+            **prompt_kwargs,
+        )
+
+        # Use the provided sys_prompt or fall back to the default
+        sys_prompt = sys_prompt or self.default_sys_prompt
+
+        prompt_logger.info(f"\nSYSPROMPT:\n---\n{sys_prompt}\n---\n")
+        prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
+        prompt_logger.info(
+            f"\nFORMATTED PROMPT (RAGComparison):\n---\n{formatted_prompt}\n---\n"
+        )
+
+        ### --- LLM Generation --- ###
+        if stream:
+            return self._generate_stream(sys_prompt, formatted_prompt)
+        else:
+            return self._generate_non_stream(sys_prompt, formatted_prompt)
+
+    def _generate_stream(self, sys_prompt, formatted_prompt):
+        response_generator = self.agent.llm.call_llm_stream(
+            sys_prompt, formatted_prompt
+        )
+        for chunk in response_generator:
+            yield chunk
+
+    def _generate_non_stream(self, sys_prompt, formatted_prompt) -> str:
+        answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
+        return answer
+
+    def _perform_vector_store_search(self, query: str, collection_names: List[str]) -> str:
+        """
+        Perform a search across all vector stores and format the results by offering.
+        """
+        formatted_search_results = []
+
+        for offering, vs in self.vector_stores_map.items():
+            offering_dict = self.vector_stores_map[offering]
+            collection_name = offering_dict['collection_name']
+
+            _, node_search_results = vs.search(
+                collection_name=collection_name,
+                query=query, 
+                number=3  # Get top 3 documents for each offering
+            )
+
+            offering_full_name = f"{offering_dict['name']} ({offering_dict['provider']})"
+            formatted_search_results.append(self.offering_separator.format(offering_full_name))
+            
+            if node_search_results:
+                formatted_search_results.append(self._format_search_results(node_search_results))
+            else:
+                formatted_search_results.append("No relevant information found for this offering.")
+
+        return "".join(formatted_search_results)
+
+    def _format_search_results(self, search_results: list) -> str:
+        """
+        Formats the search results from one vector store into a string.
+        """
+        formatted_results = [
+            f"{node.content}{self.result_separator}" for node in search_results
+        ]
+        return "".join(formatted_results)
