@@ -1,7 +1,8 @@
 import logging
 from abc import ABC
 from abc import abstractmethod
-from typing import Any
+from typing import Any, Optional
+from textwrap import dedent
 
 import dotenv
 import pandas as pd
@@ -13,6 +14,9 @@ from rakam_systems.custom_loggers import prompt_logger
 from rakam_systems.components.base import LLM
 from rakam_systems.components.base import EmbeddingModel
 from rakam_systems.components.vector_search import VectorStore
+
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 dotenv.load_dotenv()
 
@@ -221,8 +225,14 @@ class RAGGeneration(Action):
         )
 
         ### --- LLM Generation --- ###
-        if stream: return self._generate_stream(sys_prompt, formatted_prompt)
-        else: return self._generate_non_stream(sys_prompt, formatted_prompt)
+        if stream: return self._generate_stream(
+            sys_prompt=dedent(sys_prompt),
+            formatted_prompt=dedent(formatted_prompt)
+        )
+        else: return self._generate_non_stream(
+            sys_prompt=dedent(sys_prompt),
+            formatted_prompt=dedent(formatted_prompt)
+        )
 
     # STREAMING (returns a generator)
     def _generate_stream(self, sys_prompt, formatted_prompt):
@@ -298,9 +308,15 @@ class GenericLLMResponse(Action):
 
         ### --- LLM Generation --- ###
         if stream:
-            return self._generate_stream(sys_prompt, formatted_prompt)
+            return self._generate_stream(
+                sys_prompt=dedent(sys_prompt),
+                formatted_prompt=dedent(formatted_prompt)
+            )
         else:
-            return self._generate_non_stream(sys_prompt, formatted_prompt)
+            return self._generate_non_stream(
+                sys_prompt=dedent(sys_prompt),
+                formatted_prompt=dedent(formatted_prompt)
+            )
 
     # STREAMING (returns a generator)
     def _generate_stream(self, sys_prompt, formatted_prompt):
@@ -325,19 +341,35 @@ class RAGComparison(Action):
         prompt: str,
         vector_stores_map: dict,
         vector_stores_info: dict,
+        external_vs: Optional[VectorStore] = None,
+        include_external: bool = True,
     ):
         self.agent = agent
         self.default_sys_prompt = sys_prompt
         self.prompt = prompt
         self.vector_stores_map = vector_stores_map
         self.vector_stores_info = vector_stores_info
+        self.comparison_use_cases = ["lesfurets-test"]
+        self.include_external = include_external
+        self.external_vs = external_vs
 
         self.offering_separator = "\n=== {} ===\n"
         self.result_separator = "\n----\n"
 
-    def execute(self, query: str, prompt_kwargs: dict = {}, stream: bool = False, sys_prompt: str = None, **kwargs):
+    def execute(
+        self, 
+        query: str, 
+        collection_names: List[str], 
+        prompt_kwargs: dict = {}, 
+        stream: bool = False, 
+        sys_prompt: str = None, 
+        **kwargs
+    ):
         ### --- Vector Store Search --- ###
-        formatted_search_results = self._perform_vector_store_search(query)
+        formatted_search_results = self._perform_vector_store_search(
+            query=query, 
+            sources=collection_names
+        )
 
         ### --- Format Prompt --- ###
         formatted_prompt = self.prompt.format(
@@ -357,9 +389,15 @@ class RAGComparison(Action):
 
         ### --- LLM Generation --- ###
         if stream:
-            return self._generate_stream(sys_prompt, formatted_prompt)
+            return self._generate_stream(
+                sys_prompt=dedent(sys_prompt),
+                formatted_prompt=dedent(formatted_prompt)
+            )
         else:
-            return self._generate_non_stream(sys_prompt, formatted_prompt)
+            return self._generate_non_stream(
+                sys_prompt=dedent(sys_prompt),
+                formatted_prompt=dedent(formatted_prompt)
+            )
 
     def _generate_stream(self, sys_prompt, formatted_prompt):
         response_generator = self.agent.llm.call_llm_stream(
@@ -372,29 +410,77 @@ class RAGComparison(Action):
         answer = self.agent.llm.call_llm(sys_prompt, formatted_prompt)
         return answer
 
-    def _perform_vector_store_search(self, query: str) -> str:
+    def _perform_vector_store_search(self, query: str, sources: List[str]) -> str:
         """
         Perform a search across all vector stores and format the results by offering.
+        'sources' may contain directly a collection name (e.g. "External_vs"), 
+        or a vector store name (which itself contains various collections).
         """
         formatted_search_results = []
 
-        for offering, vs in self.vector_stores_map.items():
-            offering_dict = self.vector_stores_info[offering]
-            collection_name = offering_dict['collection_name']
+        logger.info(f"sources : {sources}")
+        for source in sources:
+            logger.info(f"source : {source}")
+            # For comparison use cases, search in all the collections of the vector store
+            if source in self.comparison_use_cases:
+                logger.info(f"source in comparison_use_cases : {source}")
+                for offering_collection, vs in self.vector_stores_map.items():
+                    logger.info(f"offering_collection : {offering_collection}")
+                    logger.debug(f"vs : {vs}")
+                    
+                    offering_dict = self.vector_stores_info[offering_collection]
+                    collection_name = offering_dict['collection_name']
+                    
+                    logger.debug("offering_dict : ", offering_dict)
+                    logger.debug(f"collection_name : {collection_name}")
+                    
+                    _, node_search_results = vs.search(
+                        collection_name=collection_name,
+                        query=query, 
+                        number=3  # Get top 3 documents for each offering
+                    )
 
-            _, node_search_results = vs.search(
-                collection_name=collection_name,
-                query=query, 
-                number=3  # Get top 3 documents for each offering
-            )
+                    logger.info(f"node_search_results : {node_search_results}")
 
-            offering_full_name = f"{offering_dict['name']} ({offering_dict['provider']})"
-            formatted_search_results.append(self.offering_separator.format(offering_full_name))
-            
-            if node_search_results:
-                formatted_search_results.append(self._format_search_results(node_search_results))
+                    offering_full_name = f"{offering_dict['name']} ({offering_dict['provider']})"
+                    formatted_search_results.append(
+                        self.offering_separator.format(offering_full_name)
+                    ) # e.g.: ===== LMF Santé (Mutuelle Familiale) =====
+                    if node_search_results:
+                        formatted_search_results.append(
+                            self._format_search_results(node_search_results)
+                        )
+                    else:
+                        formatted_search_results.append(
+                            "No relevant information found for this offering."
+                        )
             else:
-                formatted_search_results.append("No relevant information found for this offering.")
+                logger.info(f"source not in comparison_use_cases : {source}")
+                if self.include_external:
+                    logger.info(f"searching in external vs - include_external is True")
+                    collection_name = source # 'External_vs'
+                    vs = self.external_vs
+                    logger.info(f"external vs : {vs}")
+                    logger.info(f"external vs collections : {vs.collections}")
+                    logger.info(f"collection_name : {collection_name}")
+                    
+                    _, node_search_results = vs.search(
+                        collection_name=collection_name,
+                        query=query, 
+                        number=3  # Get top 3 documents from the external collection (ameli)
+                    )
+
+                    if node_search_results:
+                        formatted_search_results.append(
+                            dedent(f"""
+                            {self.offering_separator.format('Non-offering Specific Information')}\n
+                            **Source:** Site officiel de l'Assurance Maladie (Ameli.fr)
+                            """
+                            )
+                        )
+                        formatted_search_results.append(
+                            self._format_search_results(node_search_results)
+                        )
 
         return "".join(formatted_search_results)
 
