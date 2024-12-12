@@ -15,7 +15,6 @@ from rakam_systems.components.base import LLM
 from rakam_systems.components.base import EmbeddingModel
 from rakam_systems.components.vector_search import VectorStore
 
-logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 dotenv.load_dotenv()
@@ -174,7 +173,7 @@ class ClassifyQuery(Action):
         Classifies the query by finding the closest match in the FAISS index.
         """
         # Perform the search using the vector store
-        _, node_search_results = self.vector_store.search(
+        node_search_results, _ = self.vector_store.search(
             collection_name="query_classification", query=query, number=2
         )
 
@@ -218,20 +217,20 @@ class RAGGeneration(Action):
         # Use the provided sys_prompt or fall back to the default
         sys_prompt = sys_prompt or self.default_sys_prompt
 
-        prompt_logger.info(f"\nSYSPROMPT:\n---\n{self.default_sys_prompt}\n---\n")
-        prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
-        prompt_logger.info(
-            f"\nFORMATTED PROMPT (RAGGeneration):\n---\n{formatted_prompt}\n---\n"
-        )
+        #(f"\nSYSPROMPT:\n---\n{self.default_sys_prompt}\n---\n")
+        #prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
+        #prompt_logger.info(
+        #    f"\nFORMATTED PROMPT (RAGGeneration):\n---\n{formatted_prompt}\n---\n"
+        #)
 
         ### --- LLM Generation --- ###
         if stream: return self._generate_stream(
-            sys_prompt=dedent(sys_prompt),
-            formatted_prompt=dedent(formatted_prompt)
+            sys_prompt=sys_prompt,
+            formatted_prompt=formatted_prompt
         )
         else: return self._generate_non_stream(
-            sys_prompt=dedent(sys_prompt),
-            formatted_prompt=dedent(formatted_prompt)
+            sys_prompt=sys_prompt,
+            formatted_prompt=formatted_prompt
         )
 
     # STREAMING (returns a generator)
@@ -262,7 +261,7 @@ class RAGGeneration(Action):
 
         print("self.vector_stores, collection_names, self.vs_descriptions : ", self.vector_stores, collection_names, self.vs_descriptions)
         for store, collection_name, collection_description in zip(self.vector_stores, collection_names, self.vs_descriptions) :
-            _, node_search_results = store.search(
+            node_search_results, _ = store.search(
                 collection_name=collection_name, query=query
             )
             if node_search_results:
@@ -283,9 +282,15 @@ class RAGGeneration(Action):
         if not search_results:
             return f"No results found. {self.result_separator}"
 
+        # TMP:
+        search_results = list(search_results.values())
         formatted_results = [
-            f"{node.content}{self.result_separator}" for node in search_results
+            f"{result[1]}{self.result_separator}" for result in search_results
         ]
+
+        #formatted_results = [
+        #    f"{node.content}{self.result_separator}" for node in search_results
+        #]
 
         return "".join(formatted_results)
 
@@ -302,20 +307,20 @@ class GenericLLMResponse(Action):
         # Use the provided sys_prompt or fall back to the default
         sys_prompt = sys_prompt or self.default_sys_prompt
 
-        prompt_logger.info(
-            f"\nFORMATTED PROMPT (GenericLLMResponse):\n---\n{formatted_prompt}\n---\n"
-        )
+        #prompt_logger.info(
+        #    f"\nFORMATTED PROMPT (GenericLLMResponse):\n---\n{formatted_prompt}\n---\n"
+        #)
 
         ### --- LLM Generation --- ###
         if stream:
             return self._generate_stream(
-                sys_prompt=dedent(sys_prompt),
-                formatted_prompt=dedent(formatted_prompt)
+                sys_prompt=sys_prompt,
+                formatted_prompt=formatted_prompt
             )
         else:
             return self._generate_non_stream(
-                sys_prompt=dedent(sys_prompt),
-                formatted_prompt=dedent(formatted_prompt)
+                sys_prompt=sys_prompt,
+                formatted_prompt=formatted_prompt
             )
 
     # STREAMING (returns a generator)
@@ -381,22 +386,22 @@ class RAGComparison(Action):
         # Use the provided sys_prompt or fall back to the default
         sys_prompt = sys_prompt or self.default_sys_prompt
 
-        prompt_logger.info(f"\nSYSPROMPT:\n---\n{sys_prompt}\n---\n")
-        prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
-        prompt_logger.info(
-            f"\nFORMATTED PROMPT (RAGComparison):\n---\n{formatted_prompt}\n---\n"
-        )
+        #prompt_logger.info(f"\nSYSPROMPT:\n---\n{sys_prompt}\n---\n")
+        #prompt_logger.info(f"\nPROMPT:\n---\n{self.prompt}\n---\n")
+        #prompt_logger.info(
+        #    f"\nFORMATTED PROMPT (RAGComparison):\n---\n{formatted_prompt}\n---\n"
+        #)
 
         ### --- LLM Generation --- ###
         if stream:
             return self._generate_stream(
-                sys_prompt=dedent(sys_prompt),
-                formatted_prompt=dedent(formatted_prompt)
+                sys_prompt=sys_prompt,
+                formatted_prompt=formatted_prompt
             )
         else:
             return self._generate_non_stream(
-                sys_prompt=dedent(sys_prompt),
-                formatted_prompt=dedent(formatted_prompt)
+                sys_prompt=sys_prompt,
+                formatted_prompt=formatted_prompt
             )
 
     def _generate_stream(self, sys_prompt, formatted_prompt):
@@ -418,29 +423,25 @@ class RAGComparison(Action):
         """
         formatted_search_results = []
 
-        logger.info(f"sources : {sources}")
+        logger.debug(f"sources: {sources}")
         for source in sources:
-            logger.info(f"source : {source}")
-            # For comparison use cases, search in all the collections of the vector store
+            logger.debug(f"source: {source}")
             if source in self.comparison_use_cases:
-                logger.info(f"source in comparison_use_cases : {source}")
+                logger.debug(f"source in comparison_use_cases: {source}")
                 for offering_collection, vs in self.vector_stores_map.items():
-                    logger.info(f"offering_collection : {offering_collection}")
-                    logger.debug(f"vs : {vs}")
+                    logger.debug(f"offering_collection: {offering_collection}")
                     
                     offering_dict = self.vector_stores_info[offering_collection]
                     collection_name = offering_dict['collection_name']
                     
-                    logger.debug("offering_dict : ", offering_dict)
-                    logger.debug(f"collection_name : {collection_name}")
+                    logger.debug(f"offering_dict: {offering_dict}")
+                    logger.debug(f"collection_name: {collection_name}")
                     
-                    _, node_search_results = vs.search(
+                    node_search_results, _ = vs.search(
                         collection_name=collection_name,
                         query=query, 
-                        number=3  # Get top 3 documents for each offering
+                        number=3
                     )
-
-                    logger.info(f"node_search_results : {node_search_results}")
 
                     offering_full_name = f"{offering_dict['name']} ({offering_dict['provider']})"
                     formatted_search_results.append(
@@ -460,11 +461,9 @@ class RAGComparison(Action):
                     logger.info(f"searching in external vs - include_external is True")
                     collection_name = source # 'External_vs'
                     vs = self.external_vs
-                    logger.info(f"external vs : {vs}")
-                    logger.info(f"external vs collections : {vs.collections}")
-                    logger.info(f"collection_name : {collection_name}")
+                    logger.debug(f"collection_name : {collection_name}")
                     
-                    _, node_search_results = vs.search(
+                    node_search_results, _ = vs.search(
                         collection_name=collection_name,
                         query=query, 
                         number=3  # Get top 3 documents from the external collection (ameli)
@@ -488,7 +487,13 @@ class RAGComparison(Action):
         """
         Formats the search results from one vector store into a string.
         """
+        # TMP:
+        search_results = list(search_results.values())
         formatted_results = [
-            f"{node.content}{self.result_separator}" for node in search_results
+            f"{result[1]}{self.result_separator}" for result in search_results
         ]
+        
+        #formatted_results = [
+        #    f"{node.content}{self.result_separator}" for node in search_results
+        #]
         return "".join(formatted_results)

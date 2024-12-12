@@ -15,8 +15,7 @@ import dotenv
 dotenv.load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class VectorStore:
     """
@@ -71,7 +70,7 @@ class VectorStore:
             store["embeddings"] = pickle.load(f)
 
 
-        logging.info(f"Store loaded successfully from {store_path}.")
+        #logger.info(f"Store loaded successfully from {store_path}.")
         return store
 
     def predict_embeddings(self, query: str) -> np.ndarray:
@@ -81,7 +80,7 @@ class VectorStore:
         :param query: Query string to encode.
         :return: Embedding vector for the query.
         """
-        logging.info(f"Predicting embeddings for query: {query}")
+        #logger.info(f"Predicting embeddings for query: {query}")
 
         if self.use_embedding_api:
             query_embedding = self.client.embeddings.create(input = [query], model=self.api_model).data[0].embedding
@@ -118,7 +117,7 @@ class VectorStore:
         :param number: Number of results to return (default is 5).
         :param meta_data_filters: List of Node IDs to filter the search results.
         """
-        logging.info(f"Searching in collection: {collection_name} for query: '{query}'")
+        #logger.info(f"Searching in collection: {collection_name} for query: '{query}'")
 
         # Step 1: Retrieve the collection
         store = self.collections.get(collection_name)
@@ -129,39 +128,39 @@ class VectorStore:
 
         # Step 2: Apply metadata filters if provided
         if meta_data_filters:
-            logging.info(f"Applying metadata filters: {meta_data_filters}")
+            #logger.info(f"Applying metadata filters: {meta_data_filters}")
             
             all_ids = store["category_index_mapping"].keys()
-            logging.info(f"Total IDs in the index: {all_ids}")
+            #logger.info(f"Total IDs in the index: {all_ids}")
             
             ids_to_remove = list(all_ids - set(meta_data_filters))
-            logging.info(f"IDs to remove: {ids_to_remove}")
+            #logger.info(f"IDs to remove: {ids_to_remove}")
 
             # filtered_index = faiss.clone_index(store["index"])
             filtered_index = index_copy
-            logging.info(f"Original index size: {filtered_index.ntotal}")
+            #logger.info(f"Original index size: {filtered_index.ntotal}")
 
             filtered_index.remove_ids(np.array(ids_to_remove))
-            logging.info(f"Filtered index size: {filtered_index.ntotal}")
+            #logger.info(f"Filtered index size: {filtered_index.ntotal}")
         else:
             # No filters provided; use the original index
-            logging.info("No metadata filters provided. Using the entire index for search.")
+            #logger.info("No metadata filters provided. Using the entire index for search.")
             filtered_index = index_copy
 
         # Step 3: Generate the query embedding
         query_embedding = self.predict_embeddings(query)
-        logging.info(f"Query embedding shape: {query_embedding.shape}")
+        #logger.info(f"Query embedding shape: {query_embedding.shape}")
         if distance_type == "cosine":
             faiss.normalize_L2(query_embedding)
 
         # Step 4: Perform the search
-        logging.info("Performing search on the index...")
+        #logger.info("Performing search on the index...")
         D, I = filtered_index.search(query_embedding, number)
-        logging.debug(f"Search distances: {D}")
-        logging.debug(f"Search indices: {I}")
+        logger.debug(f"Search distances: {D}")
+        logger.debug(f"Search indices: {I}")
 
         if I.shape[1] == 0 or np.all(I == -1):
-            logging.error("Search returned no results.")
+            logger.error("Search returned no results.")
             return {}, []
 
         # Step 5: Prepare search results
@@ -188,7 +187,7 @@ class VectorStore:
                     )
                     count += 1
 
-        logging.info(f"Final search results: {valid_suggestions}")
+        logger.info(f"Final search results: {valid_suggestions}")
         
         return valid_suggestions, suggested_nodes
 
@@ -198,7 +197,7 @@ class VectorStore:
 
         :param collection_files: Dictionary where keys are store names and values are lists of VSFile objects.
         """
-        logging.info(f"Creating FAISS index for store: {collection_name}")
+        ##logger.info(f"Creating FAISS index for store: {collection_name}")
         text_chunks = []
         metadata = []
         nodes = []
@@ -233,7 +232,7 @@ class VectorStore:
         :param collection_name: Name of the store to create.
         :param nodes: List of nodes containing the content and metadata.
         """
-        logging.info(f"Creating FAISS index for store: {collection_name}")
+        ##logger.info(f"Creating FAISS index for store: {collection_name}")
         text_chunks = []
         metadata = []
 
@@ -266,7 +265,7 @@ class VectorStore:
         """
         # Check if the list of nodes or text_chunks is empty
         if not nodes or not text_chunks:
-            logging.warning(f"Cannot create FAISS index for store '{collection_name}' because nodes or text_chunks are empty.")
+            logger.warning(f"Cannot create FAISS index for store '{collection_name}' because nodes or text_chunks are empty.")
             self.collections[collection_name] = {
                 "index": None,
                 "nodes": [],
@@ -292,7 +291,7 @@ class VectorStore:
         # Update the node_id in the metadata for metadata_index_mapping
         for i, meta in enumerate(metadata):
             meta['node_id'] = i
-        logging.info(f"Assigned node IDs to metadata successfully. For example: {metadata[0]['node_id']}")
+        #logger.info(f"Assigned node IDs to metadata successfully. For example: {metadata[0]['node_id']}")
 
         # Update the node_id in the metadata in the nodes
         for i, node in enumerate(nodes):
@@ -330,8 +329,7 @@ class VectorStore:
             "metadata_index_mapping": metadata_index_mapping,
             "embeddings": embeddings_index_mapping  # Store the embeddings mapping
         }
-        print((f"FAISS index and embeddings for store {collection_name} created and saved successfully."))
-        logging.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
+        #logger.info(f"FAISS index and embeddings for store {collection_name} created and saved successfully.")
 
     def add_nodes(self, collection_name: str, nodes: List[Node]) -> None:
         """
@@ -340,10 +338,10 @@ class VectorStore:
         :param collection_name: Name of the store to update.
         :param nodes: List of nodes to be added.
         """
-        logging.info(f"Adding nodes to store: {collection_name}")
+        #logger.info(f"Adding nodes to store: {collection_name}")
 
         if not nodes:
-            logging.warning("No nodes to add.")
+            logger.warning("No nodes to add.")
             return
 
         store = self.collections.get(collection_name)
@@ -370,9 +368,9 @@ class VectorStore:
             new_ids.append(next_id)
             next_id += 1
 
-        logging.info(f"New IDs: {new_ids}")
-        logging.info(f"Existing IDs: {existing_ids}")
-        logging.info(f"New text chunks count: {len(new_text_chunks)}")
+        #logger.info(f"New IDs: {new_ids}")
+        #logger.info(f"Existing IDs: {existing_ids}")
+        #logger.info(f"New text chunks count: {len(new_text_chunks)}")
 
         # # Get the new Mapping Indices for the new nodes
         # new_ids = list(range(
@@ -437,7 +435,7 @@ class VectorStore:
         :param collection_name: Name of the store to update.
         :param node_ids: List of node IDs to be deleted.
         """
-        logging.info(f"Deleting nodes {node_ids} from store: {collection_name}")
+        #logger.info(f"Deleting nodes {node_ids} from store: {collection_name}")
 
         store = self.collections.get(collection_name)
         if not store:
@@ -447,7 +445,7 @@ class VectorStore:
         assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
         existed_ids = set(store["category_index_mapping"].keys())
-        logging.info(f"Existed IDs before deletion: {existed_ids}")
+        #logger.info(f"Existed IDs before deletion: {existed_ids}")
 
         missing_ids = []
         ids_to_delete = []
@@ -460,17 +458,17 @@ class VectorStore:
                 ids_to_delete.append(node_id)
         
         if not ids_to_delete:
-            logging.warning(f"No valid IDs to delete for store: {collection_name}")
+            logger.warning(f"No valid IDs to delete for store: {collection_name}")
             return
 
         # Remove the IDs from the FAISS index using remove_ids method
         faiss_index = store["index"]
         
-        logging.info(f"FAISS Index Size Before Deletion: {faiss_index.ntotal}")
+        #logger.info(f"FAISS Index Size Before Deletion: {faiss_index.ntotal}")
         
         faiss_index.remove_ids(np.array(ids_to_delete))
         
-        logging.info(f"FAISS Index Size After Deletion: {faiss_index.ntotal}")
+        #logger.info(f"FAISS Index Size After Deletion: {faiss_index.ntotal}")
 
         # Remove the nodes and mappings from the store
         store["category_index_mapping"] = {
@@ -500,10 +498,10 @@ class VectorStore:
         assert len(saved_store["category_index_mapping"]) == len(saved_store["metadata_index_mapping"]) == len(saved_store["embeddings"]) == len(saved_store["nodes"]), "Mismatch in saved store mappings."
         assert store["category_index_mapping"].keys() == store["metadata_index_mapping"].keys() == store["embeddings"].keys() == {node.metadata.node_id for node in store["nodes"]}, "Mismatch between mappings and embeddings."
 
-        logging.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
+        #logger.info(f"Nodes {ids_to_delete} deleted and index updated for store: {collection_name} successfully.")
         if missing_ids:
-            logging.warning(f"Node ID(s) {missing_ids} do not exist in the collection {collection_name}.")
-        logging.info(f"Remaining Node ID(s): {store['category_index_mapping'].keys()}")
+            logger.warning(f"Node ID(s) {missing_ids} do not exist in the collection {collection_name}.")
+        #logger.info(f"Remaining Node ID(s): {store['category_index_mapping'].keys()}")
 
     def add_files(self, collection_name: str, files: List[VSFile]) -> None:
         """
@@ -512,7 +510,7 @@ class VectorStore:
         :param collection_name: Name of the store to update.
         :param files: List of VSFile objects whose nodes are to be added.
         """
-        logging.info(f"Adding files to store: {collection_name}")
+        #logger.info(f"Adding files to store: {collection_name}")
         all_nodes = []
 
         for file in files:
@@ -527,7 +525,7 @@ class VectorStore:
         :param collection_name: Name of the store to update.
         :param files: List of VSFile objects whose nodes are to be deleted.
         """
-        logging.info(f"Deleting files from store: {collection_name}")
+        #logger.info(f"Deleting files from store: {collection_name}")
         node_ids_to_delete = []
 
         for file in files:
@@ -546,7 +544,7 @@ class VectorStore:
         store_path = os.path.join(self.base_index_path, collection_name)
         store = self.collections[collection_name]
         if len(store["nodes"]) == 0:
-            logging.warning(f"Cannot sve FAISS index for store {collection_name} because nodes are empty.")
+            logger.warning(f"Cannot sve FAISS index for store {collection_name} because nodes are empty.")
             return
         # Save category index mapping to file
         with open(os.path.join(store_path, "category_index_mapping.pkl"), "wb") as f:
@@ -565,7 +563,7 @@ class VectorStore:
             pickle.dump(store["embeddings"], f)
 
         faiss.write_index(store["index"], os.path.join(store_path, "index"))
-        logging.info(f"Store {collection_name} saved successfully.")
+        #logger.info(f"Store {collection_name} saved successfully.")
 
 
 
