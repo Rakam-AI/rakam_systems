@@ -11,8 +11,8 @@ class VSFile:
     A data source to be processed. Its nodes will become entries in the VectorStore.
     """
 
-    def __init__(self, file_path: str) -> None:
-        self.uuid: str = uuid.uuid4()
+    def __init__(self, file_path: str, file_uuid: str = None) -> None:
+        self.uuid: str = file_uuid or str(uuid.uuid4())
         self.file_path: str = file_path
         self.file_name: str = file_path.split("/")[-1]
         self.mime_type, _ = mimetypes.guess_type(self.file_path)

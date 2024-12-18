@@ -22,7 +22,7 @@ class RAGGenerator(Component):
         self.system_manager = system_manager
         self.sys_prompt = "You are a helpful assistant."
 
-    def _retrive(self, query, collection_name = "base"):
+    def _retrive(self, query, collection_name = "base", source_file_uuids = []) -> List[str]:
         """Retrieve the documents relevant to the query.
 
         Args:
@@ -31,15 +31,29 @@ class RAGGenerator(Component):
         Returns:
             List[str]: The retrieved documents.
         """
-        input_data = {"query": query, "collection_name": collection_name}
+        nodeID_response = self.system_manager.execute_component_function(
+            component_name="VectorStore",
+            function_name="get_nodes",
+            input_data={"collection_name": collection_name}
+        )
+
+        nodeID_filters = []
+        for node in nodeID_response["nodes"]:
+            if node["metadata"]["source_file_uuid"] in source_file_uuids:
+                nodeID_filters.append(node["metadata"]["node_id"])
+        logging.info(f"NodeID filters: {nodeID_filters}")
+
+        input_data = {"query": query, "collection_name": collection_name, "nodeID_filters": nodeID_filters}
         response = self.system_manager.execute_component_function(
             component_name="VectorStore",
             function_name="search",
             input_data=input_data
         )
-
+        logging.info(f"Retrieved: {response}")
+        response = response["response"]
         documents = [item["text"] for item in response.values() if "text" in item]
-        return documents
+        logging.info(f"Retrieved {len(documents)} documents.")
+        return documents, nodeID_filters
 
     def _get_user_prompt(self, documents: List[str], query: str) -> str:
         """Generate a prompt based on the loaded documents and the set query.
@@ -182,17 +196,18 @@ class RAGGenerator(Component):
         }
         return response
 
-    def call_main(self, query):
+    def call_main(self, query, collection_name="base", source_file_uuids=[]):
         """
         Simple RAG generation with a single query.
         Vector Search in default 'base' collection.
         """
-        documents = self._retrive(query)
+        documents,nodeID_filters = self._retrive(query, collection_name=collection_name, source_file_uuids=source_file_uuids)
         user_prompt = self._get_user_prompt(documents, query)
         # user_prompt = user_prompt[:200]
         generated_text = self._generate_text(self.sys_prompt, user_prompt, stream=False)
         response = {
             "generated_text": generated_text,
+            "retrieval nodeID filters": nodeID_filters,
             "query": query,
             "sys_prompt": self.sys_prompt,
             "user_prompt": user_prompt,

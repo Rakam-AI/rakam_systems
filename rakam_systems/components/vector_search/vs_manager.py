@@ -388,9 +388,12 @@ class VSManager(Component):
         text_chunks = []
         metadata = []
         nodes = []
-
+        
+        node_id = 0
         for file in files:
             for node in file.nodes:
+                node.metadata.node_id = node_id
+                node_id += 1
                 nodes.append(node)
                 text_chunks.append(node.content)
                 formatted_metadata = {
@@ -528,7 +531,8 @@ class VSManager(Component):
     def call_create_from_file(
             self,
             file_path: str,
-            collection_name: str = "base"
+            collection_name: str = "base",
+            file_uuid = None
     ) -> List[VSFile]:
         """
         Main method to process and inject a single document.
@@ -540,7 +544,7 @@ class VSManager(Component):
         Returns:
             List[VSFile]: List of processed VSFile objects
         """
-        input_data = {"file_path": file_path}
+        input_data = {"file_path": file_path, "file_uuid": file_uuid}
         serialized_files = self.system_manager.execute_component_function(
             component_name="DataProcessor",
             function_name="process_from_file",

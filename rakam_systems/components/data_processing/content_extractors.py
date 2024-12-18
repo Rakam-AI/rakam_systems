@@ -105,7 +105,7 @@ class AdvancedPDFParser:
     def __init__(self, output_format: str = "markdown") -> None:
         self.output_format = output_format
 
-    def parse_one_pdf(self, file_path: str):
+    def parse_one_pdf(self, file_path: str, file_uuid: str) -> VSFile:
         # try:
             # Returns a list of dicts, each representing a page
         doc = pymupdf4llm.to_markdown(file_path, page_chunks=True)
@@ -113,13 +113,14 @@ class AdvancedPDFParser:
         #     logging.error(f"Error reading PDF file: {file_path}")
         #     return None
 
-        vs_file = VSFile(file_path)  # create a new VSFile
+        vs_file = VSFile(file_uuid= file_uuid, file_path = file_path)  # create a new VSFile
         nodes = []
+
         for page_num, page_content in enumerate(doc):
             text = page_content["text"].strip()
             if text:
                 metadata = NodeMetadata(
-                    source_file_uuid=file_path, position=(page_num + 1)
+                    source_file_uuid=file_uuid, position=(page_num + 1), 
                 )
                 node = Node(text, metadata)
                 nodes.append(node)
@@ -171,7 +172,7 @@ class PDFContentExtractor(ContentExtractor):
         VSFile = utils.llama_documents_to_VSFile(documents)
         return VSFile
 
-    def _load_or_parse_pdf(self, file_path) -> VSFile:
+    def _load_or_parse_pdf(self, file_path, file_uuid) -> VSFile:
         """
         Determine whether to load or parse a PDF file.
         """
@@ -183,7 +184,7 @@ class PDFContentExtractor(ContentExtractor):
             )
             if parsed_files:
                 return self._load_parsed_files(parsed_files)
-        return self.parser.parse_one_pdf(file_path)
+        return self.parser.parse_one_pdf(file_path, file_uuid)
 
     def _parse_directory(self, directory) -> List[VSFile]:
         """
@@ -197,7 +198,7 @@ class PDFContentExtractor(ContentExtractor):
                 VSFiles.append(VSFile)
         return VSFiles
 
-    def extract_content(self, source) -> List[VSFile]:
+    def extract_content(self, source, file_uuid) -> List[VSFile]:
         """
         Wrapper method to extract content from PDF files.
         """
@@ -207,7 +208,7 @@ class PDFContentExtractor(ContentExtractor):
         if os.path.isdir(source):
             VSFiles = self._parse_directory(source)
         elif os.path.isfile(source) and source.lower().endswith(".pdf"):
-            VSFile = self._load_or_parse_pdf(source)
+            VSFile = self._load_or_parse_pdf(source, file_uuid)
             VSFiles = [VSFile]
         else:
             raise ValueError(

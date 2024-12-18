@@ -1,5 +1,7 @@
 import logging
 import mimetypes
+import requests
+
 import os
 import sys
 from typing import Dict
@@ -56,27 +58,62 @@ class DataProcessor(Component):
 
         return vs_files
     
-    def call_process_file(self, file_path: str) -> List[VSFile]:
+    def call_process_file(self, file_path: str, file_uuid = None, download_dir: str = "downloads") -> List[dict]:
         """
-        Processes a single file, extracting content and processing nodes if the MIME type is supported.
+        Processes a single file or URL, extracting content and processing nodes if the MIME type is supported.
+        Downloads the file to a specified directory if it's a URL.
 
         Parameters:
-        file_path (str): Path to the file to be processed.
+        file_path (str): Path to the file or URL to be processed.
+        download_dir (str): Directory where files are downloaded (if file_path is a URL).
 
         Returns:
-        List[VSFile]: A list of processed VSFile objects.
+        List[dict]: A list of processed VSFile objects in dictionary format.
         """
-        mime_type, _ = mimetypes.guess_type(file_path)
+        def is_url(path: str) -> bool:
+            """Check if the given path is a URL."""
+            return path.startswith("http://") or path.startswith("https://")
+
+        if is_url(file_path):
+            # Handle URL case
+            try:
+                # Ensure the download directory exists
+                os.makedirs(download_dir, exist_ok=True)
+                
+                # Get the file name from Content-Disposition or fallback to the URL's file name
+                response = requests.get(file_path, stream=True)
+                response.raise_for_status()
+                
+                content_disposition = response.headers.get("Content-Disposition", "")
+                if "filename=" in content_disposition:
+                    file_name = content_disposition.split("filename=")[-1].strip('"')
+                else:
+                    file_name = os.path.basename(file_path)
+                
+                # Save the file with the determined file name
+                local_path = os.path.join(download_dir, file_name)
+                with open(local_path, 'wb') as file:
+                    file.write(response.content)
+                
+                temp_file_path = local_path
+                mime_type, _ = mimetypes.guess_type(temp_file_path)
+            except Exception as e:
+                print(f"Failed to download or process URL {file_path}: {e}")
+                return []
+        else:
+            # Handle local file case
+            temp_file_path = file_path
+            mime_type, _ = mimetypes.guess_type(file_path)
 
         # Check if the file's MIME type is supported
         if mime_type in self.default_content_extractors:
             content_extractor = self.default_content_extractors[mime_type]
-            vs_files = content_extractor.extract_content(file_path)  # This should be a list
+            vs_files = content_extractor.extract_content(temp_file_path, file_uuid)  # This should be a list
 
             # Process nodes in each extracted VSFile object
             for vs_file in vs_files:
                 self.default_node_processors.process(vs_file)
-            
+
             serialized_files = [vs_file.to_dict() for vs_file in vs_files]
 
             return serialized_files

@@ -89,9 +89,23 @@ class VectorStore(Component):
         query_embedding = self.embedding_model.encode(query)
         query_embedding = np.asarray([query_embedding], dtype="float32")
         return query_embedding
+    
+    def get_index_copy(self, store: Dict[str, Any]) -> faiss.IndexIDMap:
+        """
+        Creates a copy of the index from the store and returns it.
+        """
+        assert len(store["embeddings"]) == len(store["category_index_mapping"]), "Mismatch between embeddings and category index mapping."
+
+        category_index_mapping = store["category_index_mapping"]
+        data_embeddings = np.array(list(store["embeddings"].values()))
+        index_copy = faiss.IndexIDMap(faiss.IndexFlatIP(data_embeddings.shape[1]))
+        faiss.normalize_L2(data_embeddings)
+        index_copy.add_with_ids(data_embeddings, np.array(list(category_index_mapping.keys())))
+
+        return index_copy
 
     def search(
-        self, collection_name: str, query: str, distance_type="cosine", number=5
+        self, collection_name: str, query: str, distance_type="cosine", number=5, nodeID_filters: List = []
     ) -> dict:
         """
         Searches the specified collection for the closest embeddings to the query.
@@ -109,13 +123,36 @@ class VectorStore(Component):
         store = self.collections.get(collection_name)
         if not store:
             raise ValueError(f"No store found with name: {collection_name} in path : {self.base_index_path}")
+        
+        index_copy = self.get_index_copy(store)    
+
+        # Apply metadata filters if provided
+        if nodeID_filters!=[]:
+            logging.info(f"Applying metadata filters: {nodeID_filters}")
+            
+            all_ids = store["category_index_mapping"].keys()
+            logging.info(f"Total IDs in the index: {all_ids}")
+            
+            ids_to_remove = list(all_ids - set(nodeID_filters))
+            logging.info(f"IDs to remove: {ids_to_remove}")
+
+            # filtered_index = faiss.clone_index(store["index"])
+            filtered_index = index_copy
+            logging.info(f"Original index size: {filtered_index.ntotal}")
+
+            filtered_index.remove_ids(np.array(ids_to_remove))
+            logging.info(f"Filtered index size: {filtered_index.ntotal}")
+        else:
+            # No filters provided; use the original index
+            logging.info("No metadata filters provided. Using the entire index for search.")
+            filtered_index = index_copy
 
         query_embedding = self._predict_embeddings(query)
         suggested_nodes = []
 
         if distance_type == "cosine":
             faiss.normalize_L2(query_embedding)
-        D, I = store["index"].search(query_embedding, number)
+        D, I = filtered_index.search(query_embedding, number)
 
         seen_texts = set()
         valid_suggestions = {}
@@ -457,9 +494,9 @@ class VectorStore(Component):
         }
         return response
     
-    def call_main(self, collection_name: str, query: str, distance_type="cosine", number=5) -> dict:
+    def call_main(self, collection_name: str, query: str, distance_type="cosine", number=5, nodeID_filters = []) -> dict:
         # Perform the search
-        valid_suggestions, suggested_nodes = self.search(collection_name, query, distance_type, number)
+        valid_suggestions, suggested_nodes = self.search(collection_name, query, distance_type, number, nodeID_filters=nodeID_filters)
         
         # Format `valid_suggestions` for JSON compatibility
         formatted_suggestions = {
