@@ -2,9 +2,11 @@ import logging
 import os
 import pickle
 import time
+
 from typing import Any
 from typing import Dict
 from typing import List
+from typing import Tuple
 
 import faiss
 import numpy as np
@@ -107,15 +109,20 @@ class VectorStore:
 
     def search(
         self, collection_name: str, query: str, distance_type="cosine", number=5, meta_data_filters: List = None
-    ) -> dict:
+    ) -> Tuple[dict, List[Node]]:
         """
         Searches the specified collection for the closest embeddings to the query.
 
-        :param collection_name: Name of the collection to search.
-        :param query: Query string to search for.
-        :param distance_type: Type of distance metric to use (default is cosine).
-        :param number: Number of results to return (default is 5).
-        :param meta_data_filters: List of Node IDs to filter the search results.
+        Args:
+            collection_name: Name of the collection to search.
+            query: Query string to search for.
+            distance_type: Type of distance metric to use (default is cosine).
+            number: Number of results to return (default is 5).
+            meta_data_filters: List of Node IDs to filter the search results.
+
+        Returns:
+            valid_suggestions: Dictionary of valid suggestions (key: id, value: (metadata, text, distance))
+            suggested_nodes: List of suggested nodes (Node objects)
         """
         #logger.info(f"Searching in collection: {collection_name} for query: '{query}'")
 
