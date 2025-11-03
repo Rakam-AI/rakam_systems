@@ -3,6 +3,7 @@
 *.pyo
 *.pyd
 __pycache__/
+.pytest_cache/
 *.so
 
 # Environments
@@ -28,5 +29,7 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
+#data
 data/
 dist/
+logs/
