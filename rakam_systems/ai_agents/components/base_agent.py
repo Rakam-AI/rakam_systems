@@ -3,9 +3,21 @@ from typing import Any, AsyncIterator, Iterator, List, Optional, Type, Union
 from ai_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput, ModelSettings
 from ai_core.interfaces.tool import Tool
 
+try:
+    from ai_core.interfaces.tool_registry import ToolRegistry
+    from ai_core.interfaces.tool_invoker import ToolInvoker
+    TOOL_SYSTEM_AVAILABLE = True
+except ImportError:
+    ToolRegistry = None  # type: ignore
+    ToolInvoker = None  # type: ignore
+    TOOL_SYSTEM_AVAILABLE = False
+
+
 class BaseAgent(AgentComponent):
     """A convenient partial implementation of AgentComponent.
     Subclasses only need to implement `infer()` or `ainfer()`.
+    
+    Supports both traditional tool lists and the new ToolRegistry/ToolInvoker system.
     """
 
     def __init__(
@@ -16,6 +28,8 @@ class BaseAgent(AgentComponent):
         deps_type: Optional[Type[Any]] = None,
         system_prompt: Optional[str] = None,
         tools: Optional[List[Tool]] = None,
+        tool_registry: Optional[Any] = None,  # ToolRegistry
+        tool_invoker: Optional[Any] = None,  # ToolInvoker
     ) -> None:
         super().__init__(
             name=name,
@@ -25,6 +39,14 @@ class BaseAgent(AgentComponent):
             system_prompt=system_prompt,
             tools=tools,
         )
+        
+        # Optional new tool system support
+        self.tool_registry = tool_registry
+        self.tool_invoker = tool_invoker
+        
+        # If registry is provided but no invoker, create one
+        if tool_registry is not None and tool_invoker is None and TOOL_SYSTEM_AVAILABLE:
+            self.tool_invoker = ToolInvoker(tool_registry)
 
     def _normalize_input(self, input_data: Union[str, AgentInput]) -> AgentInput:
         """Convert string or AgentInput to AgentInput."""
