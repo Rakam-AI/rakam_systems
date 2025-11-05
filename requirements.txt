@@ -17,3 +17,6 @@ torch==2.2.2
 tqdm==4.66.4
 pymupdf==1.24.11
 pymupdf4llm==0.0.17
+
+# ai_agents base framework
+pydantic_ai==1.11.0
