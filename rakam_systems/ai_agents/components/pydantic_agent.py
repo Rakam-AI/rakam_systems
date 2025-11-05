@@ -15,7 +15,11 @@ except ImportError:
 
 
 class PydanticAIAgent(BaseAgent):
-    """Agent wrapper that uses Pydantic AI under the hood."""
+    """Agent wrapper that uses Pydantic AI under the hood.
+    
+    Supports both traditional tool lists and the new ToolRegistry/ToolInvoker system.
+    When using a ToolRegistry, tools will be automatically loaded from the registry.
+    """
     
     def __init__(
         self,
@@ -25,6 +29,8 @@ class PydanticAIAgent(BaseAgent):
         deps_type: Optional[Type[Any]] = None,
         system_prompt: Optional[str] = None,
         tools: Optional[List[Tool]] = None,
+        tool_registry: Optional[Any] = None,  # ToolRegistry
+        tool_invoker: Optional[Any] = None,  # ToolInvoker
     ) -> None:
         if not PYDANTIC_AI_AVAILABLE:
             raise ImportError(
@@ -38,15 +44,46 @@ class PydanticAIAgent(BaseAgent):
             deps_type=deps_type,
             system_prompt=system_prompt,
             tools=tools,
+            tool_registry=tool_registry,
+            tool_invoker=tool_invoker,
         )
+        
+        # Get tools from registry if provided, otherwise use tools list
+        tools_to_use = self._get_tools_for_agent(tools, tool_registry)
         
         # Initialize Pydantic AI agent
         self._pydantic_agent = PydanticAgent(
             model=self.model,
             deps_type=self.deps_type,
             system_prompt=self.system_prompt,
-            tools=self._convert_tools_to_pydantic(tools or []),
+            tools=self._convert_tools_to_pydantic(tools_to_use),
         )
+    
+    def _get_tools_for_agent(
+        self,
+        tools: Optional[List[Tool]],
+        tool_registry: Optional[Any]
+    ) -> List[Tool]:
+        """Get tools from registry or use provided tools list."""
+        if tools is not None:
+            # Use explicitly provided tools
+            return tools
+        
+        if tool_registry is not None:
+            # Load direct tools from registry (MCP tools can't be used directly with agents)
+            try:
+                from ai_core.interfaces.tool_registry import ToolMode
+                direct_tools = tool_registry.get_tools_by_mode(ToolMode.DIRECT)
+                result_tools = []
+                for metadata in direct_tools:
+                    if metadata.tool_instance is not None:
+                        result_tools.append(metadata.tool_instance)
+                return result_tools
+            except ImportError:
+                pass
+        
+        # No tools available
+        return []
     
     def _convert_tools_to_pydantic(self, tools: List[Tool]) -> List[Any]:
         """Convert our Tool format to Pydantic AI Tool format."""
