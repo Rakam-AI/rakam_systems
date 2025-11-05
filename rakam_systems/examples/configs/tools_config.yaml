@@ -1,0 +1,96 @@
+# Tools Configuration File
+# This file defines tools that can be automatically loaded and registered
+# for use with agents in the rakam_systems framework.
+#
+# Each tool can be:
+#   - type: direct  - Tool runs directly on the same server
+#   - type: mcp     - Tool is invoked via an MCP server
+#
+# Format:
+#   tools:
+#     - name: <unique_tool_name>
+#       type: direct|mcp
+#       description: <human_readable_description>
+#       category: <optional_category>
+#       tags: [<optional>, <tags>]
+#       ... (additional fields based on type)
+
+tools:
+  # === Direct Tools ===
+  # These tools run directly on the same server as the agent
+  
+  - name: get_current_time
+    type: direct
+    module: datetime
+    function: now
+    description: Get the current date and time
+    category: utility
+    tags: [time, datetime]
+    schema:
+      type: object
+      properties: {}
+      additionalProperties: false
+  
+  - name: calculate_sum
+    type: direct
+    module: builtins
+    function: sum
+    description: Calculate the sum of a list of numbers
+    category: math
+    tags: [arithmetic, calculation]
+    schema:
+      type: object
+      properties:
+        numbers:
+          type: array
+          description: List of numbers to sum
+          items:
+            type: number
+      required: [numbers]
+      additionalProperties: false
+  
+  # Example of a custom tool from a user module
+  # - name: analyze_sentiment
+  #   type: direct
+  #   module: my_tools.nlp
+  #   function: analyze_sentiment
+  #   description: Analyze the sentiment of text
+  #   category: nlp
+  #   tags: [sentiment, analysis, text]
+  #   schema:
+  #     type: object
+  #     properties:
+  #       text:
+  #         type: string
+  #         description: Text to analyze
+  #     required: [text]
+  #     additionalProperties: false
+  
+  # === MCP Tools ===
+  # These tools are invoked via Model Context Protocol (MCP) servers
+  
+  # Example MCP tool - requires an MCP server to be running
+  # - name: web_search
+  #   type: mcp
+  #   mcp_server: search_server
+  #   mcp_tool_name: search
+  #   description: Search the web for information
+  #   category: search
+  #   tags: [web, external, search]
+  
+  # - name: database_query
+  #   type: mcp
+  #   mcp_server: database_server
+  #   mcp_tool_name: query
+  #   description: Query the database
+  #   category: database
+  #   tags: [database, query, data]
+
+# Notes:
+# 1. For direct tools, 'module' and 'function' are required
+# 2. For MCP tools, 'mcp_server' is required, 'mcp_tool_name' defaults to 'name'
+# 3. The 'schema' field follows JSON Schema format
+# 4. If 'schema' is not provided for direct tools, it will be auto-generated
+#    from the function signature (basic type inference only)
+# 5. Tools can be organized by category and filtered by tags
+
