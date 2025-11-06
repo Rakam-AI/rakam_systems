@@ -11,6 +11,16 @@ from .example_tools import (
     FileProcessorTool,
     get_all_example_tools,
 )
+from .llm_gateway_tools import (
+    llm_generate,
+    llm_generate_structured,
+    llm_count_tokens,
+    llm_multi_model_generate,
+    llm_summarize,
+    llm_extract_entities,
+    llm_translate,
+    get_all_llm_gateway_tools,
+)
 
 __all__ = [
     "SearchTool",
@@ -23,5 +33,14 @@ __all__ = [
     "DatabaseQueryTool",
     "FileProcessorTool",
     "get_all_example_tools",
+    # LLM Gateway tools
+    "llm_generate",
+    "llm_generate_structured",
+    "llm_count_tokens",
+    "llm_multi_model_generate",
+    "llm_summarize",
+    "llm_extract_entities",
+    "llm_translate",
+    "get_all_llm_gateway_tools",
 ]
 
