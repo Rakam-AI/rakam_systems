@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Any, AsyncIterator, Iterator, List, Optional, Type, Union
 from ai_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput, ModelSettings
 from ai_core.interfaces.tool import Tool
+from ai_core.tracking import track_method, TrackingMixin
 
 try:
     from ai_core.interfaces.tool_registry import ToolRegistry, ToolMode
@@ -25,12 +26,18 @@ except ImportError:
     PydanticModelSettings = None  # type: ignore
 
 
-class BaseAgent(AgentComponent):
+class BaseAgent(TrackingMixin, AgentComponent):
     """Base agent implementation using Pydantic AI.
     
     This is the core agent implementation in our system, powered by Pydantic AI.
     It supports both traditional tool lists and the new ToolRegistry/ToolInvoker system.
     When using a ToolRegistry, tools will be automatically loaded from the registry.
+    
+    Features:
+    - Configuration-based initialization
+    - Input/output tracking
+    - Tool registry integration
+    - Streaming support
     """
 
     def __init__(
@@ -43,12 +50,15 @@ class BaseAgent(AgentComponent):
         tools: Optional[List[Tool]] = None,
         tool_registry: Optional[Any] = None,  # ToolRegistry
         tool_invoker: Optional[Any] = None,  # ToolInvoker
+        enable_tracking: bool = False,
+        tracking_output_dir: str = "./agent_tracking",
     ) -> None:
         if not PYDANTIC_AI_AVAILABLE:
             raise ImportError(
                 "pydantic_ai is not installed. Please install it with: pip install pydantic_ai"
             )
         
+        # Call super().__init__() which will handle both mixins properly
         super().__init__(
             name=name,
             config=config,
@@ -56,6 +66,8 @@ class BaseAgent(AgentComponent):
             deps_type=deps_type,
             system_prompt=system_prompt,
             tools=tools,
+            enable_tracking=enable_tracking,
+            tracking_output_dir=tracking_output_dir,
         )
         
         # Optional new tool system support
@@ -159,6 +171,7 @@ class BaseAgent(AgentComponent):
             "BaseAgent only supports async operations. Use ainfer() or arun() instead."
         )
 
+    @track_method()
     async def ainfer(
         self, 
         input_data: AgentInput, 
@@ -195,6 +208,7 @@ class BaseAgent(AgentComponent):
             "BaseAgent only supports async operations. Use arun() instead."
         )
 
+    @track_method()
     async def arun(
         self, 
         input_data: Union[str, AgentInput], 
