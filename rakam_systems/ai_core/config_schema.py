@@ -62,6 +62,24 @@ class ToolConfigSchema(BaseModel):
         return v
 
 
+class LLMGatewayConfigSchema(BaseModel):
+    """Configuration schema for LLM Gateway settings."""
+    model_config = {"extra": "allow"}  # Allow additional provider-specific fields
+    
+    provider: str = Field(..., description="LLM provider (e.g., 'openai', 'mistral')")
+    model: str = Field(..., description="Model name (e.g., 'gpt-4o', 'mistral-large-latest')")
+    temperature: Optional[float] = Field(0.7, ge=0.0, le=2.0, description="Sampling temperature")
+    max_tokens: Optional[int] = Field(None, gt=0, description="Maximum tokens in response")
+    api_key: Optional[str] = Field(None, description="API key (if not using environment variable)")
+    
+    # Provider-specific settings
+    base_url: Optional[str] = Field(None, description="Custom API base URL (OpenAI)")
+    organization: Optional[str] = Field(None, description="Organization ID (OpenAI)")
+    
+    # Additional settings
+    extra_settings: Dict[str, Any] = Field(default_factory=dict, description="Additional provider settings")
+
+
 class ModelConfigSchema(BaseModel):
     """Configuration schema for LLM model settings."""
     model_config = {"extra": "allow"}  # Allow additional fields
@@ -129,6 +147,12 @@ class ConfigFileSchema(BaseModel):
     
     # Global settings
     global_settings: Dict[str, Any] = Field(default_factory=dict, description="Global settings")
+    
+    # LLM Gateway configurations
+    llm_gateways: Dict[str, LLMGatewayConfigSchema] = Field(
+        default_factory=dict,
+        description="Library of LLM gateway configurations"
+    )
     
     # Prompt library - reusable prompts
     prompts: Dict[str, PromptConfigSchema] = Field(
