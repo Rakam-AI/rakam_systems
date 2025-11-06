@@ -15,6 +15,10 @@ import asyncio
 import os
 from typing import List
 from pydantic import BaseModel, Field
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Set up example API keys (in production, use environment variables)
 # os.environ["OPENAI_API_KEY"] = "your-key-here"
@@ -47,14 +51,17 @@ def example_1_basic_text_generation():
     print(f"Response: {response.content}")
     print(f"Tokens used: {response.usage}")
     
-    # Create Mistral gateway
-    print("\n--- Using Mistral ---")
-    mistral_gateway = get_llm_gateway(model="mistral:mistral-small-latest", temperature=0.7)
-    
-    response = mistral_gateway.generate(request)
-    print(f"Model: {response.model}")
-    print(f"Response: {response.content}")
-    print(f"Tokens used: {response.usage}")
+    # Create Mistral gateway (skip if no API key)
+    if os.getenv("MISTRAL_API_KEY"):
+        print("\n--- Using Mistral ---")
+        mistral_gateway = get_llm_gateway(model="mistral:mistral-small-latest", temperature=0.7)
+        
+        response = mistral_gateway.generate(request)
+        print(f"Model: {response.model}")
+        print(f"Response: {response.content}")
+        print(f"Tokens used: {response.usage}")
+    else:
+        print("\n--- Skipping Mistral (API key not set) ---")
 
 
 def example_2_structured_output():
@@ -93,15 +100,18 @@ def example_2_structured_output():
     print(f"Genre: {book_info.genre}")
     print(f"Summary: {book_info.summary}")
     
-    # Mistral structured output
-    print("\n--- Mistral Structured Output ---")
-    mistral_gateway = MistralGateway(model="mistral-small-latest")
-    book_info = mistral_gateway.generate_structured(request, Book)
-    print(f"Title: {book_info.title}")
-    print(f"Author: {book_info.author}")
-    print(f"Year: {book_info.year}")
-    print(f"Genre: {book_info.genre}")
-    print(f"Summary: {book_info.summary}")
+    # Mistral structured output (skip if no API key)
+    if os.getenv("MISTRAL_API_KEY"):
+        print("\n--- Mistral Structured Output ---")
+        mistral_gateway = MistralGateway(model="mistral-small-latest")
+        book_info = mistral_gateway.generate_structured(request, Book)
+        print(f"Title: {book_info.title}")
+        print(f"Author: {book_info.author}")
+        print(f"Year: {book_info.year}")
+        print(f"Genre: {book_info.genre}")
+        print(f"Summary: {book_info.summary}")
+    else:
+        print("\n--- Skipping Mistral (API key not set) ---")
 
 
 def example_3_streaming():
@@ -169,15 +179,18 @@ def example_5_factory_patterns():
     gateway1 = LLMGatewayFactory.create_gateway("openai:gpt-4o-mini")
     print(f"Created gateway: provider={gateway1.provider}, model={gateway1.model}")
     
-    # Pattern 2: Create from config dictionary
-    print("\n--- Pattern 2: Config Dictionary ---")
-    config = {
-        "provider": "mistral",
-        "model": "mistral-small-latest",
-        "temperature": 0.5,
-    }
-    gateway2 = LLMGatewayFactory.create_gateway_from_config(config)
-    print(f"Created gateway: provider={gateway2.provider}, model={gateway2.model}")
+    # Pattern 2: Create from config dictionary (skip if no Mistral key)
+    if os.getenv("MISTRAL_API_KEY"):
+        print("\n--- Pattern 2: Config Dictionary ---")
+        config = {
+            "provider": "mistral",
+            "model": "mistral-small-latest",
+            "temperature": 0.5,
+        }
+        gateway2 = LLMGatewayFactory.create_gateway_from_config(config)
+        print(f"Created gateway: provider={gateway2.provider}, model={gateway2.model}")
+    else:
+        print("\n--- Pattern 2: Skipping (Mistral API key not set) ---")
     
     # Pattern 3: Get default gateway
     print("\n--- Pattern 3: Default Gateway ---")
@@ -234,13 +247,18 @@ def example_6_config_driven_usage():
     creative_gateway = LLMGatewayFactory.create_gateway_from_config(
         app_config["llm_gateways"]["creative"]
     )
-    analytical_gateway = LLMGatewayFactory.create_gateway_from_config(
-        app_config["llm_gateways"]["analytical"]
-    )
     
     print(f"Default: {default_gateway.provider}:{default_gateway.model} @ {default_gateway.default_temperature}")
     print(f"Creative: {creative_gateway.provider}:{creative_gateway.model} @ {creative_gateway.default_temperature}")
-    print(f"Analytical: {analytical_gateway.provider}:{analytical_gateway.model} @ {analytical_gateway.default_temperature}")
+    
+    # Only create analytical gateway if Mistral key is available
+    if os.getenv("MISTRAL_API_KEY"):
+        analytical_gateway = LLMGatewayFactory.create_gateway_from_config(
+            app_config["llm_gateways"]["analytical"]
+        )
+        print(f"Analytical: {analytical_gateway.provider}:{analytical_gateway.model} @ {analytical_gateway.default_temperature}")
+    else:
+        print("Analytical: Skipping (Mistral API key not set)")
     
     # Use different gateways for different tasks
     request = LLMRequest(
@@ -334,14 +352,14 @@ def main():
     print("LLM GATEWAY SYSTEM - COMPREHENSIVE EXAMPLES")
     print("="*80)
     
-    print("\nNOTE: Make sure to set OPENAI_API_KEY and MISTRAL_API_KEY environment variables")
-    print("before running these examples.\n")
+    print("\nNOTE: Make sure to set OPENAI_API_KEY environment variable to run examples.")
+    print("MISTRAL_API_KEY is optional - Mistral examples will be skipped if not set.\n")
     
     # Check if API keys are set
     if not os.getenv("OPENAI_API_KEY"):
         print("WARNING: OPENAI_API_KEY not set. OpenAI examples will fail.")
     if not os.getenv("MISTRAL_API_KEY"):
-        print("WARNING: MISTRAL_API_KEY not set. Mistral examples will fail.")
+        print("INFO: MISTRAL_API_KEY not set. Mistral examples will be skipped.")
     
     try:
         # Run examples
