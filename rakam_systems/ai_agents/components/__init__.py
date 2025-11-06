@@ -1,5 +1,7 @@
 from .base_agent import BaseAgent
-from .pydantic_agent import PydanticAIAgent
+
+# Backward compatibility alias - PydanticAIAgent is now BaseAgent
+PydanticAIAgent = BaseAgent
 
 __all__ = [
     "BaseAgent",
