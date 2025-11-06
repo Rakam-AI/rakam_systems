@@ -67,8 +67,6 @@ async def main():
 asyncio.run(main())
 ```
 
-**Note:** `PydanticAIAgent` is an alias for `BaseAgent` and can be used interchangeably for backward compatibility.
-
 ## Core Components
 
 ### AgentComponent
@@ -85,8 +83,6 @@ The core agent implementation powered by Pydantic AI. This is the primary agent 
 - Full support for parallel tool calls
 - Automatic conversion between our interfaces and Pydantic AI's
 - Support for both traditional tool lists and ToolRegistry/ToolInvoker system
-
-**Note:** `PydanticAIAgent` is a backward-compatible alias for `BaseAgent`.
 
 ### Tool
 
@@ -147,7 +143,7 @@ class Deps:
     def __init__(self, user_id: str):
         self.user_id = user_id
 
-agent = PydanticAIAgent(
+agent = BaseAgent(
     deps_type=Deps,
     # ...
 )
@@ -238,7 +234,7 @@ See `examples/pydantic_agent_example.py` for a complete example demonstrating:
 ai_agents/
 ├── components/
 │   ├── base_agent.py         # BaseAgent (Pydantic AI-powered)
-│   ├── __init__.py           # Exports BaseAgent and PydanticAIAgent (alias)
+│   ├── __init__.py           # Exports BaseAgent
 │   └── tools/                # Tool implementations
 └── examples/
     ├── pydantic_agent_example.py      # Usage examples
@@ -255,22 +251,19 @@ ai_agents/
 
 ## Migration Guide
 
-### Consolidation Update
+### Using BaseAgent
 
-As of the latest version, `BaseAgent` now directly implements the Pydantic AI agent. The separate `PydanticAIAgent` class has been merged into `BaseAgent` for simplicity:
-
-- **`BaseAgent`**: The core Pydantic AI-powered agent implementation
-- **`PydanticAIAgent`**: An alias for `BaseAgent` (for backward compatibility)
-
-Both names work identically:
+`BaseAgent` is the core Pydantic AI-powered agent implementation in this framework.
 
 ```python
-# These are equivalent:
-agent1 = BaseAgent(name="agent", model="openai:gpt-4o")
-agent2 = PydanticAIAgent(name="agent", model="openai:gpt-4o")
-```
+from ai_agents.components import BaseAgent
 
-All existing code using `PydanticAIAgent` will continue to work without changes.
+agent = BaseAgent(
+    name="agent",
+    model="openai:gpt-4o",
+    system_prompt="You are a helpful assistant."
+)
+```
 
 ## Troubleshooting
 

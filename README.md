@@ -103,10 +103,10 @@ Get started with AI agents in 5 minutes:
 
 ```python
 import asyncio
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 
 async def main():
-    agent = PydanticAIAgent(
+    agent = BaseAgent(
         name="my_agent",
         model="openai:gpt-4o",
         system_prompt="You are a helpful assistant.",

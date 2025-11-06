@@ -1,12 +1,12 @@
 """
-Tests for PydanticAIAgent and related components.
+Tests for BaseAgent and related components.
 """
 import asyncio
 import pytest
 from typing import Dict
 
 try:
-    from ai_agents.components import PydanticAIAgent, BaseAgent
+    from ai_agents.components import BaseAgent
     from ai_core.interfaces import AgentInput, AgentOutput, ModelSettings, Tool
     IMPORTS_AVAILABLE = True
 except ImportError:
@@ -188,15 +188,15 @@ class TestCustomAgent:
 # Integration tests that require actual API calls
 @pytest.mark.skipif(not IMPORTS_AVAILABLE, reason="Required modules not available")
 @pytest.mark.integration
-class TestPydanticAIAgentIntegration:
-    """Integration tests for PydanticAIAgent (requires API key)."""
+class TestBaseAgentIntegration:
+    """Integration tests for BaseAgent (requires API key)."""
     
     @pytest.mark.asyncio
     async def test_basic_query(self):
-        """Test basic query to PydanticAIAgent."""
+        """Test basic query to BaseAgent."""
         # This test requires OPENAI_API_KEY to be set
         try:
-            agent = PydanticAIAgent(
+            agent = BaseAgent(
                 name="test_agent",
                 model="openai:gpt-4o",
                 system_prompt="You are a helpful assistant.",
@@ -214,7 +214,7 @@ class TestPydanticAIAgentIntegration:
             return x + y
         
         try:
-            agent = PydanticAIAgent(
+            agent = BaseAgent(
                 name="math_agent",
                 model="openai:gpt-4o",
                 system_prompt="You can add numbers using tools.",

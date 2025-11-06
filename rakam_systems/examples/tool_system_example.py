@@ -24,7 +24,7 @@ from ai_core.interfaces import (
     Tool,
     ModelSettings,
 )
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 from ai_agents.components.tools import (
     get_current_weather,
     calculate_distance,
@@ -250,7 +250,7 @@ tools:
 # === Part 5: Using Tools with Agents ===
 
 async def example_agent_with_tools():
-    """Example of using tools with PydanticAIAgent."""
+    """Example of using tools with BaseAgent."""
     print("\n" + "="*60)
     print("PART 5: Using Tools with Agents")
     print("="*60)
@@ -301,7 +301,7 @@ async def example_agent_with_tools():
     ]
     
     # Create agent with tools
-    agent = PydanticAIAgent(
+    agent = BaseAgent(
         name="tool_agent",
         model="openai:gpt-4o-mini",
         system_prompt="You are a helpful assistant with access to various tools. Use them to help answer questions.",

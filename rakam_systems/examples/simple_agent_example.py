@@ -1,17 +1,17 @@
 """
-Simple example showing the most basic usage of PydanticAIAgent.
+Simple example showing the most basic usage of BaseAgent.
 """
 import asyncio
 import dotenv
 
 dotenv.load_dotenv()
 
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 from ai_core.interfaces import ModelSettings
 
 async def main():
     # Create a simple agent without tools
-    agent = PydanticAIAgent(
+    agent = BaseAgent(
         name="simple_agent",
         model="openai:gpt-4o",
         system_prompt="You are a helpful assistant that provides concise answers.",

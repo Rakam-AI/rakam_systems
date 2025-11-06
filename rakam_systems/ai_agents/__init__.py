@@ -8,12 +8,11 @@ Provides flexible agent implementations with support for:
 - Streaming responses
 """
 
-from .components import BaseAgent, PydanticAIAgent
+from .components import BaseAgent
 
 __version__ = "0.1.0"
 
 __all__ = [
     "BaseAgent",
-    "PydanticAIAgent",
 ]
 

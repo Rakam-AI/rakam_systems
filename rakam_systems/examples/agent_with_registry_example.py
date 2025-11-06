@@ -3,7 +3,7 @@ Example demonstrating agents using the ToolRegistry system.
 
 This shows how to:
 1. Create a ToolRegistry and populate it with tools
-2. Use the registry with PydanticAIAgent
+2. Use the registry with BaseAgent
 3. Load tools from configuration files
 4. Mix direct and MCP tools
 """
@@ -19,7 +19,7 @@ from ai_core.interfaces import (
     ToolLoader,
     ModelSettings,
 )
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 from ai_agents.components.tools import (
     get_current_weather,
     calculate_distance,
@@ -100,7 +100,7 @@ async def example_basic_agent_with_registry():
     print(f"✓ Registered {len(registry)} tools in registry")
     
     # Create agent with registry
-    agent = PydanticAIAgent(
+    agent = BaseAgent(
         name="registry_agent",
         model="openai:gpt-4o-mini",
         system_prompt="You are a helpful assistant with access to various tools.",
@@ -193,7 +193,7 @@ tools:
         print(f"✓ Loaded {count} tools from configuration")
         
         # Create agent
-        agent = PydanticAIAgent(
+        agent = BaseAgent(
             name="config_agent",
             model="openai:gpt-4o-mini",
             system_prompt="You are a helpful assistant.",
@@ -325,7 +325,7 @@ async def example_agent_with_tool_categories():
     print(f"  Utility agent: {len(utility_registry)} tools")
     
     # Test utility agent
-    utility_agent = PydanticAIAgent(
+    utility_agent = BaseAgent(
         name="utility_agent",
         model="openai:gpt-4o-mini",
         system_prompt="You are a utility assistant.",

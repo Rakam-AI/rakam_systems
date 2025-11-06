@@ -1,5 +1,5 @@
 """
-Example showing how to use the PydanticAIAgent with tools.
+Example showing how to use the BaseAgent with tools.
 This example demonstrates parallel tool calls and model settings.
 """
 import asyncio
@@ -10,7 +10,7 @@ import dotenv
 dotenv.load_dotenv()
 
 # Import from our framework
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 from ai_core.interfaces import ModelSettings, Tool
 
 # Define dummy dependency type
@@ -62,7 +62,7 @@ async def get_user_info() -> dict:
     return {"name": "Alice", "age": 30, "city": "New York"}
 
 # Define agent with Tool.from_schema approach
-agent = PydanticAIAgent(
+agent = BaseAgent(
     name="example_agent",
     model="openai:gpt-4o",
     deps_type=Deps,
