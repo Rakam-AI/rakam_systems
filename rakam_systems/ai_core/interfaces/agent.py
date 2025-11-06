@@ -3,22 +3,32 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, Iterator, Optional, List, Type, Union, AsyncIterator
 from ..base import BaseComponent
 
+
 class AgentInput:
     """Simple DTO for agent inputs (no external deps)."""
+    input_text: str = ""
+    context: Dict = {}
+
     def __init__(self, input_text: str, context: Optional[Dict[str, Any]] = None) -> None:
         self.input_text = input_text
         self.context = context or {}
 
+
 class AgentOutput:
     """Simple DTO for agent outputs."""
+    output_text: str = ""
+    metadata: Dict = {}
+
     def __init__(self, output_text: str, metadata: Optional[Dict[str, Any]] = None) -> None:
         self.output_text = output_text
         self.metadata = metadata or {}
 
+
 class ModelSettings:
     """Settings for LLM model behavior."""
+
     def __init__(
-        self, 
+        self,
         parallel_tool_calls: bool = True,
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
@@ -29,11 +39,13 @@ class ModelSettings:
         self.max_tokens = max_tokens
         self.extra_settings = kwargs
 
+
 class AgentComponent(BaseComponent, ABC):
     """Abstract agent interface with optional streaming and async support."""
+
     def __init__(
-        self, 
-        name: str, 
+        self,
+        name: str,
         config: Optional[Dict[str, Any]] = None,
         model: Optional[str] = None,
         deps_type: Optional[Type[Any]] = None,
@@ -44,7 +56,8 @@ class AgentComponent(BaseComponent, ABC):
         self.stateful: bool = bool((config or {}).get("stateful", False))
         self.model = model or (config or {}).get("model", "openai:gpt-4")
         self.deps_type = deps_type
-        self.system_prompt = system_prompt or (config or {}).get("system_prompt", "")
+        self.system_prompt = system_prompt or (
+            config or {}).get("system_prompt", "")
         self.tools = tools or []
 
     @abstractmethod
