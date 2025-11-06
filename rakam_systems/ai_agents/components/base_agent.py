@@ -4,20 +4,33 @@ from ai_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput, Mo
 from ai_core.interfaces.tool import Tool
 
 try:
-    from ai_core.interfaces.tool_registry import ToolRegistry
+    from ai_core.interfaces.tool_registry import ToolRegistry, ToolMode
     from ai_core.interfaces.tool_invoker import ToolInvoker
     TOOL_SYSTEM_AVAILABLE = True
 except ImportError:
     ToolRegistry = None  # type: ignore
+    ToolMode = None  # type: ignore
     ToolInvoker = None  # type: ignore
     TOOL_SYSTEM_AVAILABLE = False
 
+try:
+    from pydantic_ai import Agent as PydanticAgent
+    from pydantic_ai import Tool as PydanticTool
+    from pydantic_ai.settings import ModelSettings as PydanticModelSettings
+    PYDANTIC_AI_AVAILABLE = True
+except ImportError:
+    PYDANTIC_AI_AVAILABLE = False
+    PydanticAgent = None  # type: ignore
+    PydanticTool = None  # type: ignore
+    PydanticModelSettings = None  # type: ignore
+
 
 class BaseAgent(AgentComponent):
-    """A convenient partial implementation of AgentComponent.
-    Subclasses only need to implement `infer()` or `ainfer()`.
+    """Base agent implementation using Pydantic AI.
     
-    Supports both traditional tool lists and the new ToolRegistry/ToolInvoker system.
+    This is the core agent implementation in our system, powered by Pydantic AI.
+    It supports both traditional tool lists and the new ToolRegistry/ToolInvoker system.
+    When using a ToolRegistry, tools will be automatically loaded from the registry.
     """
 
     def __init__(
@@ -31,6 +44,11 @@ class BaseAgent(AgentComponent):
         tool_registry: Optional[Any] = None,  # ToolRegistry
         tool_invoker: Optional[Any] = None,  # ToolInvoker
     ) -> None:
+        if not PYDANTIC_AI_AVAILABLE:
+            raise ImportError(
+                "pydantic_ai is not installed. Please install it with: pip install pydantic_ai"
+            )
+        
         super().__init__(
             name=name,
             config=config,
@@ -47,6 +65,82 @@ class BaseAgent(AgentComponent):
         # If registry is provided but no invoker, create one
         if tool_registry is not None and tool_invoker is None and TOOL_SYSTEM_AVAILABLE:
             self.tool_invoker = ToolInvoker(tool_registry)
+        
+        # Get tools from registry if provided, otherwise use tools list
+        tools_to_use = self._get_tools_for_agent(tools, tool_registry)
+        
+        # Initialize Pydantic AI agent
+        self._pydantic_agent = PydanticAgent(
+            model=self.model,
+            deps_type=self.deps_type,
+            system_prompt=self.system_prompt,
+            tools=self._convert_tools_to_pydantic(tools_to_use),
+        )
+
+    def _get_tools_for_agent(
+        self,
+        tools: Optional[List[Tool]],
+        tool_registry: Optional[Any]
+    ) -> List[Tool]:
+        """Get tools from registry or use provided tools list."""
+        if tools is not None:
+            # Use explicitly provided tools
+            return tools
+        
+        if tool_registry is not None:
+            # Load direct tools from registry (MCP tools can't be used directly with agents)
+            try:
+                if TOOL_SYSTEM_AVAILABLE and ToolMode is not None:
+                    direct_tools = tool_registry.get_tools_by_mode(ToolMode.DIRECT)
+                    result_tools = []
+                    for metadata in direct_tools:
+                        if metadata.tool_instance is not None:
+                            result_tools.append(metadata.tool_instance)
+                    return result_tools
+            except (ImportError, AttributeError):
+                pass
+        
+        # No tools available
+        return []
+    
+    def _convert_tools_to_pydantic(self, tools: List[Tool]) -> List[Any]:
+        """Convert our Tool format to Pydantic AI Tool format."""
+        if not PYDANTIC_AI_AVAILABLE:
+            return []
+        
+        pydantic_tools = []
+        for tool in tools:
+            pydantic_tool = PydanticTool.from_schema(
+                function=tool.function,
+                name=tool.name,
+                description=tool.description,
+                json_schema=tool.json_schema,
+                takes_ctx=tool.takes_ctx,
+            )
+            pydantic_tools.append(pydantic_tool)
+        
+        return pydantic_tools
+    
+    def _convert_model_settings(self, model_settings: Optional[ModelSettings]) -> Optional[PydanticModelSettings]:
+        """Convert our ModelSettings to Pydantic AI ModelSettings."""
+        if model_settings is None or not PYDANTIC_AI_AVAILABLE:
+            return None
+        
+        kwargs = {}
+        
+        # Only set parallel_tool_calls if agent has tools
+        if self.tools:
+            kwargs['parallel_tool_calls'] = model_settings.parallel_tool_calls
+        
+        if model_settings.temperature is not None:
+            kwargs['temperature'] = model_settings.temperature
+        
+        if model_settings.max_tokens is not None:
+            kwargs['max_tokens'] = model_settings.max_tokens
+        
+        kwargs.update(model_settings.extra_settings)
+        
+        return PydanticModelSettings(**kwargs)
 
     def _normalize_input(self, input_data: Union[str, AgentInput]) -> AgentInput:
         """Convert string or AgentInput to AgentInput."""
@@ -60,8 +154,10 @@ class BaseAgent(AgentComponent):
         deps: Optional[Any] = None,
         model_settings: Optional[ModelSettings] = None
     ) -> AgentOutput:
-        """Override to implement non-streaming inference."""
-        raise NotImplementedError
+        """Synchronous inference - not supported by Pydantic AI."""
+        raise NotImplementedError(
+            "BaseAgent only supports async operations. Use ainfer() or arun() instead."
+        )
 
     async def ainfer(
         self, 
@@ -69,8 +165,24 @@ class BaseAgent(AgentComponent):
         deps: Optional[Any] = None,
         model_settings: Optional[ModelSettings] = None
     ) -> AgentOutput:
-        """Override to implement async non-streaming inference."""
-        raise NotImplementedError
+        """Async inference using Pydantic AI."""
+        pydantic_settings = self._convert_model_settings(model_settings)
+        
+        # Run the Pydantic AI agent
+        result = await self._pydantic_agent.run(
+            input_data.input_text,
+            deps=deps,
+            model_settings=pydantic_settings,
+        )
+        
+        # Convert result to our AgentOutput format
+        output_text = result.output if hasattr(result, 'output') else str(result.data)
+        metadata = {
+            'usage': result.usage() if hasattr(result, 'usage') else None,
+            'messages': result.messages() if hasattr(result, 'messages') else None,
+        }
+        
+        return AgentOutput(output_text=output_text, metadata=metadata)
 
     def run(
         self, 
@@ -78,8 +190,10 @@ class BaseAgent(AgentComponent):
         deps: Optional[Any] = None,
         model_settings: Optional[ModelSettings] = None
     ) -> AgentOutput:
-        normalized_input = self._normalize_input(input_data)
-        return self.infer(normalized_input, deps=deps, model_settings=model_settings)
+        """Synchronous run - not supported by Pydantic AI."""
+        raise NotImplementedError(
+            "BaseAgent only supports async operations. Use arun() instead."
+        )
 
     async def arun(
         self, 
@@ -96,10 +210,10 @@ class BaseAgent(AgentComponent):
         deps: Optional[Any] = None,
         model_settings: Optional[ModelSettings] = None
     ) -> Iterator[str]:
-        # Default: produce a single chunk = final text
-        normalized_input = self._normalize_input(input_data)
-        out = self.infer(normalized_input, deps=deps, model_settings=model_settings)
-        yield out.output_text
+        """Synchronous streaming - not supported by Pydantic AI."""
+        raise NotImplementedError(
+            "BaseAgent only supports async operations. Use astream() instead."
+        )
 
     async def astream(
         self, 
@@ -107,7 +221,15 @@ class BaseAgent(AgentComponent):
         deps: Optional[Any] = None,
         model_settings: Optional[ModelSettings] = None
     ) -> AsyncIterator[str]:
-        # Default: produce a single chunk = final text
+        """Async streaming using Pydantic AI."""
         normalized_input = self._normalize_input(input_data)
-        out = await self.ainfer(normalized_input, deps=deps, model_settings=model_settings)
-        yield out.output_text
+        pydantic_settings = self._convert_model_settings(model_settings)
+        
+        # Stream from the Pydantic AI agent
+        async with self._pydantic_agent.run_stream(
+            normalized_input.input_text,
+            deps=deps,
+            model_settings=pydantic_settings,
+        ) as result:
+            async for chunk in result.stream():
+                yield chunk
