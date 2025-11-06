@@ -20,11 +20,11 @@ pip install pydantic_ai
 
 ## Quick Start
 
-### Using PydanticAIAgent
+### Using BaseAgent (Pydantic AI-powered)
 
 ```python
 import asyncio
-from ai_agents.components import PydanticAIAgent
+from ai_agents.components import BaseAgent
 from ai_core.interfaces import ModelSettings, Tool
 
 # Define a tool function
@@ -34,7 +34,7 @@ async def get_weather(city: str) -> dict:
     return {"city": city, "temperature": 72, "condition": "sunny"}
 
 # Create an agent with tools
-agent = PydanticAIAgent(
+agent = BaseAgent(
     name="weather_agent",
     model="openai:gpt-4o",
     system_prompt="You are a helpful weather assistant.",
@@ -67,27 +67,7 @@ async def main():
 asyncio.run(main())
 ```
 
-### Using BaseAgent for Custom Implementations
-
-```python
-from ai_agents.components import BaseAgent
-from ai_core.interfaces import AgentInput, AgentOutput, ModelSettings
-
-class MyCustomAgent(BaseAgent):
-    async def ainfer(
-        self, 
-        input_data: AgentInput, 
-        deps=None,
-        model_settings=None
-    ) -> AgentOutput:
-        # Your custom implementation
-        response = f"Processed: {input_data.input_text}"
-        return AgentOutput(output_text=response)
-
-# Use it
-agent = MyCustomAgent(name="custom_agent")
-result = await agent.arun("Hello, world!")
-```
+**Note:** `PydanticAIAgent` is an alias for `BaseAgent` and can be used interchangeably for backward compatibility.
 
 ## Core Components
 
@@ -100,14 +80,13 @@ The base abstract class for all agents. Provides:
 
 ### BaseAgent
 
-A partial implementation of `AgentComponent` that handles input normalization and provides default implementations. Subclasses only need to implement `infer()` or `ainfer()`.
-
-### PydanticAIAgent
-
-A complete implementation that uses Pydantic AI under the hood. Provides:
+The core agent implementation powered by Pydantic AI. This is the primary agent class in our system. Features:
 - Direct integration with Pydantic AI's Agent
 - Full support for parallel tool calls
 - Automatic conversion between our interfaces and Pydantic AI's
+- Support for both traditional tool lists and ToolRegistry/ToolInvoker system
+
+**Note:** `PydanticAIAgent` is a backward-compatible alias for `BaseAgent`.
 
 ### Tool
 
@@ -258,11 +237,12 @@ See `examples/pydantic_agent_example.py` for a complete example demonstrating:
 ```
 ai_agents/
 ├── components/
-│   ├── base_agent.py         # BaseAgent implementation
-│   ├── pydantic_agent.py     # PydanticAIAgent wrapper
+│   ├── base_agent.py         # BaseAgent (Pydantic AI-powered)
+│   ├── __init__.py           # Exports BaseAgent and PydanticAIAgent (alias)
 │   └── tools/                # Tool implementations
 └── examples/
-    └── pydantic_agent_example.py
+    ├── pydantic_agent_example.py      # Usage examples
+    └── agent_with_registry_example.py # ToolRegistry integration
 ```
 
 ## Best Practices
@@ -275,19 +255,22 @@ ai_agents/
 
 ## Migration Guide
 
-If you're migrating from the old agent interface:
+### Consolidation Update
 
-### Old Way
+As of the latest version, `BaseAgent` now directly implements the Pydantic AI agent. The separate `PydanticAIAgent` class has been merged into `BaseAgent` for simplicity:
+
+- **`BaseAgent`**: The core Pydantic AI-powered agent implementation
+- **`PydanticAIAgent`**: An alias for `BaseAgent` (for backward compatibility)
+
+Both names work identically:
+
 ```python
-agent = BaseAgent(name="agent")
-result = agent.run(AgentInput(input_text="Hello"))
+# These are equivalent:
+agent1 = BaseAgent(name="agent", model="openai:gpt-4o")
+agent2 = PydanticAIAgent(name="agent", model="openai:gpt-4o")
 ```
 
-### New Way
-```python
-agent = PydanticAIAgent(name="agent")
-result = await agent.arun("Hello")
-```
+All existing code using `PydanticAIAgent` will continue to work without changes.
 
 ## Troubleshooting
 
