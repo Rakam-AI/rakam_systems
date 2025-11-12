@@ -136,8 +136,10 @@ def main():
     try:
         # Initialize PostgreSQL vector store
         print("\n1. Initializing PostgreSQL vector store...")
+        # Use sentence-transformers/all-MiniLM-L6-v2 which produces 384 dimensions
+        # matching the database schema in pg_models.py
         store = PgVectorStore(
-            embedding_model="Snowflake/snowflake-arctic-embed-m",
+            embedding_model="sentence-transformers/all-MiniLM-L6-v2",
             use_embedding_api=False
         )
         print("   ✓ PgVectorStore initialized")
