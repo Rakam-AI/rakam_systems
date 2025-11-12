@@ -18,7 +18,7 @@ class Collection(models.Model):
 
     name = models.CharField(max_length=255, unique=True)
     embedding_dim = models.IntegerField(
-        default=768
+        default=384
     )  # Default to a common embedding dimension
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -40,8 +40,8 @@ class NodeEntry(models.Model):
         Collection, on_delete=models.CASCADE, related_name="nodes"
     )
     content = models.TextField()
-    # Use a standard embedding dimension (768 is common for many models)
-    embedding = VectorField(dimensions=768)
+    # Use a standard embedding dimension (384 for all-MiniLM-L6-v2)
+    embedding = VectorField(dimensions=384)
 
     # Node metadata
     node_id = models.AutoField(primary_key=True)
