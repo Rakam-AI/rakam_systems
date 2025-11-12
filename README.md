@@ -86,6 +86,66 @@ Check out the following links for detailed examples of what you can build using 
 - **Agent Systems**: *Link to come*
 - **Chained Gen AI Systems**: *Link to come*
 
+### Running the Examples
+
+#### PostgreSQL Vector Store Example
+
+This example demonstrates using PostgreSQL with pgvector extension for persistent vector storage:
+
+```bash
+# Navigate to the examples directory
+cd rakam_systems/examples/ai_vectorstore_examples
+
+# Run the helper script (handles everything automatically)
+./run_postgres_example.sh
+```
+
+The script will:
+- Start PostgreSQL with pgvector (or detect if already running)
+- Apply database migrations automatically
+- Run the example with all features
+
+**Manual setup** (if you prefer):
+```bash
+cd rakam_systems/examples/ai_vectorstore_examples
+
+# Start PostgreSQL
+docker-compose up -d
+
+# Run the example
+cd ../../..
+export POSTGRES_PASSWORD=postgres
+python -m examples.ai_vectorstore_examples.postgres_vectorstore_example
+```
+
+**Managing PostgreSQL**:
+```bash
+cd rakam_systems/examples/ai_vectorstore_examples
+
+# Check status
+docker-compose ps
+
+# Stop PostgreSQL (data persists)
+docker-compose stop
+
+# Start again
+docker-compose start
+
+# Remove everything (including data)
+docker-compose down -v
+```
+
+#### FAISS Vector Store Example
+
+This example demonstrates in-memory vector search with FAISS:
+
+```bash
+cd rakam_systems
+python -m examples.ai_vectorstore_examples.basic_faiss_example
+```
+
+No database setup required - FAISS runs entirely in memory.
+
 ## Core Components
 
 `rakam_systems` provides several core components to facilitate building AI systems:
