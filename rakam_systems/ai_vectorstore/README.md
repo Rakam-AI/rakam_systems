@@ -4,37 +4,66 @@ A modular, production-ready vector store system for semantic search and retrieva
 
 ## Overview
 
-The `ai_vectorstore` package provides a comprehensive set of components for building vector-based search and retrieval systems. It supports multiple backend implementations (PostgreSQL with pgvector, FAISS) and includes all necessary components for a complete RAG pipeline.
+The `ai_vectorstore` package provides a comprehensive, production-ready set of components for building vector-based search and retrieval systems. It supports multiple backend implementations (PostgreSQL with pgvector, FAISS) and includes all necessary components for a complete RAG pipeline.
+
+### What's New
+
+- ✨ **ConfigurablePgVectorStore**: Enhanced vector store with full YAML/JSON configuration support
+- ⚙️ **Configuration System**: Centralized configuration management with validation and environment variable support
+- 🔄 **Update Operations**: Update existing vectors, embeddings, and metadata without re-indexing
+- 🔌 **Pluggable Embeddings**: Support for multiple embedding providers (SentenceTransformers, OpenAI, Cohere)
+- 📊 **Enhanced Search**: Multiple similarity metrics (cosine, L2, dot product) with configurable hybrid search
+- 🎯 **Better DX**: Improved developer experience with clearer APIs and comprehensive documentation
+
+### Quick Links
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Configurable Vector Store (Recommended)](#configurable-vector-store-recommended)
+- [Configuration](#configuration)
+- [API Reference](#api-reference)
+- [Migration Guide](#migration-guide)
 
 ## Features
 
 - **Multiple Vector Store Backends**
   - PostgreSQL with pgvector (persistent, production-ready)
   - FAISS (in-memory, high-performance)
+  - Configurable vector store with YAML/JSON configuration support
   
 - **Hybrid Search Capabilities**
-  - Vector similarity search
+  - Vector similarity search (cosine, L2, dot product)
   - Full-text search (PostgreSQL)
   - Combined hybrid search with configurable weighting
+  - Adjustable alpha parameter for search balance
   
 - **Advanced Retrieval**
   - Built-in re-ranking for improved relevance
-  - Metadata filtering
+  - Metadata filtering with Django ORM support
   - Collection-based organization
-  - Caching for performance optimization
+  - LRU caching for query performance optimization
+  - Update operations for existing vectors
   
 - **Flexible Embedding Options**
   - Local embedding models (SentenceTransformers)
   - OpenAI API integration
-  - Customizable embedding dimensions
+  - Cohere API support
+  - Configurable embedding dimensions
+  - Pluggable embedding backends
 
 - **Complete RAG Pipeline Components**
-  - Document loaders
-  - Text chunkers
-  - Embedding models
-  - Indexers
-  - Retrievers
-  - Re-rankers
+  - Document loaders (file, adaptive)
+  - Text chunkers (simple, text-based)
+  - Embedding models (configurable, OpenAI)
+  - Indexers (simple indexer)
+  - Retrievers (basic retriever)
+  - Re-rankers (model-based)
+
+- **Configuration Management**
+  - YAML/JSON configuration files
+  - Environment variable overrides
+  - Programmatic configuration
+  - Configuration validation and defaults
 
 ## Architecture
 
@@ -42,19 +71,32 @@ The package follows a modular architecture with clear interfaces:
 
 ```
 ai_vectorstore/
-├── core.py                    # Core data structures (VSFile, Node, NodeMetadata)
+├── core.py                           # Core data structures (VSFile, Node, NodeMetadata)
+├── config.py                         # Configuration management system
 ├── components/
-│   ├── vectorstore/          # Vector store implementations
-│   │   ├── pg_vector_store.py    # PostgreSQL backend
-│   │   ├── faiss_vector_store.py # FAISS backend
-│   │   └── pg_models.py          # Django ORM models
-│   ├── chunker/              # Text chunking components
-│   ├── embedding_model/      # Embedding generation
-│   ├── indexer/              # Document indexing
-│   ├── loader/               # Document loading
-│   ├── reranker/             # Result re-ranking
-│   └── retriever/            # Search and retrieval
-└── server/                   # MCP server implementation
+│   ├── vectorstore/                  # Vector store implementations
+│   │   ├── pg_vector_store.py            # PostgreSQL backend
+│   │   ├── configurable_pg_vector_store.py  # Enhanced configurable backend
+│   │   ├── faiss_vector_store.py         # FAISS backend
+│   │   ├── pg_models.py                  # Django ORM models
+│   │   └── migrations/                   # Database migrations
+│   ├── chunker/                      # Text chunking components
+│   │   ├── simple_chunker.py             # Basic text chunker
+│   │   └── text_chunker.py               # Advanced text chunker
+│   ├── embedding_model/              # Embedding generation
+│   │   ├── configurable_embeddings.py    # Pluggable embedding system
+│   │   └── openai_embeddings.py          # OpenAI API embeddings
+│   ├── indexer/                      # Document indexing
+│   │   └── simple_indexer.py             # Basic indexer
+│   ├── loader/                       # Document loading
+│   │   ├── file_loader.py                # File loading
+│   │   └── adaptive_loader.py            # Adaptive loading
+│   ├── reranker/                     # Result re-ranking
+│   │   └── model_reranker.py             # Model-based reranker
+│   └── retriever/                    # Search and retrieval
+│       └── basic_retriever.py            # Basic retriever
+└── server/                           # MCP server implementation
+    └── mcp_server_vector.py
 ```
 
 ## Installation
@@ -150,6 +192,174 @@ results = faiss_store.query_nodes(
 )
 ```
 
+## Configurable Vector Store (Recommended)
+
+The `ConfigurablePgVectorStore` is an enhanced, production-ready vector store that supports configuration via YAML/JSON files or dictionaries. This is the recommended approach for production deployments.
+
+### Configuration System
+
+The configuration system provides a unified way to manage all vector store settings:
+
+```python
+from ai_vectorstore.config import VectorStoreConfig, EmbeddingConfig, SearchConfig
+from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+
+# Option 1: Use defaults
+vector_store = ConfigurablePgVectorStore()
+
+# Option 2: Load from YAML file
+vector_store = ConfigurablePgVectorStore(
+    name="my_store",
+    config="/path/to/config.yaml"
+)
+
+# Option 3: Programmatic configuration
+config = VectorStoreConfig(
+    name="custom_store",
+    embedding=EmbeddingConfig(
+        model_type="sentence_transformer",
+        model_name="Snowflake/snowflake-arctic-embed-m",
+        batch_size=32
+    ),
+    search=SearchConfig(
+        similarity_metric="cosine",
+        default_top_k=5,
+        enable_hybrid_search=True,
+        hybrid_alpha=0.7,
+        rerank=True
+    )
+)
+vector_store = ConfigurablePgVectorStore(name="my_store", config=config)
+```
+
+### YAML Configuration Example
+
+Create a `vectorstore_config.yaml` file:
+
+```yaml
+name: production_vectorstore
+
+embedding:
+  model_type: sentence_transformer
+  model_name: Snowflake/snowflake-arctic-embed-m
+  batch_size: 32
+  normalize: true
+
+database:
+  host: localhost
+  port: 5432
+  database: vectorstore_db
+  user: postgres
+  password: postgres
+
+search:
+  similarity_metric: cosine
+  default_top_k: 5
+  enable_hybrid_search: true
+  hybrid_alpha: 0.7
+  rerank: true
+  search_buffer_factor: 2
+
+index:
+  chunk_size: 512
+  chunk_overlap: 50
+  batch_insert_size: 100
+
+enable_caching: true
+cache_size: 1000
+enable_logging: true
+log_level: INFO
+```
+
+### Using ConfigurablePgVectorStore
+
+```python
+from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+from ai_vectorstore.core import Node, NodeMetadata
+
+# Initialize with config
+store = ConfigurablePgVectorStore(
+    name="my_vectorstore",
+    config="config.yaml"
+)
+store.setup()
+
+# Create collection
+store.get_or_create_collection("documents")
+
+# Add nodes
+nodes = [
+    Node(
+        content="Document content here",
+        metadata=NodeMetadata(
+            source_file_uuid="file-123",
+            position=0,
+            custom={"title": "Document Title"}
+        )
+    )
+]
+store.add_nodes("documents", nodes)
+
+# Search with configuration defaults
+results, nodes = store.search(
+    collection_name="documents",
+    query="search query"
+)
+
+# Override configuration at search time
+results, nodes = store.search(
+    collection_name="documents",
+    query="search query",
+    distance_type="l2",
+    number=10,
+    hybrid_search=False
+)
+
+# Update existing vectors
+store.update_vector(
+    collection_name="documents",
+    node_id=1,
+    new_content="Updated content",  # Will regenerate embedding
+    new_metadata={"status": "reviewed"}
+)
+
+# Delete specific nodes
+store.delete_nodes("documents", [1, 2, 3])
+
+# Get collection information
+info = store.get_collection_info("documents")
+print(f"Collection has {info['node_count']} nodes")
+```
+
+### Configuration Classes
+
+**EmbeddingConfig** - Embedding model configuration:
+- `model_type`: "sentence_transformer", "openai", "cohere"
+- `model_name`: Model identifier
+- `api_key`: API key (auto-loaded from environment)
+- `batch_size`: Batch size for embeddings
+- `normalize`: Normalize embeddings
+- `dimensions`: Embedding dimensions (auto-detected)
+
+**DatabaseConfig** - Database connection settings:
+- `host`, `port`, `database`, `user`, `password`
+- `pool_size`, `max_overflow`: Connection pooling
+- Auto-loads from `POSTGRES_*` environment variables
+
+**SearchConfig** - Search behavior configuration:
+- `similarity_metric`: "cosine", "l2", "dot_product"
+- `default_top_k`: Default number of results
+- `enable_hybrid_search`: Enable hybrid search
+- `hybrid_alpha`: Vector/keyword balance (0-1)
+- `rerank`: Enable re-ranking
+- `search_buffer_factor`: Buffer for re-ranking
+
+**IndexConfig** - Indexing configuration:
+- `chunk_size`, `chunk_overlap`: Chunking parameters
+- `enable_parallel_processing`: Parallel processing
+- `parallel_workers`: Number of workers
+- `batch_insert_size`: Batch size for inserts
+
 ## Core Data Structures
 
 ### VSFile
@@ -193,6 +403,9 @@ Stores metadata about each node:
 - ✅ Collection-based organization
 - ✅ Query result caching (LRU)
 - ✅ Django ORM integration
+- ✅ Update operations (content, embeddings, metadata)
+- ✅ Multiple similarity metrics (cosine, L2, dot product)
+- ✅ Configuration-driven architecture
 
 ### Setup
 
@@ -302,8 +515,45 @@ collections = vector_store.list_collections()
 # Delete collection
 vector_store.delete_collection("old_collection")
 
-# Get collection stats
+# Get collection stats (PgVectorStore)
 stats = vector_store.get_collection_stats("docs")
+
+# Get collection info (ConfigurablePgVectorStore)
+info = vector_store.get_collection_info("docs")
+print(f"Nodes: {info['node_count']}, Dimensions: {info['embedding_dim']}")
+```
+
+**Update Operations (ConfigurablePgVectorStore):**
+```python
+from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+
+store = ConfigurablePgVectorStore(config="config.yaml")
+
+# Update content (will regenerate embedding automatically)
+store.update_vector(
+    collection_name="docs",
+    node_id=123,
+    new_content="Updated document content",
+    new_metadata={"status": "reviewed", "version": 2}
+)
+
+# Update only embedding (e.g., with improved model)
+new_embedding = embedding_model.encode("document content")
+store.update_vector(
+    collection_name="docs",
+    node_id=123,
+    new_embedding=new_embedding
+)
+
+# Update only metadata
+store.update_vector(
+    collection_name="docs",
+    node_id=123,
+    new_metadata={"priority": "high"}
+)
+
+# Delete specific nodes
+store.delete_nodes(collection_name="docs", node_ids=[123, 456, 789])
 ```
 
 ## FAISS Backend
@@ -340,30 +590,69 @@ store.load_vector_store()  # Loads on init if not initialising=True
 
 ### Environment Variables
 
-```bash
-# OpenAI API (if using API embeddings)
-export OPENAI_API_KEY="your-api-key"
+The configuration system automatically loads values from environment variables:
 
-# PostgreSQL (if using PgVectorStore)
+```bash
+# Embedding API Keys
+export OPENAI_API_KEY="your-openai-api-key"
+export COHERE_API_KEY="your-cohere-api-key"
+
+# PostgreSQL Connection (auto-loaded by DatabaseConfig)
 export POSTGRES_DB="vectorstore_db"
 export POSTGRES_USER="postgres"
 export POSTGRES_PASSWORD="postgres"
 export POSTGRES_HOST="localhost"
 export POSTGRES_PORT="5432"
+
+# Django Settings
 export DJANGO_SETTINGS_MODULE="your_app.settings"
+```
+
+### Loading and Saving Configurations
+
+```python
+from ai_vectorstore.config import VectorStoreConfig, load_config
+
+# Load from file (auto-detects format)
+config = load_config("config.yaml")  # or config.json
+
+# Load from dictionary
+config_dict = {
+    "name": "my_store",
+    "embedding": {"model_name": "custom-model"},
+    "search": {"default_top_k": 10}
+}
+config = load_config(config_dict)
+
+# Validate configuration
+config.validate()
+
+# Save to file
+config.save_yaml("output_config.yaml")
+config.save_json("output_config.json")
+
+# Convert to dictionary
+config_dict = config.to_dict()
 ```
 
 ### Embedding Models
 
 **Local Models (SentenceTransformers):**
-- `Snowflake/snowflake-arctic-embed-m` (default, 768-dim)
+- `Snowflake/snowflake-arctic-embed-m` (default, 768-dim, recommended)
 - `sentence-transformers/all-MiniLM-L6-v2` (384-dim, fast)
 - `BAAI/bge-large-en-v1.5` (1024-dim, high quality)
+- `sentence-transformers/all-mpnet-base-v2` (768-dim, balanced)
 
 **OpenAI API:**
 - `text-embedding-3-small` (1536-dim)
 - `text-embedding-3-large` (3072-dim)
+- `text-embedding-ada-002` (1536-dim, legacy)
 
+**Cohere API:**
+- `embed-english-v3.0`
+- `embed-multilingual-v3.0`
+
+**Legacy PgVectorStore (deprecated):**
 ```python
 # Use local model
 vector_store = PgVectorStore(
@@ -376,6 +665,43 @@ vector_store = PgVectorStore(
     use_embedding_api=True,
     api_model="text-embedding-3-small"
 )
+```
+
+**ConfigurablePgVectorStore (recommended):**
+```python
+from ai_vectorstore.config import VectorStoreConfig, EmbeddingConfig
+from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+
+# Local SentenceTransformer model
+config = VectorStoreConfig(
+    embedding=EmbeddingConfig(
+        model_type="sentence_transformer",
+        model_name="Snowflake/snowflake-arctic-embed-m",
+        batch_size=32,
+        normalize=True
+    )
+)
+vector_store = ConfigurablePgVectorStore(config=config)
+
+# OpenAI API
+config = VectorStoreConfig(
+    embedding=EmbeddingConfig(
+        model_type="openai",
+        model_name="text-embedding-3-small",
+        api_key="your-api-key"  # Or set OPENAI_API_KEY env var
+    )
+)
+vector_store = ConfigurablePgVectorStore(config=config)
+
+# Cohere API
+config = VectorStoreConfig(
+    embedding=EmbeddingConfig(
+        model_type="cohere",
+        model_name="embed-english-v3.0",
+        api_key="your-api-key"  # Or set COHERE_API_KEY env var
+    )
+)
+vector_store = ConfigurablePgVectorStore(config=config)
 ```
 
 ## Examples
@@ -404,28 +730,64 @@ See [examples/ai_vectorstore_examples/README.md](../../examples/ai_vectorstore_e
 ## Best Practices
 
 1. **Choose the Right Backend:**
-   - Use PostgreSQL for production, persistence, and hybrid search
+   - Use `ConfigurablePgVectorStore` for production deployments (recommended)
+   - Use legacy `PgVectorStore` for backward compatibility
    - Use FAISS for prototyping, maximum speed, and memory-based applications
+   - Leverage configuration files for reproducible deployments
 
-2. **Optimize Embedding Models:**
+2. **Configuration Management:**
+   - Use YAML/JSON configuration files for production
+   - Store configurations in version control
+   - Use environment variables for secrets (API keys, passwords)
+   - Validate configurations before deployment
+   - Document configuration changes
+
+3. **Optimize Embedding Models:**
    - Start with `Snowflake/snowflake-arctic-embed-m` for balanced performance
    - Use smaller models (384-dim) for speed-critical applications
    - Use larger models (1024-dim+) for maximum accuracy
+   - Consider API-based models (OpenAI, Cohere) for convenience
+   - Batch encode documents for better throughput
 
-3. **Leverage Hybrid Search:**
-   - Use `alpha=0.5` as starting point for hybrid search
-   - Tune alpha based on your specific use case
-   - Enable re-ranking for best results (adds latency)
+4. **Leverage Hybrid Search:**
+   - Use `hybrid_alpha=0.7` as starting point (favors vector search)
+   - Tune alpha based on your specific use case:
+     - 0.9-1.0: Pure semantic search
+     - 0.5-0.7: Balanced approach
+     - 0.0-0.3: Keyword-focused search
+   - Enable re-ranking for best results (adds latency but improves relevance)
+   - Set `search_buffer_factor=2` to retrieve more candidates for re-ranking
 
-4. **Metadata Design:**
+5. **Metadata Design:**
    - Store searchable metadata in custom fields
    - Use consistent metadata structure across documents
    - Index frequently queried fields
+   - Include version and timestamp metadata
+   - Use metadata for filtering and access control
 
-5. **Chunking Strategy:**
+6. **Chunking Strategy:**
    - Keep chunks between 200-500 tokens for optimal retrieval
-   - Include overlap between chunks for context preservation
+   - Include overlap (50-100 tokens) between chunks for context preservation
    - Store chunk position for result ordering
+   - Consider semantic chunking for better coherence
+   - Configure `chunk_size` and `chunk_overlap` in IndexConfig
+
+7. **Update and Maintenance:**
+   - Use `update_vector()` for content corrections without re-indexing
+   - Periodically update embeddings with improved models
+   - Monitor and clean up outdated nodes
+   - Use batch operations for large-scale updates
+   - Keep track of node IDs for efficient updates
+
+8. **Performance Optimization:**
+   - Enable caching with appropriate `cache_size` (default: 1000)
+   - Use batch inserts with optimal `batch_insert_size` (default: 100)
+   - Monitor database connection pool settings
+   - Consider parallel processing for large datasets
+   - Use appropriate similarity metric for your use case:
+     - `cosine`: Normalized vectors (recommended for most cases)
+     - `l2`: Euclidean distance (good for non-normalized vectors)
+     - `dot_product`: Fast but requires normalized vectors
 
 ## Integration with RAG Pipeline
 
@@ -494,7 +856,33 @@ python manage.py migrate
 
 ## API Reference
 
-### PgVectorStore
+### ConfigurablePgVectorStore (Recommended)
+
+**Initialization:**
+- `__init__(name: str, config: Union[VectorStoreConfig, Dict, str])` - Initialize with configuration
+- `setup()` - Setup resources and connections
+
+**Collection Management:**
+- `get_or_create_collection(collection_name: str, embedding_dim: int)` - Get or create collection
+- `create_collection_from_nodes(collection_name: str, nodes: List[Node])` - Create from nodes
+- `create_collection_from_files(collection_name: str, files: List[VSFile])` - Create from files
+- `list_collections()` - List all collections
+- `get_collection_info(collection_name: str)` - Get collection information
+- `delete_collection(collection_name: str)` - Delete a collection
+
+**Node Operations:**
+- `add_nodes(collection_name: str, nodes: List[Node])` - Add nodes to collection
+- `update_vector(collection_name: str, node_id: int, new_content: str, new_embedding: List[float], new_metadata: Dict)` - Update existing vector
+- `delete_nodes(collection_name: str, node_ids: List[int])` - Delete specific nodes
+
+**Search:**
+- `search(collection_name: str, query: str, distance_type: str, number: int, meta_data_filters: Dict, hybrid_search: bool)` - Search collection with hybrid support
+- `query(vector: List[float], top_k: int, **kwargs)` - Query by vector (VectorStore interface)
+
+**Lifecycle:**
+- `shutdown()` - Cleanup and shutdown
+
+### PgVectorStore (Legacy)
 - `create_collection(name: str)` - Create a new collection
 - `add_nodes(nodes: List[Node], collection_name: str)` - Add nodes to collection
 - `search(query: str, collection_name: str, search_type: str, top_k: int)` - Search collection
@@ -509,6 +897,86 @@ python manage.py migrate
 - `save_vector_store()` - Save indexes to disk
 - `load_vector_store()` - Load indexes from disk
 
+### Configuration API
+
+**VectorStoreConfig:**
+- `from_dict(config_dict: Dict)` - Create from dictionary
+- `from_yaml(yaml_path: str)` - Load from YAML file
+- `from_json(json_path: str)` - Load from JSON file
+- `to_dict()` - Convert to dictionary
+- `save_yaml(output_path: str)` - Save to YAML file
+- `save_json(output_path: str)` - Save to JSON file
+- `validate()` - Validate configuration
+
+**load_config:**
+- `load_config(config_source: Union[str, Dict], config_type: str)` - Universal config loader
+
+## Migration Guide
+
+### From PgVectorStore to ConfigurablePgVectorStore
+
+If you're using the legacy `PgVectorStore`, here's how to migrate to the new `ConfigurablePgVectorStore`:
+
+**Before (Legacy):**
+```python
+from ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
+
+vector_store = PgVectorStore(
+    name="my_store",
+    embedding_model="Snowflake/snowflake-arctic-embed-m",
+    use_embedding_api=False
+)
+
+vector_store.create_collection("docs")
+vector_store.add_nodes(nodes, "docs")
+results = vector_store.search(
+    query="test",
+    collection_name="docs",
+    search_type="hybrid",
+    top_k=5
+)
+```
+
+**After (Configurable):**
+```python
+from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+from ai_vectorstore.config import VectorStoreConfig, EmbeddingConfig
+
+# Option 1: Simple migration with defaults
+vector_store = ConfigurablePgVectorStore(name="my_store")
+vector_store.setup()
+
+# Option 2: With explicit configuration
+config = VectorStoreConfig(
+    embedding=EmbeddingConfig(
+        model_type="sentence_transformer",
+        model_name="Snowflake/snowflake-arctic-embed-m"
+    )
+)
+vector_store = ConfigurablePgVectorStore(name="my_store", config=config)
+vector_store.setup()
+
+# Collections are auto-created
+vector_store.get_or_create_collection("docs")
+vector_store.add_nodes("docs", nodes)
+
+# Search (note: different return format)
+results_dict, result_nodes = vector_store.search(
+    collection_name="docs",
+    query="test",
+    hybrid_search=True,
+    number=5
+)
+```
+
+**Key Differences:**
+1. Must call `setup()` after initialization
+2. Use `get_or_create_collection()` instead of `create_collection()`
+3. `search()` returns tuple of (results_dict, nodes_list)
+4. Search parameters: `top_k` → `number`, `search_type` → `hybrid_search` (bool)
+5. Configuration is centralized and supports YAML/JSON files
+6. New features: `update_vector()`, `delete_nodes()`, `get_collection_info()`
+
 ## Contributing
 
 This package is part of the Rakam Systems framework. For contributions and development:
@@ -517,6 +985,8 @@ This package is part of the Rakam Systems framework. For contributions and devel
 2. Add comprehensive docstrings and type hints
 3. Include examples in the `examples/` directory
 4. Update this README with new features
+5. Test with both legacy and configurable vector stores
+6. Ensure backward compatibility when possible
 
 ## License
 
@@ -524,9 +994,52 @@ See [LICENSE](LICENSE) file for details.
 
 ## Additional Resources
 
+### Rakam Systems Documentation
 - [Main Rakam Systems Documentation](../../README.md)
 - [AI Core Interfaces](../ai_core/interfaces/)
+- [AI Agents Framework](../ai_agents/)
 - [Examples Directory](../../examples/ai_vectorstore_examples/)
-- [pgvector Documentation](https://github.com/pgvector/pgvector)
-- [FAISS Documentation](https://github.com/facebookresearch/faiss)
-- [SentenceTransformers Documentation](https://www.sbert.net/)
+
+### External Documentation
+- [pgvector Documentation](https://github.com/pgvector/pgvector) - PostgreSQL vector extension
+- [FAISS Documentation](https://github.com/facebookresearch/faiss) - Facebook AI Similarity Search
+- [SentenceTransformers Documentation](https://www.sbert.net/) - Sentence embedding models
+- [OpenAI Embeddings API](https://platform.openai.com/docs/guides/embeddings) - OpenAI embedding models
+- [Cohere Embeddings API](https://docs.cohere.com/docs/embeddings) - Cohere embedding models
+
+### Configuration Examples
+- See [examples/configs/pg_vectorstore_config.yaml](../../examples/configs/pg_vectorstore_config.yaml) for example YAML configuration
+- See [examples/ai_vectorstore_examples/](../../examples/ai_vectorstore_examples/) for working examples
+
+### Key Files
+- `config.py` - Configuration system implementation
+- `core.py` - Core data structures (VSFile, Node, NodeMetadata)
+- `components/vectorstore/configurable_pg_vector_store.py` - Enhanced configurable vector store
+- `components/vectorstore/pg_vector_store.py` - Legacy vector store
+- `components/embedding_model/configurable_embeddings.py` - Pluggable embedding system
+
+## Support and Contributing
+
+For issues, questions, or contributions, please refer to the main Rakam Systems repository. When reporting issues:
+
+1. Include your configuration (sanitized of secrets)
+2. Provide code snippets demonstrating the issue
+3. Include error messages and stack traces
+4. Specify versions of key dependencies (Django, pgvector, etc.)
+
+## Changelog
+
+### v1.1.0 (Latest)
+- Added `ConfigurablePgVectorStore` with full configuration support
+- Introduced centralized configuration system (`config.py`)
+- Added `ConfigurableEmbeddings` for pluggable embedding models
+- Implemented `update_vector()` for in-place updates
+- Added support for multiple similarity metrics
+- Enhanced hybrid search with configurable alpha parameter
+- Improved documentation with migration guide
+
+### v1.0.0
+- Initial release with `PgVectorStore` and `FaissStore`
+- Basic hybrid search support
+- Django ORM integration
+- Collection-based organization
