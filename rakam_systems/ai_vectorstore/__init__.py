@@ -28,22 +28,38 @@ from rakam_systems.ai_vectorstore.config import (
     load_config,
 )
 
-# Import new configurable components
-from rakam_systems.ai_vectorstore.components.vectorstore.configurable_pg_vector_store import (
-    ConfigurablePgVectorStore,
-)
-from rakam_systems.ai_vectorstore.components.loader.adaptive_loader import (
-    AdaptiveLoader,
-    create_adaptive_loader,
-)
-from rakam_systems.ai_vectorstore.components.embedding_model.configurable_embeddings import (
-    ConfigurableEmbeddings,
-    create_embedding_model,
-)
-
-# Import original components for backward compatibility
-from rakam_systems.ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
-from rakam_systems.ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
+# Lazy imports for Django model-dependent components
+# These will be imported when accessed, after Django setup
+def __getattr__(name):
+    """Lazy import Django-dependent components."""
+    if name == "ConfigurablePgVectorStore":
+        from rakam_systems.ai_vectorstore.components.vectorstore.configurable_pg_vector_store import (
+            ConfigurablePgVectorStore,
+        )
+        return ConfigurablePgVectorStore
+    elif name == "PgVectorStore":
+        from rakam_systems.ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
+        return PgVectorStore
+    elif name == "AdaptiveLoader":
+        from rakam_systems.ai_vectorstore.components.loader.adaptive_loader import AdaptiveLoader
+        return AdaptiveLoader
+    elif name == "create_adaptive_loader":
+        from rakam_systems.ai_vectorstore.components.loader.adaptive_loader import create_adaptive_loader
+        return create_adaptive_loader
+    elif name == "ConfigurableEmbeddings":
+        from rakam_systems.ai_vectorstore.components.embedding_model.configurable_embeddings import (
+            ConfigurableEmbeddings,
+        )
+        return ConfigurableEmbeddings
+    elif name == "create_embedding_model":
+        from rakam_systems.ai_vectorstore.components.embedding_model.configurable_embeddings import (
+            create_embedding_model,
+        )
+        return create_embedding_model
+    elif name == "FaissVectorStore":
+        from rakam_systems.ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
+        return FaissVectorStore
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 __version__ = "1.0.0"
 
