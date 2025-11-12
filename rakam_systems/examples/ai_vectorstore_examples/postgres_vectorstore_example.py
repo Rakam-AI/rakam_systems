@@ -17,13 +17,13 @@ import sys
 # Configure Django before importing any Django-dependent modules
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "examples.ai_vectorstore_examples.django_settings"
+    "rakam_systems.examples.ai_vectorstore_examples.django_settings"
 )
 
 import django
 django.setup()
 
-from ai_vectorstore.core import Node, NodeMetadata
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata
 
 
 def create_sample_documents():
@@ -126,7 +126,7 @@ def main():
     
     # Import PgVectorStore
     try:
-        from ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
+        from rakam_systems.ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
     except ImportError as e:
         print(f"\n❌ Cannot import PgVectorStore: {e}")
         print("\nMake sure all dependencies are installed:")

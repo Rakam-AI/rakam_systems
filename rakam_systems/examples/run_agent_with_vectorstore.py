@@ -4,10 +4,10 @@ import yaml
 from pathlib import Path
 from typing import Iterator, Any, Dict, List
 
-from ai_core.interfaces.agent import AgentInput, AgentOutput
-from ai_agents.components.base_agent import BaseAgent
-from ai_vectorstore.components.retriever.basic_retriever import BasicRetriever
-from ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems.ai_core.interfaces.agent import AgentInput, AgentOutput
+from rakam_systems.ai_agents.components.base_agent import BaseAgent
+from rakam_systems.ai_vectorstore.components.retriever.basic_retriever import BasicRetriever
+from rakam_systems.ai_core.interfaces.vectorstore import VectorStore
 
 
 # ---------------------------------------------------------------------

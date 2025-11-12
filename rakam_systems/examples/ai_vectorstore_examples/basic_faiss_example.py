@@ -8,8 +8,8 @@ This example demonstrates:
 4. Managing collections
 """
 
-from ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
-from ai_vectorstore.core import Node, NodeMetadata, VSFile
+from rakam_systems.ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata, VSFile
 import os
 from typing import List
 

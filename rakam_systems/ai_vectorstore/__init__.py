@@ -18,8 +18,8 @@ Quick Start:
     store.setup()
 """
 
-from ai_vectorstore.core import Node, NodeMetadata, VSFile
-from ai_vectorstore.config import (
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata, VSFile
+from rakam_systems.ai_vectorstore.config import (
     VectorStoreConfig,
     EmbeddingConfig,
     DatabaseConfig,
@@ -29,21 +29,21 @@ from ai_vectorstore.config import (
 )
 
 # Import new configurable components
-from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import (
+from rakam_systems.ai_vectorstore.components.vectorstore.configurable_pg_vector_store import (
     ConfigurablePgVectorStore,
 )
-from ai_vectorstore.components.loader.adaptive_loader import (
+from rakam_systems.ai_vectorstore.components.loader.adaptive_loader import (
     AdaptiveLoader,
     create_adaptive_loader,
 )
-from ai_vectorstore.components.embedding_model.configurable_embeddings import (
+from rakam_systems.ai_vectorstore.components.embedding_model.configurable_embeddings import (
     ConfigurableEmbeddings,
     create_embedding_model,
 )
 
 # Import original components for backward compatibility
-from ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
-from ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
+from rakam_systems.ai_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
+from rakam_systems.ai_vectorstore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
 
 __version__ = "1.0.0"
 

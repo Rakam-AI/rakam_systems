@@ -22,16 +22,16 @@ import tempfile
 # Configure Django
 os.environ.setdefault(
     "DJANGO_SETTINGS_MODULE",
-    "examples.ai_vectorstore_examples.django_settings"
+    "rakam_systems.examples.ai_vectorstore_examples.django_settings"
 )
 
 import django
 django.setup()
 
-from ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
-from ai_vectorstore.components.loader.adaptive_loader import AdaptiveLoader
-from ai_vectorstore.config import VectorStoreConfig, EmbeddingConfig, SearchConfig
-from ai_vectorstore.core import Node, NodeMetadata
+from rakam_systems.ai_vectorstore.components.vectorstore.configurable_pg_vector_store import ConfigurablePgVectorStore
+from rakam_systems.ai_vectorstore.components.loader.adaptive_loader import AdaptiveLoader
+from rakam_systems.ai_vectorstore.config import VectorStoreConfig, EmbeddingConfig, SearchConfig
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata
 
 
 def print_header(title: str):

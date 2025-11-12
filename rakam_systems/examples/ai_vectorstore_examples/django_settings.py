@@ -26,7 +26,7 @@ ALLOWED_HOSTS = ["*"]
 INSTALLED_APPS = [
     "django.contrib.contenttypes",
     "django.contrib.postgres",
-    "ai_vectorstore.components.vectorstore.apps.VectorStoreConfig",  # For PgVectorStore models
+    "rakam_systems.ai_vectorstore.components.vectorstore.apps.VectorStoreConfig",  # For PgVectorStore models
 ]
 
 # Database
