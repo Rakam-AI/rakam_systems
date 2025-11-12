@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 from typing import List
 
-from ai_core.interfaces.chunker import Chunker
+from rakam_systems.ai_core.interfaces.chunker import Chunker
 
 logger = logging.getLogger(__name__)
 

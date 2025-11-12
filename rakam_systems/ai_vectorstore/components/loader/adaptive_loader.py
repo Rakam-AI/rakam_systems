@@ -22,9 +22,9 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
-from ai_core.interfaces.loader import Loader
-from ai_vectorstore.components.chunker import TextChunker
-from ai_vectorstore.core import Node, NodeMetadata, VSFile
+from rakam_systems.ai_core.interfaces.loader import Loader
+from rakam_systems.ai_vectorstore.components.chunker import TextChunker
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata, VSFile
 
 logger = logging.getLogger(__name__)
 

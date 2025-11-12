@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from ai_core.interfaces.chunker import Chunker
+from rakam_systems.ai_core.interfaces.chunker import Chunker
 
 class SimpleChunker(Chunker):
     """Simple paragraph splitter example; override in production."""

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List
-from ai_core.interfaces.indexer import Indexer
+from rakam_systems.ai_core.interfaces.indexer import Indexer
 
 class SimpleIndexer(Indexer):
     """Thin wrapper around a VectorStore (to be injected by caller)."""

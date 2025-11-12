@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from ai_core.interfaces.loader import Loader
+from rakam_systems.ai_core.interfaces.loader import Loader
 
 class FileLoader(Loader):
     """Dependency-free file loader stub.

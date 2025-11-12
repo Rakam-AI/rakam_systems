@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List
-from ai_core.interfaces.embedding_model import EmbeddingModel
+from rakam_systems.ai_core.interfaces.embedding_model import EmbeddingModel
 
 class OpenAIEmbeddings(EmbeddingModel):
     """Name-only placeholder. No SDKs are imported.

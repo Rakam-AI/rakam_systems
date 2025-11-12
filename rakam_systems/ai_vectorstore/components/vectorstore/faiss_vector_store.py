@@ -14,9 +14,9 @@ import numpy as np
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from ai_core.interfaces.vectorstore import VectorStore
-from ai_vectorstore.core import Node
-from ai_vectorstore.core import VSFile
+from rakam_systems.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems.ai_vectorstore.core import Node
+from rakam_systems.ai_vectorstore.core import VSFile
 
 dotenv.load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")

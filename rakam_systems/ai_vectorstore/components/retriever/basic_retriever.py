@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List
-from ai_core.interfaces.retriever import Retriever
+from rakam_systems.ai_core.interfaces.retriever import Retriever
 
 class BasicRetriever(Retriever):
     """Minimal retriever that depends on an injected VectorStore and query encoder."""

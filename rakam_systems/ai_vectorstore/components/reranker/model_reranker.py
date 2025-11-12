@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Any, Dict, List
-from ai_core.interfaces.reranker import Reranker
+from rakam_systems.ai_core.interfaces.reranker import Reranker
 
 class ModelReranker(Reranker):
     """Abstract reranker placeholder.

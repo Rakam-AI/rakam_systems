@@ -20,11 +20,11 @@ import numpy as np
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db import connection, transaction
 
-from ai_core.interfaces.vectorstore import VectorStore
-from ai_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
-from ai_vectorstore.components.vectorstore.pg_models import Collection, NodeEntry
-from ai_vectorstore.config import VectorStoreConfig, load_config
-from ai_vectorstore.core import Node, NodeMetadata, VSFile
+from rakam_systems.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems.ai_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
+from rakam_systems.ai_vectorstore.components.vectorstore.pg_models import Collection, NodeEntry
+from rakam_systems.ai_vectorstore.config import VectorStoreConfig, load_config
+from rakam_systems.ai_vectorstore.core import Node, NodeMetadata, VSFile
 
 logger = logging.getLogger(__name__)
 

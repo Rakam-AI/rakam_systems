@@ -18,12 +18,12 @@ from django.db import transaction
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from ai_core.interfaces.vectorstore import VectorStore
-from ai_vectorstore.components.vectorstore.pg_models import Collection
-from ai_vectorstore.components.vectorstore.pg_models import NodeEntry
-from ai_vectorstore.core import Node
-from ai_vectorstore.core import NodeMetadata
-from ai_vectorstore.core import VSFile
+from rakam_systems.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems.ai_vectorstore.components.vectorstore.pg_models import Collection
+from rakam_systems.ai_vectorstore.components.vectorstore.pg_models import NodeEntry
+from rakam_systems.ai_vectorstore.core import Node
+from rakam_systems.ai_vectorstore.core import NodeMetadata
+from rakam_systems.ai_vectorstore.core import VSFile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
