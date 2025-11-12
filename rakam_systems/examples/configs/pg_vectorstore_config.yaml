@@ -1,0 +1,85 @@
+# PGVector Store Configuration Example
+# This configuration demonstrates all available options for the Vector Store component
+
+name: pg_vector_store
+
+# Embedding Model Configuration
+embedding:
+  # Model type: sentence_transformer, openai, cohere
+  model_type: sentence_transformer
+  
+  # Model name/identifier
+  # For sentence_transformer: HuggingFace model name
+  # For openai: model name like "text-embedding-3-small"
+  model_name: Snowflake/snowflake-arctic-embed-m
+  
+  # API key (optional, will use environment variable if not specified)
+  # api_key: your_api_key_here
+  
+  # Batch size for embedding generation
+  batch_size: 32
+  
+  # Whether to normalize embeddings
+  normalize: true
+  
+  # Embedding dimensions (auto-detected if not specified)
+  # dimensions: 768
+
+# Database Configuration
+database:
+  # PostgreSQL connection details
+  # These will use environment variables if available (POSTGRES_HOST, etc.)
+  host: localhost
+  port: 5432
+  database: vectorstore_db
+  user: postgres
+  password: postgres
+  
+  # Connection pool settings
+  pool_size: 10
+  max_overflow: 20
+
+# Search Configuration
+search:
+  # Similarity metric: cosine, l2, dot_product
+  similarity_metric: cosine
+  
+  # Default number of results to return
+  default_top_k: 5
+  
+  # Enable hybrid search (vector + keyword search)
+  enable_hybrid_search: true
+  
+  # Weight for vector similarity in hybrid search (0-1)
+  # 0.7 means 70% vector similarity, 30% keyword relevance
+  hybrid_alpha: 0.7
+  
+  # Enable result re-ranking
+  rerank: true
+  
+  # Retrieve more results for re-ranking (multiplier)
+  search_buffer_factor: 2
+
+# Indexing Configuration
+index:
+  # Text chunk size for splitting documents
+  chunk_size: 512
+  
+  # Overlap between consecutive chunks
+  chunk_overlap: 50
+  
+  # Enable parallel processing for indexing
+  enable_parallel_processing: false
+  
+  # Number of parallel workers
+  parallel_workers: 4
+  
+  # Batch size for bulk inserts
+  batch_insert_size: 100
+
+# General Settings
+enable_caching: true
+cache_size: 1000
+enable_logging: true
+log_level: INFO
+
