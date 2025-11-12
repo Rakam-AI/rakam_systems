@@ -22,7 +22,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(max_length=255, unique=True)),
-                ('embedding_dim', models.IntegerField(default=768)),
+                ('embedding_dim', models.IntegerField(default=384)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
             ],
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('node_id', models.AutoField(primary_key=True, serialize=False)),
                 ('content', models.TextField()),
-                ('embedding', pgvector.django.VectorField(dimensions=768)),
+                ('embedding', pgvector.django.VectorField(dimensions=384)),
                 ('source_file_uuid', models.CharField(max_length=255)),
                 ('position', models.IntegerField(blank=True, null=True)),
                 ('custom_metadata', models.JSONField(blank=True, default=dict)),
