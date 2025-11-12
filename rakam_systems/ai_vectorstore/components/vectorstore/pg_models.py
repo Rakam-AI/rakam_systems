@@ -25,6 +25,7 @@ class Collection(models.Model):
 
     class Meta:
         app_label = "application"
+        db_table = "application_collection"
 
     def __str__(self):
         return f"Collection: {self.name}"
@@ -53,9 +54,10 @@ class NodeEntry(models.Model):
 
     class Meta:
         app_label = "application"
+        db_table = "application_nodeentry"
         indexes = [
-            models.Index(fields=["source_file_uuid"]),
-            models.Index(fields=["collection", "source_file_uuid"]),
+            models.Index(fields=["source_file_uuid"], name="application_source__idx"),
+            models.Index(fields=["collection", "source_file_uuid"], name="application_collect_idx"),
         ]
 
     def __str__(self):
