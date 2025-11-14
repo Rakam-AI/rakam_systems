@@ -33,3 +33,6 @@ Thumbs.db
 data/
 dist/
 logs/
+
+# tracking data
+agent_tracking/

@@ -1,0 +1,410 @@
+# Complete Agent Configuration Example
+# This file demonstrates the full configuration capabilities of the rakam_systems agent framework
+# Version: 1.0
+
+version: "1.0"
+
+# ============================================================================
+# Global Settings
+# ============================================================================
+global_settings:
+  default_tracking_dir: "./agent_tracking"
+  log_level: "INFO"
+  enable_metrics: true
+
+# ============================================================================
+# Prompt Library
+# Define reusable prompts and skill sets (Anthropic-style)
+# ============================================================================
+prompts:
+  # General purpose assistant
+  general_assistant:
+    name: "general_assistant"
+    description: "A helpful general-purpose assistant"
+    system_prompt: |
+      You are a helpful AI assistant. You have access to various tools to help users.
+      Always be polite, professional, and accurate in your responses.
+      When using tools, explain what you're doing to the user.
+    skills:
+      - "Information retrieval"
+      - "Task automation"
+      - "Data analysis"
+    tags:
+      - "general"
+      - "assistant"
+    examples:
+      - user: "What's the weather like?"
+        assistant: "I'll check the weather for you using the weather tool."
+  
+  # Research assistant with advanced capabilities
+  research_assistant:
+    name: "research_assistant"
+    description: "Specialized in research and data gathering"
+    system_prompt: |
+      You are a research assistant specializing in data gathering and analysis.
+      Your primary skills include:
+      - Searching for information across multiple sources
+      - Analyzing and synthesizing data
+      - Providing comprehensive, well-cited responses
+      - Fact-checking and verification
+      
+      Always prioritize accuracy over speed. When uncertain, acknowledge limitations.
+    skills:
+      - "Information retrieval"
+      - "Data analysis"
+      - "Citation management"
+      - "Fact checking"
+    tags:
+      - "research"
+      - "analysis"
+    examples:
+      - user: "Research the latest developments in AI"
+        assistant: "I'll search for recent publications and synthesize the findings for you."
+  
+  # Code assistant
+  code_assistant:
+    name: "code_assistant"
+    description: "Specialized in programming and code generation"
+    system_prompt: |
+      You are an expert programming assistant with deep knowledge of:
+      - Multiple programming languages (Python, JavaScript, TypeScript, etc.)
+      - Software design patterns and best practices
+      - Code optimization and debugging
+      - Testing and documentation
+      
+      When generating code:
+      1. Follow best practices and conventions
+      2. Include comments and documentation
+      3. Consider edge cases and error handling
+      4. Suggest tests when appropriate
+    skills:
+      - "Code generation"
+      - "Debugging"
+      - "Code review"
+      - "Architecture design"
+    tags:
+      - "coding"
+      - "programming"
+  
+  # Customer support agent
+  customer_support:
+    name: "customer_support"
+    description: "Friendly customer support specialist"
+    system_prompt: |
+      You are a friendly and empathetic customer support specialist.
+      Your goal is to help customers solve their problems efficiently while maintaining a positive experience.
+      
+      Guidelines:
+      - Listen actively to customer concerns
+      - Provide clear, step-by-step solutions
+      - Escalate complex issues when necessary
+      - Always maintain a professional yet warm tone
+    skills:
+      - "Problem solving"
+      - "Customer communication"
+      - "Technical support"
+      - "Issue escalation"
+    tags:
+      - "support"
+      - "customer-service"
+
+# ============================================================================
+# Tool Library
+# Define reusable tools that can be shared across agents
+# ============================================================================
+tools:
+  # Direct Tools - Run locally
+  get_weather:
+    name: "get_weather"
+    type: "direct"
+    module: "ai_agents.components.tools.example_tools"
+    function: "get_current_weather"
+    description: "Get the current weather for a specific location"
+    category: "utility"
+    tags:
+      - "weather"
+      - "external"
+    json_schema:
+      type: "object"
+      properties:
+        location:
+          type: "string"
+          description: "City name or location"
+        units:
+          type: "string"
+          enum: ["celsius", "fahrenheit"]
+          default: "celsius"
+          description: "Temperature units"
+      required:
+        - "location"
+      additionalProperties: false
+  
+  calculate_distance:
+    name: "calculate_distance"
+    type: "direct"
+    module: "ai_agents.components.tools.example_tools"
+    function: "calculate_distance"
+    description: "Calculate the distance between two geographic coordinates"
+    category: "math"
+    tags:
+      - "geography"
+      - "calculation"
+    json_schema:
+      type: "object"
+      properties:
+        lat1:
+          type: "number"
+          description: "Latitude of first point"
+        lon1:
+          type: "number"
+          description: "Longitude of first point"
+        lat2:
+          type: "number"
+          description: "Latitude of second point"
+        lon2:
+          type: "number"
+          description: "Longitude of second point"
+      required:
+        - "lat1"
+        - "lon1"
+        - "lat2"
+        - "lon2"
+      additionalProperties: false
+  
+  format_currency:
+    name: "format_currency"
+    type: "direct"
+    module: "ai_agents.components.tools.example_tools"
+    function: "format_currency"
+    description: "Format a number as currency in various formats"
+    category: "utility"
+    tags:
+      - "formatting"
+      - "finance"
+    json_schema:
+      type: "object"
+      properties:
+        amount:
+          type: "number"
+          description: "Amount to format"
+        currency:
+          type: "string"
+          enum: ["USD", "EUR", "GBP", "JPY"]
+          default: "USD"
+          description: "Currency code"
+      required:
+        - "amount"
+      additionalProperties: false
+  
+  analyze_sentiment:
+    name: "analyze_sentiment"
+    type: "direct"
+    module: "ai_agents.components.tools.example_tools"
+    function: "analyze_sentiment"
+    description: "Analyze the sentiment of text (positive, negative, neutral)"
+    category: "nlp"
+    tags:
+      - "sentiment"
+      - "analysis"
+      - "nlp"
+    json_schema:
+      type: "object"
+      properties:
+        text:
+          type: "string"
+          description: "Text to analyze"
+      required:
+        - "text"
+      additionalProperties: false
+  
+  # MCP Tools - Invoke via MCP servers (examples)
+  # Uncomment and configure when MCP servers are available
+  
+  # web_search:
+  #   name: "web_search"
+  #   type: "mcp"
+  #   mcp_server: "search_server"
+  #   mcp_tool_name: "search"
+  #   description: "Search the web for information"
+  #   category: "search"
+  #   tags:
+  #     - "web"
+  #     - "external"
+  
+  # database_query:
+  #   name: "database_query"
+  #   type: "mcp"
+  #   mcp_server: "database_server"
+  #   mcp_tool_name: "query"
+  #   description: "Query the database"
+  #   category: "database"
+  #   tags:
+  #     - "database"
+  #     - "data"
+
+# ============================================================================
+# Agent Configurations
+# Define specific agents with their models, prompts, and tools
+# ============================================================================
+agents:
+  # General purpose agent with multiple tools
+  general_agent:
+    name: "general_agent"
+    description: "General purpose assistant with utility tools"
+    
+    # Model configuration
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.7
+      max_tokens: 2000
+      parallel_tool_calls: true
+      extra_settings:
+        top_p: 0.9
+    
+    # Prompt (reference to library)
+    prompt_config: "general_assistant"
+    
+    # Tools (references to library)
+    tools:
+      - "get_weather"
+      - "format_currency"
+    
+    # Tracking configuration
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/general_agent"
+    
+    # Additional settings
+    stateful: false
+    metadata:
+      version: "1.0"
+      environment: "production"
+  
+  # Research-focused agent
+  research_agent:
+    name: "research_agent"
+    description: "Research assistant with analysis capabilities"
+    
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.3  # Lower temperature for more factual responses
+      max_tokens: 4000
+      parallel_tool_calls: true
+    
+    prompt_config: "research_assistant"
+    
+    tools:
+      - "analyze_sentiment"
+      # - "web_search"  # Uncomment when MCP server is available
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/research_agent"
+    
+    stateful: false
+    metadata:
+      specialization: "research"
+      requires_fact_checking: true
+  
+  # Fast agent with minimal tools (optimized for speed)
+  fast_agent:
+    name: "fast_agent"
+    description: "Fast agent with minimal toolset for quick responses"
+    
+    model_config:
+      model: "openai:gpt-4o-mini"
+      temperature: 0.5
+      max_tokens: 1000
+      parallel_tool_calls: true
+    
+    prompt_config: "general_assistant"
+    
+    tools: []  # No tools for maximum speed
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/fast_agent"
+    
+    stateful: false
+    metadata:
+      priority: "speed"
+  
+  # Multi-tool agent with all capabilities
+  power_agent:
+    name: "power_agent"
+    description: "Powerful agent with all available tools"
+    
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.7
+      max_tokens: 4000
+      parallel_tool_calls: true
+    
+    prompt_config: "general_assistant"
+    
+    # All available tools
+    tools:
+      - "get_weather"
+      - "calculate_distance"
+      - "format_currency"
+      - "analyze_sentiment"
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/power_agent"
+    
+    stateful: false
+    metadata:
+      capabilities: "full"
+      cost_tier: "high"
+  
+  # Customer support agent
+  support_agent:
+    name: "support_agent"
+    description: "Customer support specialist"
+    
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.8  # Slightly higher for more friendly responses
+      max_tokens: 2000
+      parallel_tool_calls: false  # Sequential for careful support
+    
+    prompt_config: "customer_support"
+    
+    tools:
+      - "format_currency"
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/support_agent"
+    
+    stateful: true  # Maintain conversation state
+    metadata:
+      department: "customer_support"
+      escalation_available: true
+
+# ============================================================================
+# Notes and Best Practices
+# ============================================================================
+# 
+# 1. Prompt Design:
+#    - Keep system prompts clear and specific
+#    - Use examples to guide behavior
+#    - Define skills explicitly
+#
+# 2. Tool Configuration:
+#    - Direct tools run in the same process (faster, no network overhead)
+#    - MCP tools can be remote (more flexible, allows distributed systems)
+#    - Use categories and tags for organization
+#
+# 3. Model Settings:
+#    - Lower temperature (0.1-0.3) for factual/deterministic tasks
+#    - Higher temperature (0.7-0.9) for creative tasks
+#    - parallel_tool_calls=true for independent tool operations
+#    - parallel_tool_calls=false when tools depend on each other
+#
+# 4. Tracking:
+#    - Always enable tracking for production agents
+#    - Use separate directories for different agents
+#    - Regularly export and analyze tracking data
+#
+# 5. Agent Selection:
+#    - Use fast_agent for simple, quick responses
+#    - Use power_agent when you need all capabilities
+#    - Use specialized agents (research, support) for specific domains
+

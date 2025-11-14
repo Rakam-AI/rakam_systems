@@ -1,11 +1,10 @@
-"""OpenAI LLM Gateway implementation with structured output support."""
+"""Mistral LLM Gateway implementation with structured output support."""
 from __future__ import annotations
 import logging
 import os
 from typing import Any, Dict, Iterator, Optional, Type, TypeVar
 
-import tiktoken
-from openai import OpenAI
+from mistralai import Mistral
 from pydantic import BaseModel
 
 from ai_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
@@ -15,18 +14,18 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 
-class OpenAIGateway(LLMGateway):
-    """OpenAI LLM Gateway with support for structured outputs.
+class MistralGateway(LLMGateway):
+    """Mistral LLM Gateway with support for structured outputs.
     
     Features:
     - Text generation
-    - Structured output using response_format
+    - Structured output using JSON mode
     - Streaming support
-    - Token counting with tiktoken
-    - Support for all OpenAI chat models
+    - Token counting (approximate)
+    - Support for all Mistral models
     
     Example:
-        >>> gateway = OpenAIGateway(model="gpt-4o", api_key="...")
+        >>> gateway = MistralGateway(model="mistral-large-latest", api_key="...")
         >>> request = LLMRequest(
         ...     system_prompt="You are a helpful assistant",
         ...     user_prompt="What is AI?",
@@ -38,48 +37,40 @@ class OpenAIGateway(LLMGateway):
 
     def __init__(
         self,
-        name: str = "openai_gateway",
+        name: str = "mistral_gateway",
         config: Optional[Dict[str, Any]] = None,
-        model: str = "gpt-4o",
+        model: str = "mistral-large-latest",
         default_temperature: float = 0.7,
         api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
-        organization: Optional[str] = None,
     ):
-        """Initialize OpenAI Gateway.
+        """Initialize Mistral Gateway.
         
         Args:
             name: Gateway name
             config: Configuration dictionary
-            model: OpenAI model name (e.g., "gpt-4o", "gpt-4-turbo")
+            model: Mistral model name (e.g., "mistral-large-latest", "mistral-small-latest")
             default_temperature: Default temperature for generation
-            api_key: OpenAI API key (falls back to OPENAI_API_KEY env var)
-            base_url: Optional base URL for API
-            organization: Optional organization ID
+            api_key: Mistral API key (falls back to MISTRAL_API_KEY env var)
         """
         super().__init__(
             name=name,
             config=config,
-            provider="openai",
+            provider="mistral",
             model=model,
             default_temperature=default_temperature,
-            api_key=api_key or os.getenv("OPENAI_API_KEY"),
+            api_key=api_key or os.getenv("MISTRAL_API_KEY"),
         )
         
         if not self.api_key:
             raise ValueError(
-                "OpenAI API key must be provided via api_key parameter or OPENAI_API_KEY environment variable"
+                "Mistral API key must be provided via api_key parameter or MISTRAL_API_KEY environment variable"
             )
         
-        # Initialize OpenAI client
-        self.client = OpenAI(
-            api_key=self.api_key,
-            base_url=base_url,
-            organization=organization,
-        )
+        # Initialize Mistral client
+        self.client = Mistral(api_key=self.api_key)
         
         logger.info(
-            f"Initialized OpenAI Gateway with model={self.model}, temperature={self.default_temperature}"
+            f"Initialized Mistral Gateway with model={self.model}, temperature={self.default_temperature}"
         )
 
     def _build_messages(self, request: LLMRequest) -> list[dict]:
@@ -100,7 +91,7 @@ class OpenAIGateway(LLMGateway):
         return messages
 
     def generate(self, request: LLMRequest) -> LLMResponse:
-        """Generate a response from OpenAI.
+        """Generate a response from Mistral.
         
         Args:
             request: Standardized LLM request
@@ -123,43 +114,43 @@ class OpenAIGateway(LLMGateway):
         # Add extra parameters
         params.update(request.extra_params)
         
-        logger.debug(f"Calling OpenAI API with model={self.model}, temperature={params['temperature']}")
+        logger.debug(f"Calling Mistral API with model={self.model}, temperature={params['temperature']}")
         
         try:
-            completion = self.client.chat.completions.create(**params)
+            response = self.client.chat.complete(**params)
             
             # Extract response
-            content = completion.choices[0].message.content
+            content = response.choices[0].message.content
             
             # Build usage information
             usage = None
-            if completion.usage:
+            if response.usage:
                 usage = {
-                    "prompt_tokens": completion.usage.prompt_tokens,
-                    "completion_tokens": completion.usage.completion_tokens,
-                    "total_tokens": completion.usage.total_tokens,
+                    "prompt_tokens": response.usage.prompt_tokens,
+                    "completion_tokens": response.usage.completion_tokens,
+                    "total_tokens": response.usage.total_tokens,
                 }
             
-            response = LLMResponse(
+            llm_response = LLMResponse(
                 content=content,
                 usage=usage,
-                model=completion.model,
-                finish_reason=completion.choices[0].finish_reason,
+                model=response.model,
+                finish_reason=response.choices[0].finish_reason,
                 metadata={
-                    "id": completion.id,
-                    "created": completion.created,
+                    "id": response.id,
+                    "created": response.created,
                 }
             )
             
             logger.info(
-                f"OpenAI response received: {usage.get('total_tokens', 'unknown')} tokens, "
-                f"finish_reason={response.finish_reason}"
+                f"Mistral response received: {usage.get('total_tokens', 'unknown') if usage else 'unknown'} tokens, "
+                f"finish_reason={llm_response.finish_reason}"
             )
             
-            return response
+            return llm_response
             
         except Exception as e:
-            logger.error(f"OpenAI API error: {str(e)}")
+            logger.error(f"Mistral API error: {str(e)}")
             raise
 
     def generate_structured(
@@ -169,7 +160,7 @@ class OpenAIGateway(LLMGateway):
     ) -> T:
         """Generate structured output conforming to a Pydantic schema.
         
-        Uses OpenAI's structured output feature to ensure response matches schema.
+        Uses Mistral's JSON mode and parses the response into the schema.
         
         Args:
             request: Standardized LLM request
@@ -177,6 +168,72 @@ class OpenAIGateway(LLMGateway):
             
         Returns:
             Instance of the schema class
+        """
+        import json
+        
+        messages = self._build_messages(request)
+        
+        # Add schema information to the system prompt
+        schema_json = schema.model_json_schema()
+        
+        # Enhance system prompt with schema information
+        enhanced_system = request.system_prompt or ""
+        enhanced_system += f"\n\nYou must respond with valid JSON that matches this schema:\n{json.dumps(schema_json, indent=2)}"
+        
+        # Update messages with enhanced system prompt
+        messages = []
+        messages.append({
+            "role": "system",
+            "content": enhanced_system
+        })
+        messages.append({
+            "role": "user",
+            "content": request.user_prompt
+        })
+        
+        # Prepare API call parameters
+        params = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": request.temperature if request.temperature is not None else self.default_temperature,
+            "response_format": {"type": "json_object"},
+        }
+        
+        if request.max_tokens:
+            params["max_tokens"] = request.max_tokens
+        
+        # Add extra parameters
+        params.update(request.extra_params)
+        
+        logger.debug(
+            f"Calling Mistral API for structured output with model={self.model}, schema={schema.__name__}"
+        )
+        
+        try:
+            response = self.client.chat.complete(**params)
+            
+            # Extract and parse JSON response
+            content = response.choices[0].message.content
+            parsed_result = schema.model_validate_json(content)
+            
+            logger.info(
+                f"Mistral structured response received: schema={schema.__name__}"
+            )
+            
+            return parsed_result
+            
+        except Exception as e:
+            logger.error(f"Mistral structured output error: {str(e)}")
+            raise
+
+    def stream(self, request: LLMRequest) -> Iterator[str]:
+        """Stream responses from Mistral.
+        
+        Args:
+            request: Standardized LLM request
+            
+        Yields:
+            String chunks from the LLM
         """
         messages = self._build_messages(request)
         
@@ -193,100 +250,38 @@ class OpenAIGateway(LLMGateway):
         # Add extra parameters
         params.update(request.extra_params)
         
-        logger.debug(
-            f"Calling OpenAI API for structured output with model={self.model}, schema={schema.__name__}"
-        )
+        logger.debug(f"Streaming from Mistral with model={self.model}")
         
         try:
-            # Use beta parse feature for structured outputs
-            completion = self.client.beta.chat.completions.parse(
-                **params,
-                response_format=schema,
-            )
-            
-            parsed_result = completion.choices[0].message.parsed
-            
-            logger.info(
-                f"OpenAI structured response received: schema={schema.__name__}"
-            )
-            
-            return parsed_result
-            
-        except Exception as e:
-            logger.error(f"OpenAI structured output error: {str(e)}")
-            raise
-
-    def stream(self, request: LLMRequest) -> Iterator[str]:
-        """Stream responses from OpenAI.
-        
-        Args:
-            request: Standardized LLM request
-            
-        Yields:
-            String chunks from the LLM
-        """
-        messages = self._build_messages(request)
-        
-        # Prepare API call parameters
-        params = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": request.temperature if request.temperature is not None else self.default_temperature,
-            "stream": True,
-        }
-        
-        if request.max_tokens:
-            params["max_tokens"] = request.max_tokens
-        
-        # Add extra parameters (excluding stream since we set it)
-        extra = {k: v for k, v in request.extra_params.items() if k != "stream"}
-        params.update(extra)
-        
-        logger.debug(f"Streaming from OpenAI with model={self.model}")
-        
-        try:
-            stream = self.client.chat.completions.create(**params)
+            stream = self.client.chat.stream(**params)
             
             for chunk in stream:
-                if chunk.choices[0].delta.content is not None:
-                    yield chunk.choices[0].delta.content
+                if chunk.data.choices[0].delta.content is not None:
+                    yield chunk.data.choices[0].delta.content
                     
         except Exception as e:
-            logger.error(f"OpenAI streaming error: {str(e)}")
+            logger.error(f"Mistral streaming error: {str(e)}")
             raise
 
     def count_tokens(self, text: str, model: Optional[str] = None) -> int:
-        """Count tokens in text using tiktoken.
+        """Count tokens in text.
+        
+        Mistral doesn't provide a native tokenization library, so we use approximation.
         
         Args:
             text: Text to count tokens for
-            model: Model name to determine encoding (uses instance model if None)
+            model: Model name (unused for Mistral)
             
         Returns:
-            Number of tokens in the text
+            Approximate number of tokens in the text
         """
-        try:
-            model_name = model or self.model
-            
-            # Try to get encoding for the specific model
-            try:
-                encoding = tiktoken.encoding_for_model(model_name)
-            except KeyError:
-                # Fall back to cl100k_base for unknown models
-                logger.warning(
-                    f"Unknown model {model_name}, using cl100k_base encoding"
-                )
-                encoding = tiktoken.get_encoding("cl100k_base")
-            
-            token_count = len(encoding.encode(text))
-            
-            logger.debug(
-                f"Counted {token_count} tokens for text of length {len(text)} characters"
-            )
-            
-            return token_count
-            
-        except Exception as e:
-            logger.warning(f"Error counting tokens: {e}. Using character approximation.")
-            # Fallback to character-based approximation (rough estimate: 4 chars = 1 token)
-            return len(text) // 4
+        # Approximation: average of 4 characters per token
+        # This is less accurate than tiktoken but reasonable for most use cases
+        token_count = len(text) // 4
+        
+        logger.debug(
+            f"Counted ~{token_count} tokens (approximation) for text of length {len(text)} characters"
+        )
+        
+        return token_count
+

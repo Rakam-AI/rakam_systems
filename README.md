@@ -36,6 +36,7 @@ Building custom AI and Gen AI systems can be challenging due to the need for fle
 - **Selected Libraries**:
   - **Best LLM**: OpenAI has the best models in the world and we've chosen it as the main LLM API [OpenAI](https://github.com/openai/openai-python) 
   - **EU LLM**: Mistral AI is the best European model provider and will have lasting conformity to the AI Act. [Mistral AI](https://github.com/mistralai/client-python)
+  - **Agent Framework**: Pydantic AI for robust, type-safe agent development with async support and tool integration. [Pydantic AI](https://github.com/pydantic/pydantic-ai) ✨ **NEW**
   - **Transformers & Models**: Hugging Face was chosen for its extensive support for a wide range of pre-trained models and its active community. [Hugging Face (HF)](https://github.com/huggingface/transformers)
   - **Vector Stores**: FAISS was selected for its efficiency and scalability in managing large-scale vector similarity searches. [FAISS](https://github.com/facebookresearch/faiss)
   - **File storage**: While you can work with local files, we allow users to work with buckets using the S3 framework. [S3](https://github.com/facebookresearch/faiss)
@@ -48,7 +49,7 @@ With `rakam_systems`, you can build:
 
 - **Retrieval-Augmented Generation (RAG) Systems**: Combine vector retrieval with LLM prompt generation for enriched responses. [Learn more](https://rsdocs.readthedocs.io/en/latest/usage.html#retrieval-augmented-generation-rag)
   
-- **Agent Systems**: Create modular agents that perform specific tasks using LLMs. *Link to come*
+- **Agent Systems**: Create modular agents that perform specific tasks using LLMs. **✨ NEW: Full Pydantic AI integration!** [See QUICKSTART.md](QUICKSTART.md) and [AI Agents README](rakam_systems/ai_agents/README.md)
   
 - **Chained Gen AI Systems**: Develop systems that chain multiple AI tasks together for complex workflows. *Link to come*
   
@@ -65,6 +66,16 @@ git clone <repository_url> rakam_systems
 cd rakam_systems
 pip install -e .
 ```
+
+### ✨ Quick Verification
+
+Verify your installation (especially for the new AI Agents module):
+
+```bash
+python verify_installation.py
+```
+
+This will check that all components are properly installed and ready to use.
 
 ### Dependencies
 
@@ -83,8 +94,35 @@ Check out the following links for detailed examples of what you can build using 
 
 - **RAG Systems**: [RAG Documentation](https://rsdocs.readthedocs.io/en/latest/usage.html#retrieval-augmented-generation-rag)
 - **Vector Search**: [Vector Store Documentation](https://rsdocs.readthedocs.io/en/latest/usage.html#creating-vector-stores)
-- **Agent Systems**: *Link to come*
+- **Agent Systems**: ✨ **[Quick Start Guide](QUICKSTART.md)** | [Full Documentation](rakam_systems/ai_agents/README.md) | [Examples](rakam_systems/examples/)
 - **Chained Gen AI Systems**: *Link to come*
+
+### 🚀 Quick Start: AI Agents (NEW!)
+
+Get started with AI agents in 5 minutes:
+
+```python
+import asyncio
+from ai_agents.components import BaseAgent
+
+async def main():
+    agent = BaseAgent(
+        name="my_agent",
+        model="openai:gpt-4o",
+        system_prompt="You are a helpful assistant.",
+    )
+    
+    result = await agent.arun("What is Python?")
+    print(result.output_text)
+
+asyncio.run(main())
+```
+
+**Learn more:**
+- [QUICKSTART.md](QUICKSTART.md) - Get started in 5 minutes
+- [AI Agents README](rakam_systems/ai_agents/README.md) - Complete documentation
+- [COMPARISON.md](COMPARISON.md) - Compare with Pydantic AI
+- [MIGRATION_GUIDE.md](MIGRATION_GUIDE.md) - Migrate existing code
 
 ### Running the Examples
 
@@ -153,9 +191,28 @@ No database setup required - FAISS runs entirely in memory.
 - **Vector Stores**: Manage and query vector embeddings for fast retrieval.
 - **Content Extraction**: Extract data from PDFs, URLs, and JSON files.
 - **Node Processing**: Split content into smaller, manageable chunks.
+- **AI Agents** ✨ **NEW**: Build powerful agents with:
+  - Async/await support for better performance
+  - Tool integration with parallel execution
+  - Pydantic AI compatibility
+  - Streaming responses
+  - Model configuration (temperature, max tokens, etc.)
 - **Modular Agents**: Implement custom tasks such as classification, prompt generation, and RAG.
 
 For more details on how to use each of these components, please refer to the [documentation here](https://rsdocs.readthedocs.io/en/latest/usage.html).
+
+### ✨ What's New: AI Agents v0.2.0
+
+The AI Agents module has been completely updated with:
+
+- **Pydantic AI Integration**: Drop-in compatibility with Pydantic AI
+- **Async/Await Support**: Better performance with concurrent operations
+- **Tool System**: Easy tool definition with `Tool.from_schema()`
+- **Parallel Tool Calls**: Execute independent tools concurrently (up to 4x faster!)
+- **Model Settings**: Control temperature, tokens, and parallel execution
+- **Comprehensive Docs**: Quick start guide, examples, and migration guide
+
+**See [CHANGELOG_AGENT_UPDATE.md](CHANGELOG_AGENT_UPDATE.md) for details.**
 
 ## Contributing
 

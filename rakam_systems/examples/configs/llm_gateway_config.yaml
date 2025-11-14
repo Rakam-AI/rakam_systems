@@ -1,0 +1,228 @@
+# ============================================================================
+# LLM Gateway Configuration Example
+# ============================================================================
+# This configuration demonstrates how to set up multiple LLM gateways
+# for different providers and use cases.
+
+version: "1.0"
+
+# ============================================================================
+# Global Settings
+# ============================================================================
+global_settings:
+  default_gateway: "openai_default"
+  log_level: "INFO"
+  enable_token_counting: true
+
+# ============================================================================
+# LLM Gateway Configurations
+# ============================================================================
+# Define different gateways for different providers and models
+llm_gateways:
+  # Default OpenAI gateway
+  openai_default:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.7
+    max_tokens: 2000
+    # API key will be read from OPENAI_API_KEY environment variable
+    extra_settings:
+      top_p: 0.9
+  
+  # Cost-effective OpenAI gateway
+  openai_mini:
+    provider: "openai"
+    model: "gpt-4o-mini"
+    temperature: 0.7
+    max_tokens: 1000
+    extra_settings:
+      top_p: 0.9
+  
+  # Creative writing gateway (higher temperature)
+  openai_creative:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.9
+    max_tokens: 3000
+    extra_settings:
+      top_p: 0.95
+      presence_penalty: 0.6
+  
+  # Analytical gateway (lower temperature)
+  openai_analytical:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.3
+    max_tokens: 2000
+    extra_settings:
+      top_p: 0.8
+  
+  # Mistral default gateway
+  mistral_default:
+    provider: "mistral"
+    model: "mistral-large-latest"
+    temperature: 0.7
+    max_tokens: 2000
+    # API key will be read from MISTRAL_API_KEY environment variable
+  
+  # Mistral small gateway (cost-effective)
+  mistral_small:
+    provider: "mistral"
+    model: "mistral-small-latest"
+    temperature: 0.7
+    max_tokens: 1000
+  
+  # Custom OpenAI with specific settings
+  openai_custom:
+    provider: "openai"
+    model: "gpt-4o"
+    temperature: 0.5
+    max_tokens: 1500
+    # Optional: Custom base URL for OpenAI-compatible APIs
+    # base_url: "https://api.custom.com/v1"
+    # Optional: Organization ID
+    # organization: "org-xxxxx"
+
+# ============================================================================
+# Prompt Library
+# ============================================================================
+prompts:
+  general_assistant:
+    name: "general_assistant"
+    system_prompt: |
+      You are a helpful, knowledgeable assistant. Provide clear, accurate, and 
+      concise responses. If you're unsure about something, acknowledge it.
+    description: "General purpose assistant prompt"
+    tags: ["general", "helpful"]
+  
+  code_assistant:
+    name: "code_assistant"
+    system_prompt: |
+      You are an expert software engineer. Provide clean, well-documented code 
+      with explanations. Follow best practices and consider edge cases.
+    description: "Assistant specialized in coding tasks"
+    tags: ["code", "technical"]
+  
+  creative_writer:
+    name: "creative_writer"
+    system_prompt: |
+      You are a creative writer with a vivid imagination. Write engaging, 
+      descriptive content that captures the reader's attention.
+    description: "Creative writing assistant"
+    tags: ["creative", "writing"]
+
+# ============================================================================
+# Tool Library
+# ============================================================================
+tools:
+  get_weather:
+    name: "get_weather"
+    type: "direct"
+    description: "Get current weather for a location"
+    module: "ai_agents.components.tools.example_tools"
+    function: "get_weather"
+    category: "utility"
+    tags: ["weather", "information"]
+  
+  analyze_sentiment:
+    name: "analyze_sentiment"
+    type: "direct"
+    description: "Analyze sentiment of text"
+    module: "ai_agents.components.tools.example_tools"
+    function: "analyze_sentiment"
+    category: "analysis"
+    tags: ["nlp", "sentiment"]
+
+# ============================================================================
+# Agent Configurations
+# ============================================================================
+# Define agents that use different LLM gateways
+agents:
+  # General agent using OpenAI
+  general_agent:
+    name: "general_agent"
+    description: "General purpose assistant using OpenAI"
+    
+    # Use OpenAI model through Pydantic AI (for agent framework)
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.7
+      max_tokens: 2000
+      parallel_tool_calls: true
+    
+    prompt_config: "general_assistant"
+    
+    tools:
+      - "get_weather"
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/general_agent"
+    
+    metadata:
+      gateway_preference: "openai_default"
+  
+  # Creative agent using higher temperature
+  creative_agent:
+    name: "creative_agent"
+    description: "Creative writing assistant"
+    
+    model_config:
+      model: "openai:gpt-4o"
+      temperature: 0.9
+      max_tokens: 3000
+      parallel_tool_calls: false
+    
+    prompt_config: "creative_writer"
+    
+    tools: []
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/creative_agent"
+    
+    metadata:
+      gateway_preference: "openai_creative"
+  
+  # Analytical agent using Mistral
+  analytical_agent:
+    name: "analytical_agent"
+    description: "Analytical assistant using Mistral"
+    
+    model_config:
+      model: "mistral:mistral-large-latest"
+      temperature: 0.3
+      max_tokens: 2000
+      parallel_tool_calls: true
+    
+    prompt_config: "general_assistant"
+    
+    tools:
+      - "analyze_sentiment"
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/analytical_agent"
+    
+    metadata:
+      gateway_preference: "mistral_default"
+  
+  # Cost-effective agent using smaller models
+  efficient_agent:
+    name: "efficient_agent"
+    description: "Cost-effective agent using smaller models"
+    
+    model_config:
+      model: "openai:gpt-4o-mini"
+      temperature: 0.7
+      max_tokens: 1000
+      parallel_tool_calls: true
+    
+    prompt_config: "general_assistant"
+    
+    tools:
+      - "get_weather"
+    
+    enable_tracking: true
+    tracking_output_dir: "./agent_tracking/efficient_agent"
+    
+    metadata:
+      gateway_preference: "openai_mini"
+
