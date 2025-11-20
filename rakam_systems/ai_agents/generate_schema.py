@@ -1,3 +1,5 @@
+import csv
+from typing import List, Dict, Any
 import ast
 import importlib.util
 import json
@@ -100,29 +102,115 @@ def load_module(filepath: str):
     return module
 
 
-def flatten_properties(props: dict, parent: str = "") -> List[str]:
-    """Recursively flatten JSON schema properties into CSV field paths."""
-    columns = []
+def resolve_ref(ref: str, defs: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Resolve a local $ref like '#/$defs/nestedInner' using defs.
+    Returns the referenced schema dict or an empty dict if not found.
+    """
+    if not isinstance(ref, str):
+        return {}
+    # currently only support refs like '#/$defs/X' or '#/definitions/X'
+    parts = ref.split('/')
+    if len(parts) >= 1:
+        key = parts[-1]
+        return defs.get(key, {})
+    return {}
+
+
+def flatten_properties(props: Dict[str, Any], defs: Dict[str, Any] = None, parent: str = "") -> List[str]:
+    """
+    Recursively flatten JSON schema properties into CSV headers using parent__child notation.
+    - props: the "properties" dict for the current object
+    - defs: map of definitions (schema.get('$defs', {}))
+    - parent: parent prefix
+    """
+    if defs is None:
+        defs = {}
+
+    columns: List[str] = []
 
     for field, info in props.items():
         full = f"{parent}__{field}" if parent else field
 
-        # Nested object
-        if info.get("type") == "object" and "properties" in info:
-            columns.extend(flatten_properties(info["properties"], full))
-
-        # Array of objects
-        elif info.get("type") == "array" and "items" in info and isinstance(info["items"], dict):
-            items = info["items"]
-            if items.get("type") == "object" and "properties" in items:
-                columns.extend(flatten_properties(items["properties"], full))
+        # If property is a $ref to a definition
+        if "$ref" in info:
+            ref_schema = resolve_ref(info["$ref"], defs)
+            # If ref_schema has properties, recurse into it
+            if isinstance(ref_schema, dict) and "properties" in ref_schema:
+                columns.extend(flatten_properties(
+                    ref_schema["properties"], defs, full))
             else:
+                # fallback: treat it as a single column
                 columns.append(full)
+            continue
 
-        else:
+        prop_type = info.get("type")
+
+        # If it's an object with inline properties
+        if prop_type == "object" and "properties" in info:
+            columns.extend(flatten_properties(info["properties"], defs, full))
+            continue
+
+        # If it's an array
+        if prop_type == "array":
+            items = info.get("items", {})
+            # items is a $ref to a definition
+            if "$ref" in items:
+                ref_schema = resolve_ref(items["$ref"], defs)
+                if isinstance(ref_schema, dict) and "properties" in ref_schema:
+                    columns.extend(flatten_properties(
+                        ref_schema["properties"], defs, full))
+                else:
+                    columns.append(full)
+            # items is an inline object
+            elif isinstance(items, dict) and items.get("type") == "object" and "properties" in items:
+                columns.extend(flatten_properties(
+                    items["properties"], defs, full))
+            else:
+                # items are primitive or unknown -> single column for the array
+                columns.append(full)
+            continue
+
+        # If property uses additionalProperties (dict with arbitrary keys),
+        # include the field itself as a header (can't enumerate dynamic keys).
+        if info.get("additionalProperties") is True:
             columns.append(full)
+            continue
+
+        # Default: primitive types or unknown - add the field name
+        columns.append(full)
 
     return columns
+
+
+# ---------------------------
+# CSV generator block (hook into your main)
+# ---------------------------
+# Example: called after you build `schemas` dict
+# For each class schema, pass its own $defs to the flattener.
+
+def generate_csvs_from_schemas(schemas: Dict[str, Any], src_filepath: str, write_empty_row: bool = False):
+    """
+    Generate one CSV file per class schema in `schemas`.
+    Filenames: <src_basename>_<ClassName>.csv
+    """
+    base_path = os.path.splitext(src_filepath)[0]
+
+    for class_name, schema in schemas.items():
+        props = schema.get("properties", {})
+        defs = schema.get("$defs", {}) or schema.get("definitions", {})
+        headers = flatten_properties(props, defs)
+
+        csv_filename = f"{base_path}_{class_name}.csv"
+        with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.writer(csvfile)
+            # header row
+            writer.writerow(headers)
+            # optional empty row for structure
+            if write_empty_row:
+                writer.writerow(["" for _ in headers])
+
+        print(f"Generated: {csv_filename} (headers: {headers})")
 
 
 def main(filepath: str, export_csv: bool = False):
@@ -171,23 +259,10 @@ def main(filepath: str, export_csv: bool = False):
         "components": {"schemas": schemas},
     }
     if export_csv:
-        import csv
 
         base_path = os.path.splitext(filepath)[0]
 
-        for class_name, schema in schemas.items():
-            props = schema.get("properties", {})
-            field_names = list(props.keys())
-
-            csv_filename = f"{base_path}_{class_name}.csv"
-
-            with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
-                writer = csv.writer(csvfile)
-
-                # Header row = field names
-                writer.writerow(field_names)
-
-            print(f"Generated: {csv_filename}")
+        generate_csvs_from_schemas(schemas, base_path, False)
     print(json.dumps(openapi, indent=2))
 
 
