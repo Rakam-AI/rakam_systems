@@ -100,7 +100,32 @@ def load_module(filepath: str):
     return module
 
 
-def main(filepath: str):
+def flatten_properties(props: dict, parent: str = "") -> List[str]:
+    """Recursively flatten JSON schema properties into CSV field paths."""
+    columns = []
+
+    for field, info in props.items():
+        full = f"{parent}__{field}" if parent else field
+
+        # Nested object
+        if info.get("type") == "object" and "properties" in info:
+            columns.extend(flatten_properties(info["properties"], full))
+
+        # Array of objects
+        elif info.get("type") == "array" and "items" in info and isinstance(info["items"], dict):
+            items = info["items"]
+            if items.get("type") == "object" and "properties" in items:
+                columns.extend(flatten_properties(items["properties"], full))
+            else:
+                columns.append(full)
+
+        else:
+            columns.append(full)
+
+    return columns
+
+
+def main(filepath: str, export_csv: bool = False):
     with open(filepath, "r", encoding="utf-8") as f:
         source = f.read()
 
@@ -145,7 +170,24 @@ def main(filepath: str):
         "info": {"title": "Auto-Generated Schema", "version": "1.0.0"},
         "components": {"schemas": schemas},
     }
+    if export_csv:
+        import csv
 
+        base_path = os.path.splitext(filepath)[0]
+
+        for class_name, schema in schemas.items():
+            props = schema.get("properties", {})
+            field_names = list(props.keys())
+
+            csv_filename = f"{base_path}_{class_name}.csv"
+
+            with open(csv_filename, "w", newline="", encoding="utf-8") as csvfile:
+                writer = csv.writer(csvfile)
+
+                # Header row = field names
+                writer.writerow(field_names)
+
+            print(f"Generated: {csv_filename}")
     print(json.dumps(openapi, indent=2))
 
 
@@ -153,4 +195,6 @@ if __name__ == "__main__":
     if len(sys.argv) < 2:
         print("Usage: python generate_schema.py <path_to_file.py>")
         sys.exit(1)
-    main(sys.argv[1])
+    export_csv = "--csv" in sys.argv
+    filepath = sys.argv[1]
+    main(sys.argv[1], export_csv=export_csv)
