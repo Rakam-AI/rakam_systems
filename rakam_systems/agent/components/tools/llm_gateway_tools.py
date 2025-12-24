@@ -9,13 +9,13 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, Optional
 
-from agent.components.llm_gateway import get_llm_gateway
-
+from rakam_systems.agent.components.llm_gateway import get_llm_gateway
 from rakam_systems.core.ai_core.interfaces.llm_gateway import (LLMGateway,
                                                                LLMRequest,
                                                                LLMResponse)
 
 # === LLM Gateway Tool Functions ===
+
 
 async def llm_generate(
     user_prompt: str,

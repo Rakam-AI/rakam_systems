@@ -16,8 +16,8 @@ from sentence_transformers import SentenceTransformer
 
 from rakam_systems.core.ai_utils import logging
 from rakam_systems.core.ai_core.interfaces.vectorstore import VectorStore
-from vectorestore.core import Node
-from vectorestore.core import VSFile
+from rakam_systems.vectorestore.core import Node
+from rakam_systems.vectorestore.core import VSFile
 
 dotenv.load_dotenv()
 api_key = os.getenv("OPENAI_API_KEY")

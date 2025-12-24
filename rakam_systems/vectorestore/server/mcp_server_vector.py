@@ -151,7 +151,7 @@ class VectorStorageTool(ToolComponent):
                 - documents_added: Number of documents added
                 - node_ids: List of created node IDs
         """
-        from vectorestore.core import Node, NodeMetadata
+        from rakam_systems.vectorestore.core import Node, NodeMetadata
         from asgiref.sync import sync_to_async
 
         try:

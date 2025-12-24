@@ -71,10 +71,10 @@ from django.db import connection, transaction
 
 from rakam_systems.core.ai_utils import logging
 from rakam_systems.core.ai_core.interfaces.vectorstore import VectorStore
-from vectorestore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
-from vectorestore.components.vectorstore.pg_models import Collection, NodeEntry
-from vectorestore.config import VectorStoreConfig, load_config
-from vectorestore.core import Node, NodeMetadata, VSFile
+from rakam_systems.vectorestore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
+from rakam_systems.vectorestore.components.vectorstore.pg_models import Collection, NodeEntry
+from rakam_systems.vectorestore.config import VectorStoreConfig, load_config
+from rakam_systems.vectorestore.core import Node, NodeMetadata, VSFile
 
 logger = logging.getLogger(__name__)
 

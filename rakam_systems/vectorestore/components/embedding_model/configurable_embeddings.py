@@ -19,7 +19,7 @@ import numpy as np
 
 from rakam_systems.core.ai_utils import logging
 from rakam_systems.core.ai_core.interfaces.embedding_model import EmbeddingModel
-from vectorestore.config import EmbeddingConfig
+from rakam_systems.vectorestore.config import EmbeddingConfig
 
 logger = logging.getLogger(__name__)
 
@@ -383,7 +383,7 @@ class ConfigurableEmbeddings(EmbeddingModel):
 
     def _encode_openai(self, texts: List[str]) -> List[List[float]]:
         """Encode texts using OpenAI API."""
-        from vectorestore.components.embedding_model.openai_embeddings import OpenAIEmbeddings
+        from rakam_systems.vectorestore.components.embedding_model.openai_embeddings import OpenAIEmbeddings
 
         # Use the OpenAIEmbeddings implementation with configured batch_size
         openai_embeddings = OpenAIEmbeddings(

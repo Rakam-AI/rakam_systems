@@ -18,8 +18,8 @@ Quick Start:
     store.setup()
 """
 
-from vectorestore.core import Node, NodeMetadata, VSFile
-from vectorestore.config import (
+from rakam_systems.vectorestore.core import Node, NodeMetadata, VSFile
+from rakam_systems.vectorestore.config import (
     VectorStoreConfig,
     EmbeddingConfig,
     DatabaseConfig,
@@ -35,31 +35,31 @@ from vectorestore.config import (
 def __getattr__(name):
     """Lazy import Django-dependent components."""
     if name == "ConfigurablePgVectorStore":
-        from vectorestore.components.vectorstore.configurable_pg_vector_store import (
+        from rakam_systems.vectorestore.components.vectorstore.configurable_pg_vector_store import (
             ConfigurablePgVectorStore,
         )
         return ConfigurablePgVectorStore
     elif name == "PgVectorStore":
-        from vectorestore.components.vectorstore.pg_vector_store import PgVectorStore
+        from rakam_systems.vectorestore.components.vectorstore.pg_vector_store import PgVectorStore
         return PgVectorStore
     elif name == "AdaptiveLoader":
-        from vectorestore.components.loader.adaptive_loader import AdaptiveLoader
+        from rakam_systems.vectorestore.components.loader.adaptive_loader import AdaptiveLoader
         return AdaptiveLoader
     elif name == "create_adaptive_loader":
-        from vectorestore.components.loader.adaptive_loader import create_adaptive_loader
+        from rakam_systems.vectorestore.components.loader.adaptive_loader import create_adaptive_loader
         return create_adaptive_loader
     elif name == "ConfigurableEmbeddings":
-        from vectorestore.components.embedding_model.configurable_embeddings import (
+        from rakam_systems.vectorestore.components.embedding_model.configurable_embeddings import (
             ConfigurableEmbeddings,
         )
         return ConfigurableEmbeddings
     elif name == "create_embedding_model":
-        from vectorestore.components.embedding_model.configurable_embeddings import (
+        from rakam_systems.vectorestore.components.embedding_model.configurable_embeddings import (
             create_embedding_model,
         )
         return create_embedding_model
     elif name == "FaissVectorStore":
-        from vectorestore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
+        from rakam_systems.vectorestore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
         return FaissVectorStore
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 

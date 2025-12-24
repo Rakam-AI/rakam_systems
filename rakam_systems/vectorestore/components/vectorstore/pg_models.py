@@ -7,7 +7,7 @@ from django.db import models
 from pgvector.django import VectorField
 
 if TYPE_CHECKING:
-    from vectorestore.core import Node
+    from rakam_systems.vectorestore.core import Node
 
 
 class Collection(models.Model):
@@ -81,7 +81,7 @@ class NodeEntry(models.Model):
 
     def to_node(self) -> "Node":
         """Convert the database entry to a Node object."""
-        from vectorestore.core import Node, NodeMetadata
+        from rakam_systems.vectorestore.core import Node, NodeMetadata
 
         metadata = NodeMetadata(
             source_file_uuid=self.source_file_uuid,

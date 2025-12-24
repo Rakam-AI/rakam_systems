@@ -26,8 +26,8 @@ from docling_core.types.doc import ImageRefMode, PictureItem, TableItem
 
 from rakam_systems.core.ai_utils import logging
 from rakam_systems.core.ai_core.interfaces.loader import Loader
-from vectorestore.components.chunker import AdvancedChunker
-from vectorestore.core import Node, NodeMetadata, VSFile
+from rakam_systems.vectorestore.components.chunker import AdvancedChunker
+from rakam_systems.vectorestore.core import Node, NodeMetadata, VSFile
 
 logger = logging.getLogger(__name__)
 

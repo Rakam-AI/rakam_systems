@@ -19,11 +19,11 @@ from sentence_transformers import SentenceTransformer
 
 from rakam_systems.core.ai_utils import logging
 from rakam_systems.core.ai_core.interfaces.vectorstore import VectorStore
-from vectorestore.components.vectorstore.pg_models import Collection
-from vectorestore.components.vectorstore.pg_models import NodeEntry
-from vectorestore.core import Node
-from vectorestore.core import NodeMetadata
-from vectorestore.core import VSFile
+from rakam_systems.vectorestore.components.vectorstore.pg_models import Collection
+from rakam_systems.vectorestore.components.vectorstore.pg_models import NodeEntry
+from rakam_systems.vectorestore.core import Node
+from rakam_systems.vectorestore.core import NodeMetadata
+from rakam_systems.vectorestore.core import VSFile
 
 logger = logging.getLogger(__name__)
 
