@@ -1,36 +1,96 @@
-Metadata-Version: 2.1
+Metadata-Version: 2.4
 Name: rakam-systems
-Version: 0.2.3
-Summary: rakam_systems package.
+Version: 0.3.1rc1
+Summary: Rakam Systems - Modular AI framework with agents, vectorstore, and LLM gateway
 Home-page: https://github.com/Rakam-AI/rakam_systems
 Author: Mohamed Hilel
-Author-email: mohammedjassemhlel@gmail.com
+Author-email: Mohamed Hilel <mohammedjassemhlel@gmail.com>, Peng Zheng <pengzheng990630@outlook.com>
 License: Apache-2.0
+Project-URL: Homepage, https://github.com/Rakam-AI/rakam_systems
+Project-URL: Documentation, https://github.com/Rakam-AI/rakam_systems
+Project-URL: Repository, https://github.com/Rakam-AI/rakam_systems
 Classifier: License :: OSI Approved :: Apache Software License
 Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
 Classifier: Operating System :: OS Independent
-Requires-Python: <4.0,>=3.8
+Requires-Python: >=3.10
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: beautifulsoup4==4.12.3
-Requires-Dist: channels==4.0.0
+Requires-Dist: pydantic>=2.11.7
+Requires-Dist: pyyaml>=6.0
+Requires-Dist: python-dotenv==1.1.0
 Requires-Dist: colorlog==6.8.2
-Requires-Dist: drf-spectacular==0.27.1
-Requires-Dist: faiss-cpu==1.8.0.post1
-Requires-Dist: joblib==1.4.2
-Requires-Dist: openai==1.37.0
-Requires-Dist: pandas==2.0.0
-Requires-Dist: playwright==1.45.0
-Requires-Dist: pre-commit==3.5.0
-Requires-Dist: psycopg2-binary==2.9.9
-Requires-Dist: python-dotenv==1.0.1
-Requires-Dist: python-magic==0.4.27
-Requires-Dist: requests==2.31.0
-Requires-Dist: sentence-transformers==2.6.1
-Requires-Dist: torch==2.2.2
-Requires-Dist: tqdm==4.66.4
-Requires-Dist: pymupdf==1.24.11
-Requires-Dist: pymupdf4llm==0.0.17
+Requires-Dist: requests==2.32.5
+Provides-Extra: ai-vectorstore
+Requires-Dist: sentence-transformers<6.0.0,>=5.1.0; extra == "ai-vectorstore"
+Requires-Dist: huggingface-hub<1.0.0,>=0.26.0; extra == "ai-vectorstore"
+Requires-Dist: faiss-cpu<2.0.0,>=1.12.0; extra == "ai-vectorstore"
+Requires-Dist: psycopg2-binary<3.0.0,>=2.9.0; extra == "ai-vectorstore"
+Requires-Dist: pgvector<1.0.0,>=0.2.0; extra == "ai-vectorstore"
+Requires-Dist: django<6.0.0,>=4.0.0; extra == "ai-vectorstore"
+Requires-Dist: numpy<3.0.0,>=2.0.0; extra == "ai-vectorstore"
+Requires-Dist: torch<3.0.0,>=2.9.0; extra == "ai-vectorstore"
+Requires-Dist: tqdm<5.0.0,>=4.66.0; extra == "ai-vectorstore"
+Requires-Dist: openai<2.0.0,>=1.37.0; extra == "ai-vectorstore"
+Requires-Dist: cohere<6.0.0,>=4.0.0; extra == "ai-vectorstore"
+Requires-Dist: python-magic<1.0.0,>=0.4.27; extra == "ai-vectorstore"
+Requires-Dist: beautifulsoup4<5.0.0,>=4.14.0; extra == "ai-vectorstore"
+Requires-Dist: python-docx<2.0.0,>=1.2.0; extra == "ai-vectorstore"
+Requires-Dist: pymupdf<2.0.0,>=1.24.0; extra == "ai-vectorstore"
+Requires-Dist: pymupdf4llm<1.0.0,>=0.0.17; extra == "ai-vectorstore"
+Requires-Dist: pandas<3.0.0,>=2.3.0; extra == "ai-vectorstore"
+Requires-Dist: docling<3.0.0,>=2.62.0; extra == "ai-vectorstore"
+Requires-Dist: docling-core<3.0.0,>=2.51.0; extra == "ai-vectorstore"
+Requires-Dist: docling-ibm-models<4.0.0,>=3.10.0; extra == "ai-vectorstore"
+Requires-Dist: docling-parse<5.0.0,>=4.7.0; extra == "ai-vectorstore"
+Requires-Dist: joblib<2.0.0,>=1.4.0; extra == "ai-vectorstore"
+Requires-Dist: chonkie<2.0.0,>=1.4.0; extra == "ai-vectorstore"
+Requires-Dist: odfpy<2.0.0,>=1.4.0; extra == "ai-vectorstore"
+Requires-Dist: openpyxl<4.0.0,>=3.1.0; extra == "ai-vectorstore"
+Requires-Dist: omegaconf<3.0.0,>=2.3.0; extra == "ai-vectorstore"
+Provides-Extra: ai-agents
+Requires-Dist: pydantic-ai<2.0.0,>=1.11.0; extra == "ai-agents"
+Requires-Dist: pyyaml>=6.0; extra == "ai-agents"
+Requires-Dist: python-dotenv>=1.0.0; extra == "ai-agents"
+Requires-Dist: psycopg2-binary; extra == "ai-agents"
+Provides-Extra: llm-gateway
+Requires-Dist: openai<3.0.0,>=1.37.0; extra == "llm-gateway"
+Requires-Dist: mistralai<2.0.0,>=1.9.0; extra == "llm-gateway"
+Requires-Dist: tiktoken<1.0.0,>=0.12.0; extra == "llm-gateway"
+Provides-Extra: loaders
+Requires-Dist: beautifulsoup4<5.0.0,>=4.14.0; extra == "loaders"
+Requires-Dist: python-docx<2.0.0,>=1.2.0; extra == "loaders"
+Requires-Dist: pymupdf<2.0.0,>=1.24.0; extra == "loaders"
+Requires-Dist: python-magic<1.0.0,>=0.4.27; extra == "loaders"
+Requires-Dist: playwright<2.0.0,>=1.45.0; extra == "loaders"
+Requires-Dist: odfpy<2.0.0,>=1.4.0; extra == "loaders"
+Requires-Dist: openpyxl<4.0.0,>=3.1.0; extra == "loaders"
+Requires-Dist: docling<3.0.0,>=2.62.0; extra == "loaders"
+Requires-Dist: docling-core<3.0.0,>=2.51.0; extra == "loaders"
+Requires-Dist: docling-ibm-models<4.0.0,>=3.10.0; extra == "loaders"
+Requires-Dist: docling-parse<5.0.0,>=4.7.0; extra == "loaders"
+Provides-Extra: dev
+Requires-Dist: pre-commit<4.0.0,>=3.5.0; extra == "dev"
+Requires-Dist: pytest<9.0.0,>=7.0.0; extra == "dev"
+Requires-Dist: pytest-asyncio<1.0.0,>=0.21.0; extra == "dev"
+Requires-Dist: black<25.0.0,>=23.0.0; extra == "dev"
+Requires-Dist: ruff<1.0.0,>=0.1.0; extra == "dev"
+Requires-Dist: twine>=6.1.0; extra == "dev"
+Provides-Extra: extra
+Requires-Dist: channels<5.0.0,>=4.0.0; extra == "extra"
+Requires-Dist: drf-spectacular<1.0.0,>=0.27.0; extra == "extra"
+Provides-Extra: all
+Requires-Dist: rakam-systems[ai-vectorstore]; extra == "all"
+Requires-Dist: rakam-systems[ai-agents]; extra == "all"
+Requires-Dist: rakam-systems[llm-gateway]; extra == "all"
+Requires-Dist: rakam-systems[loaders]; extra == "all"
+Requires-Dist: rakam-systems[extra]; extra == "all"
+Provides-Extra: complete
+Requires-Dist: rakam-systems[all]; extra == "complete"
+Requires-Dist: rakam-systems[dev]; extra == "complete"
+Dynamic: license-file
 
 # 🏴‍☠️ Overview 🏴‍☠️ 
 

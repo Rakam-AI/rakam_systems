@@ -1,5 +1,5 @@
 import pytest
-from rakam_systems.components.agents.mock_agent import MockAgent, MockAction
+from rakam_systems.core.agents.mock_agent import MockAgent, MockAction
 
 @pytest.fixture
 def mock_agent_fixture():

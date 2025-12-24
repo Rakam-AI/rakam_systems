@@ -1,5 +1,5 @@
 from rakam_systems.core import Node, NodeMetadata
-from rakam_systems.components.vector_search.vector_store import VectorStore
+from rakam_systems.core.vector_search.vector_store import VectorStore
 
 BASE_INDEX_PATH = "vector_store_index_1"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"

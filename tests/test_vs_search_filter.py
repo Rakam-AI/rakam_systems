@@ -7,7 +7,7 @@ import sys
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from sentence_transformers import SentenceTransformer
 from rakam_systems.core import VSFile, Node, NodeMetadata
-from rakam_systems.components.vector_search.vector_store import VectorStore
+from rakam_systems.core.vector_search.vector_store import VectorStore
 
 # Directory for storing temporary test collections
 TEST_BASE_PATH = "test_vector_store"

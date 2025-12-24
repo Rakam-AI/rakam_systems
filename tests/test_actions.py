@@ -1,6 +1,6 @@
 import pytest
-from rakam_systems.components.agents.mock_agent import MockAgent, MockAction
-from rakam_systems.components.agents.actions import (
+from rakam_systems.agent import MockAgent, MockAction
+from rakam_systems.core.agents.actions import (
     TextSearchMetadata, 
     ClassifyQuery, 
     RAGGeneration, 

@@ -1,6 +1,6 @@
 import os
 import pytest
-from rakam_systems.components.base import LLM
+from rakam_systems.core.base import LLM
 import logging
 logging.basicConfig(level=logging.DEBUG)
 

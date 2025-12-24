@@ -6,7 +6,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import pytest
 import numpy as np
 from rakam_systems.core import Node, NodeMetadata, VSFile
-from rakam_systems.components.vector_search.vector_store import VectorStore
+from rakam_systems.core.vector_search.vector_store import VectorStore
 from sentence_transformers import SentenceTransformer
 
 @pytest.fixture

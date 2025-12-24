@@ -3,7 +3,7 @@ import sys
 import pytest
 import shutil
 import logging
-from rakam_systems.components.vector_search.vector_store import VectorStore, VSFile, Node, NodeMetadata
+from rakam_systems.core.vector_search.vector_store import VectorStore, VSFile, Node, NodeMetadata
 
 # Add the root directory of rakam_systems to the path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

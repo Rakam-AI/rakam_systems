@@ -8,7 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import shutil
 import numpy as np
 from rakam_systems.core import Node, NodeMetadata, VSFile
-from rakam_systems.components.vector_search.vector_store import VectorStore
+from rakam_systems.vectorestore import VectorStore
 
 BASE_INDEX_PATH = "test_vector_store_index"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
