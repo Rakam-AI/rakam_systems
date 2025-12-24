@@ -50,7 +50,7 @@ rakam-systems[all]
 rakam-systems[dev]
 
 [dev]
-pre-commit<4.0.0,>=3.5.0
+pre-commit>=4.2.0
 pytest<9.0.0,>=7.0.0
 pytest-asyncio<1.0.0,>=0.21.0
 black<25.0.0,>=23.0.0

@@ -72,7 +72,7 @@ Requires-Dist: docling-core<3.0.0,>=2.51.0; extra == "loaders"
 Requires-Dist: docling-ibm-models<4.0.0,>=3.10.0; extra == "loaders"
 Requires-Dist: docling-parse<5.0.0,>=4.7.0; extra == "loaders"
 Provides-Extra: dev
-Requires-Dist: pre-commit<4.0.0,>=3.5.0; extra == "dev"
+Requires-Dist: pre-commit>=4.2.0; extra == "dev"
 Requires-Dist: pytest<9.0.0,>=7.0.0; extra == "dev"
 Requires-Dist: pytest-asyncio<1.0.0,>=0.21.0; extra == "dev"
 Requires-Dist: black<25.0.0,>=23.0.0; extra == "dev"
