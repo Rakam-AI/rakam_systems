@@ -248,12 +248,3 @@ rakam_systems/vectorestore/docs/QUICK_INSTALL.md
 rakam_systems/vectorestore/server/README.md
 rakam_systems/vectorestore/server/__init__.py
 rakam_systems/vectorestore/server/mcp_server_vector.py
-tests/test_actions.py
-tests/test_add_nodeID.py
-tests/test_agents.py
-tests/test_core.py
-tests/test_create_from_nodes.py
-tests/test_deleteNodes.py
-tests/test_llm_integration.py
-tests/test_vector_store.py
-tests/test_vs_search_filter.py
