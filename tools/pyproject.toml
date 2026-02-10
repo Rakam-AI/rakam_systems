@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-tools"
-version = "0.2.4rc6"
+version = "0.1.0alpha1"
 description = "Evaluation Framework Tools"
 readme = "README.md"
 requires-python = ">=3.8"
