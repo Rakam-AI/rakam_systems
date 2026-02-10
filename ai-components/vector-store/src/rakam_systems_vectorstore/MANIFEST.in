@@ -1,0 +1,26 @@
+# Include documentation
+include README.md
+include LICENSE
+
+# Include configuration files
+recursive-include rakam_systems/ai_vectorstore *.yaml
+recursive-include rakam_systems/ai_vectorstore *.yml
+recursive-include rakam_systems/ai_vectorstore *.json
+
+# Include Python source files
+recursive-include rakam_systems/ai_vectorstore *.py
+recursive-include rakam_systems/ai_core/interfaces *.py
+
+# Exclude compiled Python files
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude *$py.class
+global-exclude *.so
+
+# Exclude test files
+recursive-exclude tests *
+recursive-exclude */tests *
+
+# Exclude examples (users can access via GitHub)
+recursive-exclude examples *
+
