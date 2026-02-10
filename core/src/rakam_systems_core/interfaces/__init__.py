@@ -5,11 +5,11 @@ from .tool import ToolComponent
 from .tool_registry import ToolRegistry, ToolMetadata, ToolMode
 from .tool_invoker import ToolInvoker, ToolInvocationError, ToolNotFoundError, MCPServerNotFoundError
 from .tool_loader import ToolLoader, ToolLoadError
-from ..vs_core import Node, NodeMetadata, VSFile
+from rakam_systems_core.vs_core import Node, NodeMetadata, VSFile
 
 __all__ = [
     "AgentComponent",
-    "AgentInput", 
+    "AgentInput",
     "AgentOutput",
     "ModelSettings",
     "ChatHistoryComponent",

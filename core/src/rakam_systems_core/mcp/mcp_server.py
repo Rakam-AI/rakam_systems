@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Dict, Any, Optional, List
 
-from rakam_systems_core.ai_utils import logging
+from rakam_systems_tools.utils import logging
 from ..base import BaseComponent
 
 logger = logging.getLogger(__name__)
