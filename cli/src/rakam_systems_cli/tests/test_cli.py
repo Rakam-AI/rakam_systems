@@ -1,5 +1,5 @@
 from typing import List
-from rakam_cli.cli import app
+from rakam_systems_cli.cli import app
 from typer.testing import CliRunner
 from unittest.mock import Mock
 from pathlib import Path
@@ -9,7 +9,7 @@ import pytest
 import typer
 from pytest import CaptureFixture
 
-from rakam_cli.cli import metrics
+from rakam_systems_cli.cli import metrics
 
 
 def test_metrics_no_metrics_found(

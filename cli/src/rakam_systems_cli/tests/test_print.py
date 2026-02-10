@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional, Tuple
 import pytest
 import typer
 
-from rakam_cli.utils.print import (
+from rakam_systems_cli.utils.print import (
     _print_and_save,
     git_diff,
     metric_direction,

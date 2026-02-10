@@ -15,12 +15,12 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.pretty import Pretty
 
-from rakam_cli.decorators import eval_run
-from rakam_cli.utils.decorator_utils import (
+from rakam_systems_cli.decorators import eval_run
+from rakam_systems_cli.utils.decorator_utils import (
     find_decorated_functions,
     load_module_from_path,
 )
-from rakam_cli.utils.print import (
+from rakam_systems_cli.utils.print import (
     _print_and_save,
     git_diff,
     pretty_print_comparison,

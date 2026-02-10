@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from rakam_cli.cli import extract_metric_names
+from rakam_systems_cli.cli import extract_metric_names
 
 
 def test_extract_metric_names_no_metrics_attr() -> None:
