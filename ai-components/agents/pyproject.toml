@@ -1,0 +1,61 @@
+[project]
+name = "rakam-systems-agent"
+version = "0.1.1rc7"
+description = "AI Agents framework with Pydantic AI support and LLM Gateway integration"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [
+    {name = "Mohamed Hilel", email = "mohammedjassemhlel@gmail.com"},
+    {name = "Peng Zheng", email = "pengzheng990630@outlook.com"}
+]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "rakam-systems-core==0.1.1rc7",
+    "pydantic>=2.11.5",
+    "pydantic-ai>=1.11.0,<2.0.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+    "psycopg2-binary"
+]
+
+
+[project.optional-dependencies]
+# LLM providers
+llm-providers = [
+    "openai>=1.37.0,<3.0.0",
+    "mistralai>=1.9.0,<2.0.0",
+    "tiktoken",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+# All optional dependencies
+all = [
+    "rakam-systems-agent[llm-providers]",
+]
+
+
+[project.urls]
+Homepage = "https://github.com/Rakam-AI/rakam_systems-inhouse"
+Documentation = "https://github.com/Rakam-AI/rakam_systems-inhouse"
+Repository = "https://github.com/Rakam-AI/rakam_systems-inhouse"
+
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
