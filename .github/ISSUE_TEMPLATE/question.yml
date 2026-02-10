@@ -1,0 +1,39 @@
+---
+name: "📝 General Question / Discussion"
+description: "Ask a question, request clarification, or start a discussion."
+title: "[Question] <concise summary>"
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## 📝 General Question / Discussion
+        Thank you for your interest! Please provide as much detail as possible so we can assist you.
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question / Topic
+      description: "What would you like to ask or discuss?"
+      placeholder: "Describe your question or topic."
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: "Add any other context, code, or references that might help."
+      placeholder: "Links, code snippets, or background information."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched the [issues](https://github.com/Rakam-AI/rakam-systems-inhouse/issues) and this question has not been answered before.
+          required: true
+        - label: I have provided all necessary information above.
+          required: true
