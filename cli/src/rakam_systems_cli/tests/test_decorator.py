@@ -4,9 +4,9 @@ from typing import List
 
 import pytest
 
-from cli.client import DeepEvalClient
-from cli.decorators import eval_run
-from cli.utils.decorator_utils import find_decorated_functions
+from rakam_eval_sdk.client import DeepEvalClient
+from rakam_systems_cli.decorators import eval_run
+from rakam_systems_cli.utils.decorator_utils import find_decorated_functions
 
 
 @pytest.fixture

@@ -153,7 +153,7 @@ def test_pretty_print_comparison_summary_only(monkeypatch: pytest.MonkeyPatch) -
     def fake_print_summary(arg: Any) -> None:
         called["metrics"] = arg
 
-    import cli.utils.print as mod
+    import rakam_systems_cli.utils.print as mod
 
     monkeypatch.setattr(mod, "print_summary", fake_print_summary)
 
@@ -174,7 +174,7 @@ def test_pretty_print_comparison_full(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_print_metric_diff(metric: Any) -> None:
         calls.append(metric)
 
-    import cli.utils.print as mod
+    import rakam_systems_cli.utils.print as mod
 
     monkeypatch.setattr(mod, "print_metric_diff", fake_print_metric_diff)
 
@@ -191,7 +191,7 @@ def capture_secho(monkeypatch: pytest.MonkeyPatch) -> List[Tuple[str, dict]]:
         calls.append((message, kwargs))
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print.secho",
+        "rakam_systems_cli.utils.print.secho",
         fake_secho,
     )
     return calls
@@ -463,15 +463,15 @@ def test_print_summary_outputs_expected_lines(
         secho_calls.append((args, kwargs))
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print.summarize",
+        "rakam_systems_cli.utils.print.summarize",
         lambda _: summary_result,
     )
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print._fmt",
+        "rakam_systems_cli.utils.print._fmt",
         lambda metrics: ", ".join(metrics) if metrics else "-",
     )
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print.secho",
+        "rakam_systems_cli.utils.print.secho",
         fake_secho,
     )
 
@@ -524,15 +524,15 @@ def test_print_summary_calls_summarize(
         }
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print.summarize",
+        "rakam_systems_cli.utils.print.summarize",
         fake_summarize,
     )
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print._fmt",
+        "rakam_systems_cli.utils.print._fmt",
         lambda _: "-",
     )
     monkeypatch.setattr(
-        "rakam_eval_sdk.utils.print.secho",
+        "rakam_systems_cli.utils.print.secho",
         lambda *_, **__: None,
     )
 

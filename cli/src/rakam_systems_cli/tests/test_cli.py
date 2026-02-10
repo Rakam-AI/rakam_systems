@@ -19,7 +19,7 @@ def test_metrics_no_metrics_found(
     file.write_text("def foo(): pass")
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.find_decorated_functions",
+        "rakam_systems_cli.cli.find_decorated_functions",
         lambda *_: [],
     )
 
@@ -38,7 +38,7 @@ def test_metrics_finds_metrics(
     file.write_text("")
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.find_decorated_functions",
+        "rakam_systems_cli.cli.find_decorated_functions",
         lambda *_: ["run_eval"],
     )
 
@@ -52,7 +52,7 @@ def test_metrics_finds_metrics(
     )
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.load_module_from_path",
+        "rakam_systems_cli.cli.load_module_from_path",
         lambda _: fake_module,
     )
 
@@ -98,7 +98,7 @@ def test_compare_summary_request_failure(monkeypatch: pytest.MonkeyPatch) -> Non
     fake_client.compare_testcases.side_effect = RuntimeError("boom")
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.DeepEvalClient",
+        "rakam_systems_cli.cli.DeepEvalClient",
         lambda: fake_client,
     )
 
@@ -115,12 +115,12 @@ def test_compare_full_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_client = Mock()
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.DeepEvalClient",
+        "rakam_systems_cli.cli.DeepEvalClient",
         lambda: fake_client,
     )
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.fetch_run",
+        "rakam_systems_cli.cli.fetch_run",
         lambda *_, run_id=None, tag=None, **__: (
             {"foo": "a"} if run_id == 1 else {"foo": "b"},
             run_id or tag,
@@ -129,13 +129,13 @@ def test_compare_full_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 
     serialize_mock = Mock(side_effect=lambda x: f"{x}")
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.serialize_for_diff",
+        "rakam_systems_cli.cli.serialize_for_diff",
         serialize_mock,
     )
 
     git_diff_mock = Mock()
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.git_diff",
+        "rakam_systems_cli.cli.git_diff",
         git_diff_mock,
     )
 
@@ -151,12 +151,12 @@ def test_compare_full_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_compare_fetch_failure(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.fetch_run",
+        "rakam_systems_cli.cli.fetch_run",
         Mock(side_effect=RuntimeError("fetch failed")),
     )
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.DeepEvalClient",
+        "rakam_systems_cli.cli.DeepEvalClient",
         lambda: Mock(),
     )
 
@@ -178,20 +178,20 @@ def test_compare_summary_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     fake_client.compare_testcases.return_value = fake_resp
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.DeepEvalClient",
+        "rakam_systems_cli.cli.DeepEvalClient",
         lambda: fake_client,
     )
 
     # 🔑 Bypass Pydantic validation entirely
     fake_comparison = SimpleNamespace(metrics=fake_metrics)
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.TestCaseComparison",
+        "rakam_systems_cli.cli.TestCaseComparison",
         lambda **_: fake_comparison,
     )
 
     pretty_mock = Mock()
     monkeypatch.setattr(
-        "rakam_eval_sdk.cli.pretty_print_comparison",
+        "rakam_systems_cli.cli.pretty_print_comparison",
         pretty_mock,
     )
 

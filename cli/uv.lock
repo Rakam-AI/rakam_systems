@@ -1399,7 +1399,25 @@ wheels = [
 ]
 
 [[package]]
-name = "rakam-cli"
+name = "rakam-eval-sdk"
+version = "0.2.4rc10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "dotenv" },
+    { name = "psutil" },
+    { name = "pydantic", version = "2.10.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "pydantic", version = "2.11.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+    { name = "requests" },
+    { name = "typer", version = "0.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
+    { name = "typer", version = "0.21.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ba/49/880aa6a833b01519ff68e48dd8001a1d3e3e3c1e215740c3a3ef63963096/rakam_eval_sdk-0.2.4rc10.tar.gz", hash = "sha256:7f8e3edfe23b88b90cbcbe2c424b2abb42a14f3eedea608388355ba9fdb4defa", size = 19907, upload-time = "2026-02-10T13:34:26.361Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/71/84/6f3fcea63886e913ee53aca0ae5011dbe2d6706a22b313355e6277fa5a11/rakam_eval_sdk-0.2.4rc10-py3-none-any.whl", hash = "sha256:bd96ef2be9427846342fd0b4b3c342e38d2286a1a8f936a194150e5c46254d4a", size = 25824, upload-time = "2026-02-10T13:34:25.225Z" },
+]
+
+[[package]]
+name = "rakam-systems-cli"
 version = "0.2.4rc6"
 source = { editable = "." }
 dependencies = [
@@ -1433,24 +1451,6 @@ dev = [
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-cov", specifier = ">=5.0.0" },
     { name = "twine", specifier = ">=6.1.0" },
-]
-
-[[package]]
-name = "rakam-eval-sdk"
-version = "0.2.4rc10"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "dotenv" },
-    { name = "psutil" },
-    { name = "pydantic", version = "2.10.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "pydantic", version = "2.11.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "requests" },
-    { name = "typer", version = "0.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typer", version = "0.21.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/49/880aa6a833b01519ff68e48dd8001a1d3e3e3c1e215740c3a3ef63963096/rakam_eval_sdk-0.2.4rc10.tar.gz", hash = "sha256:7f8e3edfe23b88b90cbcbe2c424b2abb42a14f3eedea608388355ba9fdb4defa", size = 19907, upload-time = "2026-02-10T13:34:26.361Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/71/84/6f3fcea63886e913ee53aca0ae5011dbe2d6706a22b313355e6277fa5a11/rakam_eval_sdk-0.2.4rc10-py3-none-any.whl", hash = "sha256:bd96ef2be9427846342fd0b4b3c342e38d2286a1a8f936a194150e5c46254d4a", size = 25824, upload-time = "2026-02-10T13:34:25.225Z" },
 ]
 
 [[package]]
