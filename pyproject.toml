@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rakam-systems"
-version = "0.2.3"
+version = "0.2.5rc4"
 description = "Rakam Systems - Modular AI framework with agents, vectorstore, and LLM gateway"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.8"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Mohamed Hilel", email = "mohammedjassemhlel@gmail.com"},
@@ -22,130 +22,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
-# Core dependencies - minimal required for base functionality
 dependencies = [
-    "pydantic>=2.11.7",
-    "pyyaml>=6.0",
-    "python-dotenv==1.1.0",
-    "colorlog==6.8.2",
-    "requests==2.32.5",
+    
+    "rakam-systems-tools==0.1.0alpha2",
+    "rakam-systems-agent[all]==0.1.1rc7",
+    "rakam-systems-vectorstore[all]==0.1.1rc9",
+    "rakam-systems-cli==0.2.4rc14"
 ]
-
-[project.optional-dependencies]
-# AI Vectorstore with all its dependencies
-ai-vectorstore = [
-    "sentence-transformers>=5.1.0,<6.0.0",
-    "huggingface-hub>=0.26.0,<1.0.0",  # For HuggingFace model authentication
-    "faiss-cpu>=1.12.0,<2.0.0",
-    "psycopg2-binary>=2.9.0,<3.0.0",
-    "pgvector>=0.2.0,<1.0.0",  # PostgreSQL vector extension for Django
-    "django>=4.0.0,<6.0.0",
-    "numpy>=2.0.0,<3.0.0",
-    "torch>=2.9.0,<3.0.0",
-    "tqdm>=4.66.0,<5.0.0",
-    "openai>=1.37.0,<2.0.0",  # Optional for OpenAI embeddings
-    "cohere>=4.0.0,<6.0.0",  # Optional for Cohere embeddings
-    "python-magic>=0.4.27,<1.0.0",  # For file type detection
-    "beautifulsoup4>=4.14.0,<5.0.0",  # For HTML parsing
-    "python-docx>=1.2.0,<2.0.0",  # For DOCX files
-    "pymupdf>=1.24.0,<2.0.0",  # For PDF files
-    "pymupdf4llm>=0.0.17,<1.0.0",
-    "pandas>=2.3.0,<3.0.0",
-    "docling>=2.62.0,<3.0.0",
-    "docling-core>=2.51.0,<3.0.0",
-    "docling-ibm-models>=3.10.0,<4.0.0",
-    "docling-parse>=4.7.0,<5.0.0",
-    "joblib>=1.4.0,<2.0.0",
-    "chonkie>=1.4.0,<2.0.0",  # For text chunking
-    "odfpy>=1.4.0,<2.0.0",  # For ODT files
-    "openpyxl>=3.1.0,<4.0.0",  # For XLSX files
-    "omegaconf>=2.3.0,<3.0.0",  # Fix for invalid metadata in older versions
-]
-
-# AI Agents framework
-ai-agents = [
-    "pydantic-ai>=1.11.0,<2.0.0",
-    "mistralai>=1.9.0,<2.0.0",
-    "tiktoken>=0.12.0,<1.0.0",
-]
-
-# LLM Gateway
-llm-gateway = [
-    "openai>=1.37.0,<3.0.0",
-    "mistralai>=1.9.0,<2.0.0",
-    "tiktoken>=0.12.0,<1.0.0",
-]
-
-# Web scraping and loaders (standalone, for minimal loader-only installs)
-loaders = [
-    "beautifulsoup4>=4.14.0,<5.0.0",
-    "python-docx>=1.2.0,<2.0.0",
-    "pymupdf>=1.24.0,<2.0.0",
-    "python-magic>=0.4.27,<1.0.0",
-    "playwright>=1.45.0,<2.0.0",
-    "odfpy>=1.4.0,<2.0.0",
-    "openpyxl>=3.1.0,<4.0.0",
-    "docling>=2.62.0,<3.0.0",
-    "docling-core>=2.51.0,<3.0.0",
-    "docling-ibm-models>=3.10.0,<4.0.0",
-    "docling-parse>=4.7.0,<5.0.0",
-]
-
-# Development dependencies
-dev = [
-    "pre-commit>=3.5.0,<4.0.0",
-    "pytest>=7.0.0,<9.0.0",
-    "pytest-asyncio>=0.21.0,<1.0.0",
-    "black>=23.0.0,<25.0.0",
-    "ruff>=0.1.0,<1.0.0",
-    "twine>=6.1.0",
-]
-
-# Additional dependencies (Django channels, API documentation)
-extra = [
-    "channels>=4.0.0,<5.0.0",
-    "drf-spectacular>=0.27.0,<1.0.0",
-]
-
-# All optional dependencies (everything except dev)
-all = [
-    "rakam-systems[ai-vectorstore]",
-    "rakam-systems[ai-agents]",
-    "rakam-systems[llm-gateway]",
-    "rakam-systems[loaders]",
-    "rakam-systems[extra]",
-]
-
-# Complete installation including development tools
-complete = [
-    "rakam-systems[all]",
-    "rakam-systems[dev]",
-]
-
-[project.urls]
-Homepage = "https://github.com/Rakam-AI/rakam_systems"
-Documentation = "https://github.com/Rakam-AI/rakam_systems"
-Repository = "https://github.com/Rakam-AI/rakam_systems"
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["rakam_systems*"]
-
-[tool.setuptools]
-include-package-data = true
-
-[tool.setuptools.package-data]
-rakam_systems = ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.md"]
-
-[tool.uv.workspace]
-members = [
-    "rakam-systems-core",
-    "rakam-systems-agent",
-    "rakam-systems-vectorstore",
-]
-
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true

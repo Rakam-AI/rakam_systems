@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-tools"
-version = "0.1.0alpha1"
+version = "0.1.0alpha2"
 description = "Evaluation Framework Tools"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -17,7 +17,6 @@ dependencies = [
     "psutil>=7.2.1",
     "pydantic>=2.10.6",
     "requests",
-    "typer>=0.20.1",
     "boto3>=1.26.0",  # For S3 utilities
 ]
 

@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-agent"
-version = "0.1.1rc7"
+version = "0.1.1rc8"
 description = "AI Agents framework with Pydantic AI support and LLM Gateway integration"
 readme = "README.md"
 requires-python = ">=3.10"
