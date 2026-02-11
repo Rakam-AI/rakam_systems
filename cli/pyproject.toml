@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-cli"
-version = "0.2.4rc6"
+version = "0.2.4rc11"
 description = "RAKAM SYSTEMS CLI"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -45,7 +45,7 @@ package-dir = {"" = "src"}
 [tool.setuptools.packages.find]
 where = ["src"]
 [project.scripts]
-rakam = "cli.cli:main"
+rakam = "rakam_systems_cli.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -28,7 +28,7 @@ from rakam_systems_cli.utils.print import (
 )
 
 load_dotenv()
-app = typer.Typer(help="CLI tools for evaluation utilities")
+app = typer.Typer(help="Rakam CLI tools")
 console = Console()
 
 # add root of the project to sys.path
@@ -37,6 +37,7 @@ if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 list_app = typer.Typer(help="List evaluations or runs")
 metrics_app = typer.Typer(help="Metrics utilities")
+eval_app = typer.Typer(help="Evaluation utilities")
 
 # Sub-apps are registered at the end to control command order
 
@@ -207,7 +208,7 @@ def list_runs(
             f"Showing {shown} of {total} runs. Use --limit to see more.")
 
 
-@app.command()
+@eval_app.command()
 def show(
     run_id: Optional[int] = typer.Option(
         None,
@@ -312,7 +313,7 @@ def validate_eval_result(result: Any, fn_name: str) -> str:
     return eval_config
 
 
-@app.command()
+@eval_app.command()
 def run(
     directory: Path = typer.Argument(
         Path("./eval"),
@@ -451,7 +452,7 @@ def fetch_run(
     return result, identifier
 
 
-@app.command()
+@eval_app.command()
 def compare(
     tag: List[str] = typer.Option(
         [],
@@ -562,7 +563,7 @@ def compare(
     )
 
 
-@app.command(hidden=True)
+@eval_app.command(hidden=True)
 def compare_label_latest(
     label_a: str = typer.Argument(
         ...,
@@ -618,7 +619,7 @@ def compare_label_latest(
     _print_and_save(resp, pretty, out, overwrite)
 
 
-@app.command(hidden=True)
+@eval_app.command(hidden=True)
 def compare_last(
     label: str = typer.Argument(
         ...,
@@ -669,7 +670,7 @@ def compare_last(
     _print_and_save(resp, pretty, out, overwrite)
 
 
-@app.command("tag")
+@eval_app.command("tag")
 def tag_command(
     run_id: Optional[int] = typer.Option(
         None,
@@ -731,8 +732,9 @@ def tag_command(
 
 
 # Register sub-apps in user journey order (after regular commands)
-app.add_typer(list_app, name="list")
-app.add_typer(metrics_app, name="metrics")
+eval_app.add_typer(list_app, name="list")
+eval_app.add_typer(metrics_app, name="metrics")
+app.add_typer(eval_app, name="eval")
 
 
 def main() -> None:
