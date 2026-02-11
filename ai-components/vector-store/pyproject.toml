@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-vectorstore"
-version = "0.1.1rc7"
+version = "0.1.1rc8"
 description = "Utility package for interacting with vectorstores"
 readme = "README.md"
 requires-python = ">=3.10"
