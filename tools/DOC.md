@@ -19,7 +19,7 @@ The `DeepEvalClient` is the main entry point for using the SDK. To use it, you n
 You can initialize the `DeepEvalClient` by providing the `base_url` and `api_token` directly:
 
 ```python
-from rakam_eval_sdk import DeepEvalClient
+from rakam_systems_tools.evaluation import DeepEvalClient
 
 client = DeepEvalClient(
     base_url="http://your-deepeval-api-url.com",
@@ -40,7 +40,7 @@ The client can be configured in three ways, in the following order of precedence
     EVALFRAMWORK_API_KEY = "your-api-token"
 
     # your_app.py
-    from rakam_eval_sdk import DeepEvalClient
+    from rakam_systems_tools.evaluation import DeepEvalClient
     import settings # for django can be something like: from django.conf import settings
 
     client = DeepEvalClient(settings_module=settings)
@@ -54,7 +54,7 @@ The client can be configured in three ways, in the following order of precedence
     ```
 
     ```python
-    from rakam_eval_sdk import DeepEvalClient
+    from rakam_systems_tools.evaluation import DeepEvalClient
 
     client = DeepEvalClient()
     ```
@@ -88,7 +88,7 @@ Text evaluation is used for tasks like checking correctness, relevancy, faithful
 #### Example
 
 ```python
-from rakam_eval_sdk import DeepEvalClient, TextInputItem, CorrectnessConfig
+from rakam_systems_tools.evaluation import DeepEvalClient, TextInputItem, CorrectnessConfig
 
 client = DeepEvalClient()
 
@@ -129,7 +129,7 @@ Schema evaluation is used for tasks that involve structured data, such as JSON. 
 #### Example
 
 ```python
-from rakam_eval_sdk import DeepEvalClient, SchemaInputItem, JsonCorrectnessConfig
+from rakam_systems_tools.evaluation import DeepEvalClient, SchemaInputItem, JsonCorrectnessConfig
 
 client = DeepEvalClient()
 
@@ -190,7 +190,7 @@ The `ClientSideMetricConfig` class allows you to define your own metrics. The fi
 You can include a list of `ClientSideMetricConfig` objects in the `metrics` field of each `TextInputItem` or `SchemaInputItem`.
 
 ```python
-from rakam_eval_sdk import DeepEvalClient, TextInputItem, ClientSideMetricConfig
+from rakam_systems_tools.evaluation import DeepEvalClient, TextInputItem, ClientSideMetricConfig
 
 client = DeepEvalClient()
 
