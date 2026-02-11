@@ -4,7 +4,7 @@ from typing import List
 
 import pytest
 
-from rakam_eval_sdk.client import DeepEvalClient
+from rakam_systems_tools.evaluation.client import DeepEvalClient
 from rakam_systems_cli.decorators import eval_run
 from rakam_systems_cli.utils.decorator_utils import find_decorated_functions
 
@@ -50,7 +50,7 @@ def patch_psutil(
     fake_process: FakeProcess = FakeProcess()
 
     monkeypatch.setattr(
-        "rakam_eval_sdk.decorators.psutil.Process",
+        "rakam_systems_cli.decorators.psutil.Process",
         lambda pid: fake_process,
     )
     monkeypatch.setattr(os, "getpid", lambda: 123)
@@ -87,7 +87,7 @@ def test_eval_run_with_parentheses(capsys: pytest.CaptureFixture[str]) -> None:
 
 def test_find_decorated_functions(tmp_path: Path) -> None:
     code = """
-from rakam_eval_sdk.decorators import eval_run
+from rakam_systems_cli.decorators import eval_run
 
 @eval_run
 def foo():

@@ -71,7 +71,7 @@ runner = CliRunner()
 def test_compare_summary_and_side_by_side_conflict() -> None:
     result = runner.invoke(
         app,
-        ["compare", "--summary", "--side-by-side", "--id", "1", "--id", "2"],
+        ["eval", "compare", "--summary", "--side-by-side", "--id", "1", "--id", "2"],
     )
 
     assert result.exit_code == 1
@@ -81,9 +81,10 @@ def test_compare_summary_and_side_by_side_conflict() -> None:
 @pytest.mark.parametrize(
     "args",
     [
-        ["compare", "--id", "1"],  # one target
-        ["compare", "--id", "1", "--id", "2", "--id", "3"],  # three targets
-        ["compare"],  # none
+        ["eval", "compare", "--id", "1"],  # one target
+        ["eval", "compare", "--id", "1", "--id",
+            "2", "--id", "3"],  # three targets
+        ["eval", "compare"],  # none
     ],
 )
 def test_compare_requires_exactly_two_targets(args: List[str]) -> None:
@@ -104,7 +105,7 @@ def test_compare_summary_request_failure(monkeypatch: pytest.MonkeyPatch) -> Non
 
     result = runner.invoke(
         app,
-        ["compare", "--summary", "--id", "1", "--id", "2"],
+        ["eval", "compare", "--summary", "--id", "1", "--id", "2"],
     )
 
     assert result.exit_code == 1
@@ -141,7 +142,7 @@ def test_compare_full_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = runner.invoke(
         app,
-        ["compare", "--id", "1", "--id", "2"],
+        ["eval", "compare", "--id", "1", "--id", "2"],
     )
 
     assert result.exit_code == 0
@@ -162,7 +163,7 @@ def test_compare_fetch_failure(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = runner.invoke(
         app,
-        ["compare", "--id", "1", "--id", "2"],
+        ["eval", "compare", "--id", "1", "--id", "2"],
     )
 
     assert result.exit_code == 1
@@ -197,7 +198,7 @@ def test_compare_summary_mode(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = runner.invoke(
         app,
-        ["compare", "--summary", "--id", "1", "--tag", "baseline"],
+        ["eval", "compare", "--summary", "--id", "1", "--tag", "baseline"],
     )
 
     assert result.exit_code == 0

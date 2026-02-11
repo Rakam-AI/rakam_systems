@@ -15,7 +15,7 @@ authors = [
 dependencies = [
     "psutil>=7.2.1",
     "typer>=0.20.1",
-    "rakam-eval-sdk==0.2.4rc10"
+    "rakam-systems-tools==0.1.0alpha1"
 ]
 
 [dependency-groups]

@@ -9,8 +9,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import typer
 from dotenv import load_dotenv
-from rakam_eval_sdk.client import DeepEvalClient
-from rakam_eval_sdk.schema import TestCaseComparison
+from rakam_systems_tools.evaluation.client import DeepEvalClient
+from rakam_systems_tools.evaluation.schema import TestCaseComparison
 from rich.console import Console
 from rich.panel import Panel
 from rich.pretty import Pretty

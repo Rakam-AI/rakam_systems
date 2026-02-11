@@ -6,7 +6,7 @@ from typing import Any, Dict, List, Optional
 import typer
 from typer import secho
 
-from rakam_eval_sdk.schema import MetricDiff
+from rakam_systems_tools.evaluation.schema import MetricDiff
 
 
 def _print_and_save(
