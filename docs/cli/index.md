@@ -20,13 +20,13 @@ edit eval/my_eval.py # see SDK docs
 2. Run evaluation
 
 ```bash
-rakam_eval run
+rakam eval run
 ```
 
 3. View results
 
 ```bash
-rakam_eval show
+rakam eval show
 ```
 
 ---
@@ -36,7 +36,7 @@ rakam_eval show
 ### Listing evaluations
 
 ```bash
-rakam_eval list evals
+rakam eval list evals
 ```
 
 This shows all functions decorated with `@eval_run` in the `eval/` directory.
@@ -46,7 +46,7 @@ For writing evaluation functions, see the [SDK documentation](https://github.com
 ### Listing runs
 
 ```bash
-rakam_eval list runs
+rakam eval list runs
 ```
 
 This shows all runs hosted on the evaluation server.
@@ -57,13 +57,13 @@ This shows all runs hosted on the evaluation server.
 Tag a run as a reference point:
 
 ```bash
-rakam_eval tag --id 42 --tag baseline-v1
+rakam eval tag --id 42 --tag baseline-v1
 ```
 
 Delete a tag:
 
 ```bash
-rakam_eval tag --delete baseline-v1
+rakam eval tag --delete baseline-v1
 ```
 -->
 
@@ -73,18 +73,18 @@ Compare two runs to see what changed:
 
 ```bash
 # Compare by IDs
-rakam_eval compare --id 42 --id 45
+rakam eval compare --id 42 --id 45
 
 # Save comparison to file
-rakam_eval compare  --id 42 --id 45 -o comparison.json
+rakam eval compare  --id 42 --id 45 -o comparison.json
 ```
 
 <!-- TODO: Document tagging when in scope
 # Compare by tags
-rakam_eval compare --tag baseline-v1 --tag current
+rakam eval compare --tag baseline-v1 --tag current
 
 # Mix ID and tag
-rakam_eval compare --tag baseline-v1 --id 45
+rakam eval compare --tag baseline-v1 --id 45
 -->
 
 ---
@@ -94,10 +94,10 @@ rakam_eval compare --tag baseline-v1 --id 45
 <details>
 <summary>Full command reference (click to expand)</summary>
 
-### `rakam_eval list evals`
+### `rakam eval list evals`
 
 ```
-Usage: rakam_eval list evals [OPTIONS] [DIRECTORY]
+Usage: rakam eval list evals [OPTIONS] [DIRECTORY]
 
  List evaluations (functions decorated with @eval_run).
 
@@ -111,10 +111,10 @@ Usage: rakam_eval list evals [OPTIONS] [DIRECTORY]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval list runs`
+### `rakam eval list runs`
 
 ```
-Usage: rakam_eval list runs [OPTIONS]
+Usage: rakam eval list runs [OPTIONS]
 
  List runs (newest first).
 
@@ -125,10 +125,10 @@ Usage: rakam_eval list runs [OPTIONS]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval run`
+### `rakam eval run`
 
 ```
-Usage: rakam_eval run [OPTIONS] [DIRECTORY]
+Usage: rakam eval run [OPTIONS] [DIRECTORY]
 
  Execute evaluations (functions decorated with @eval_run).
 
@@ -146,10 +146,10 @@ Usage: rakam_eval run [OPTIONS] [DIRECTORY]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval show`
+### `rakam eval show`
 
 ```
-Usage: rakam_eval show [OPTIONS]
+Usage: rakam eval show [OPTIONS]
 
  Show a run by ID or tag. Without arguments, shows the most recent run.
 
@@ -161,10 +161,10 @@ Usage: rakam_eval show [OPTIONS]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval compare`
+### `rakam eval compare`
 
 ```
-Usage: rakam_eval compare [OPTIONS]
+Usage: rakam eval compare [OPTIONS]
 
  Compare two evaluation runs.
 
@@ -179,10 +179,10 @@ Usage: rakam_eval compare [OPTIONS]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval tag`
+### `rakam eval tag`
 
 ```
-Usage: rakam_eval tag [OPTIONS]
+Usage: rakam eval tag [OPTIONS]
 
  Assign a tag to a run or delete a tag.
 
@@ -194,10 +194,10 @@ Usage: rakam_eval tag [OPTIONS]
 ╰──────────────────────────────────────────────────────────────────────────────╯
 ```
 
-### `rakam_eval metrics list`
+### `rakam eval metrics list`
 
 ```
-Usage: rakam_eval metrics list [OPTIONS] [DIRECTORY]
+Usage: rakam eval metrics list [OPTIONS] [DIRECTORY]
 
  List all metric types used by loaded eval configs.
 

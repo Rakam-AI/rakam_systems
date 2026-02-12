@@ -1,4 +1,8 @@
-# Rakam System Agent
+---
+title: Agents
+---
+
+# Rakam Systems Agent
 
 The agent package of Rakam Systems providing AI agent implementations powered by Pydantic AI.
 

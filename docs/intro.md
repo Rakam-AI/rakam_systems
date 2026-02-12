@@ -1,6 +1,6 @@
-    ---
-    title: Introduction
-    ---
+---
+title: Introduction
+---
 
     Welcome to the **Rakam Systems** documentation portal.
 
@@ -10,4 +10,3 @@
 :::note
 Use the version dropdown (top-right) to switch between versions.
 :::
-

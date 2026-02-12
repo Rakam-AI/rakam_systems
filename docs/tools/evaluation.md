@@ -1,13 +1,13 @@
 # Rakam Eval SDK Documentation
 
-This document provides a comprehensive guide to using the `rakam-eval-sdk`, a Python client for interacting with the DeepEval API. This SDK allows you to run evaluations on your text and schema data, either synchronously or in the background.
+This document provides a comprehensive guide to using the `rakam-system-tools`, a Python client for interacting with the DeepEval API. This SDK allows you to run evaluations on your text and schema data, either synchronously or in the background.
 
 ## Installation
 
-To get started, install the `rakam-eval-sdk` package using pip:
+To get started, install the `rakam-system-tools` package using pip:
 
 ```bash
-pip install -i https://test.pypi.org/simple/ rakam-eval-sdk==0.1.12
+pip install -i https://test.pypi.org/simple/ rakam-system-tools==0.1.12
 ```
 
 ## Configuration

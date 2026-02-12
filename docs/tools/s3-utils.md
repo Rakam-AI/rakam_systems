@@ -1,6 +1,6 @@
 ---
 title: S3 Component
-description: Lightweight Pythonic wrapper for S3 operations in rakam-system-core
+description: Lightweight Pythonic wrapper for S3 operations in rakam-system-tools
 ---
 
 # S3 Component
@@ -19,25 +19,25 @@ The S3 component provides a lightweight, Pythonic wrapper around boto3 for S3 op
 
 ## Installation
 
-Install **rakam-system-core** (rs_core). The S3 component is included and pulls in boto3 as a dependency:
+Install **rakam-system-tools** (rs_core). The S3 component is included and pulls in boto3 as a dependency:
 
 ```bash
-pip install rakam-system-core
+pip install rakam-system-tools
 ```
 
 Or from the repo (development/editable):
 
 ```bash
 # From the repository root
-pip install -e rakam-system-core/
+pip install -e rakam-system-tools/
 # or with uv
-uv pip install -e rakam-system-core/
+uv pip install -e rakam-system-tools/
 ```
 
 Or add to your `requirements.txt`:
 
 ```
-rakam-system-core>=0.1.2
+rakam-system-tools>=0.1.2
 ```
 
 ## Configuration
@@ -58,24 +58,28 @@ S3_REGION=gra
 ### Provider-Specific Endpoints
 
 **OVH Object Storage:**
+
 ```bash
 S3_ENDPOINT_URL=https://s3.gra.io.cloud.ovh.net  # Gravelines
 S3_REGION=gra
 ```
 
 **Scaleway Object Storage:**
+
 ```bash
 S3_ENDPOINT_URL=https://s3.fr-par.scw.cloud
 S3_REGION=fr-par
 ```
 
 **MinIO (self-hosted):**
+
 ```bash
 S3_ENDPOINT_URL=http://localhost:9000
 S3_REGION=us-east-1
 ```
 
 **AWS S3 (default):**
+
 ```bash
 # No endpoint URL needed for AWS
 S3_REGION=us-east-1
@@ -83,7 +87,7 @@ S3_REGION=us-east-1
 
 ## Quick Start
 
-After installing `rakam-system-core` and setting the required env vars (see [Configuration](#configuration)):
+After installing `rakam-system-tools` and setting the required env vars (see [Configuration](#configuration)):
 
 ```python
 from rakam_system_core.ai_utils import s3
@@ -171,6 +175,7 @@ python examples/s3_examples/s3_operations_example.py --cleanup
 Upload a file to S3.
 
 **Parameters:**
+
 - `key` (str): The S3 object key (path/filename)
 - `content` (str | bytes): File content
 - `bucket` (str, optional): Bucket name (defaults to `S3_BUCKET_NAME`)
@@ -182,6 +187,7 @@ Upload a file to S3.
 **Raises:** `S3Error` if upload fails
 
 **Example:**
+
 ```python
 s3.upload_file(
     key="data/config.json",
@@ -198,17 +204,20 @@ s3.upload_file(
 Download a file from S3.
 
 **Parameters:**
+
 - `key` (str): The S3 object key
 - `bucket` (str, optional): Bucket name
 - `as_bytes` (bool): Return bytes instead of string (default: False)
 
 **Returns:** `str | bytes` - File content
 
-**Raises:** 
+**Raises:**
+
 - `S3NotFoundError` if file doesn't exist
 - `S3Error` if download fails
 
 **Example:**
+
 ```python
 # Download as string (decode bytes for text)
 text = s3.download_file("data/config.json").decode("utf-8")
@@ -224,6 +233,7 @@ image_data = s3.download_file("images/photo.jpg", as_bytes=True)
 Delete a file from S3.
 
 **Parameters:**
+
 - `key` (str): The S3 object key
 - `bucket` (str, optional): Bucket name
 
@@ -238,6 +248,7 @@ Delete a file from S3.
 Check if a file exists in S3.
 
 **Parameters:**
+
 - `key` (str): The S3 object key
 - `bucket` (str, optional): Bucket name
 
@@ -252,6 +263,7 @@ Check if a file exists in S3.
 List files in S3 bucket with optional prefix filter.
 
 **Parameters:**
+
 - `prefix` (str): Filter to keys starting with this prefix
 - `bucket` (str, optional): Bucket name
 - `max_keys` (int): Maximum number of keys to return (default: 1000)
@@ -259,12 +271,14 @@ List files in S3 bucket with optional prefix filter.
 **Returns:** `List[Dict]` - List of file metadata dictionaries
 
 Each dictionary contains:
+
 - `Key` (str): Object key
 - `Size` (int): File size in bytes
 - `LastModified` (datetime): Last modification time
 - `ETag` (str): Entity tag
 
 **Example:**
+
 ```python
 # List all files in a folder
 files = s3.list_files(prefix="documents/2024/")
@@ -279,12 +293,14 @@ for file in files:
 Get metadata for a file without downloading it.
 
 **Parameters:**
+
 - `key` (str): The S3 object key
 - `bucket` (str, optional): Bucket name
 
 **Returns:** `Dict` - Metadata dictionary
 
 Contains:
+
 - `ContentType` (str): MIME type
 - `ContentLength` (int): File size in bytes
 - `LastModified` (datetime): Last modification time
@@ -292,6 +308,7 @@ Contains:
 - `Metadata` (dict): Custom metadata
 
 **Raises:**
+
 - `S3NotFoundError` if file doesn't exist
 - `S3Error` on other failures
 
@@ -304,6 +321,7 @@ Contains:
 Create an S3 bucket.
 
 **Parameters:**
+
 - `bucket` (str, optional): Bucket name (defaults to `S3_BUCKET_NAME`)
 
 **Returns:** `bool` - True if created or already exists
@@ -317,6 +335,7 @@ Create an S3 bucket.
 Check if a bucket exists and is accessible.
 
 **Parameters:**
+
 - `bucket` (str, optional): Bucket name
 
 **Returns:** `bool` - True if bucket exists
@@ -332,6 +351,7 @@ List all buckets in the account.
 **Returns:** `List[Dict]` - List of bucket metadata
 
 Each dictionary contains:
+
 - `Name` (str): Bucket name
 - `CreationDate` (datetime): Creation time
 
@@ -564,6 +584,7 @@ S3Error: Invalid bucket name
 ```
 
 **Solution:** Bucket names must:
+
 - Be 3-63 characters long
 - Contain only lowercase letters, numbers, and hyphens
 - Start and end with a letter or number

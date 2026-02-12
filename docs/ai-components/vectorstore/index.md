@@ -1,3 +1,7 @@
+---
+title: Vectorstore
+---
+
 # Rakam System Vectorstore
 
 The vectorstore package of Rakam Systems providing vector database solutions and document processing capabilities.
@@ -252,7 +256,7 @@ config = VectorStoreConfig.from_yaml("vectorstore_config.yaml")
 store = ConfigurablePgVectorStore(config=config)
 ```
 
-## Documentation
+<!-- ## Documentation
 
 Detailed documentation is available in the `src/rakam_systems_vectorstore/docs/` directory:
 
@@ -266,7 +270,7 @@ Loader-specific documentation:
 - [PDF Loader](src/rakam_systems_vectorstore/components/loader/docs/PDF_LOADER_ARCHITECTURE.md)
 - [DOC Loader](src/rakam_systems_vectorstore/components/loader/docs/DOC_LOADER_README.md)
 - [Tabular Loader](src/rakam_systems_vectorstore/components/loader/docs/TABULAR_LOADER_README.md)
-- [EML Loader](src/rakam_systems_vectorstore/components/loader/docs/EML_LOADER_README.md)
+- [EML Loader](src/rakam_systems_vectorstore/components/loader/docs/EML_LOADER_README.md) -->
 
 ## Examples
 
@@ -293,9 +297,9 @@ See the `examples/ai_vectorstore_examples/` directory in the main repository for
 
 Apache 2.0
 
-## Links
+<!-- ## Links
 
 - [Main Repository](https://github.com/Rakam-AI/rakam-systems)
 - [Documentation](../docs/)
 - [Core Package](../rakam-systems-core/)
-- [Agent Package](../rakam-systems-agent/)
+- [Agent Package](../rakam-systems-agent/) -->

@@ -144,9 +144,9 @@ This package contains only interfaces and utilities. To contribute:
 
 Apache 2.0
 
-## Links
+<!-- ## Links
 
 - [Main Repository](https://github.com/Rakam-AI/rakam-systems)
 - [Documentation](../docs/)
 - [Agent Package](../rakam-systems-agent/)
-- [Vectorstore Package](../rakam-systems-vectorstore/)
+- [Vectorstore Package](../rakam-systems-vectorstore/) -->
