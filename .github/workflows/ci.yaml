@@ -12,7 +12,7 @@ jobs:
             core: ${{ steps.filter.outputs.core }}
             cli: ${{ steps.filter.outputs.cli }}
             agents: ${{ steps.filter.outputs.agents }}
-            vectorestore: ${{ steps.filter.outputs.vectorestore }}
+            vectorstore: ${{ steps.filter.outputs.vectorstore }}
             tools: ${{ steps.filter.outputs.tools }}
         steps:
             - uses: actions/checkout@v4
@@ -30,8 +30,8 @@ jobs:
                       agents:
                         - 'ai-components/agents/**'
                         - 'core/**'
-                      vectorestore:
-                        - 'ai-components/vectorestore/**'
+                      vectorstore:
+                        - 'ai-components/vector-store/**'
                         - 'core/**'
                       tools:
                         - 'tools/**'
@@ -92,9 +92,9 @@ jobs:
                   fi
                   exit ${EXIT_CODE:-0}
 
-    vectorestore-tests:
+    vectorstore-tests:
         needs: changes
-        if: needs.changes.outputs.vectorestore == 'true'
+        if: needs.changes.outputs.vectorstore == 'true'
         runs-on: ubuntu-latest
         strategy:
             matrix:
@@ -107,11 +107,11 @@ jobs:
                   python-version: ${{ matrix.python-version }}
 
             - name: Install VectorStore dependencies
-              working-directory: ai-components/vectorestore
+              working-directory: ai-components/vector-store
               run: uv sync --all-extras --dev
 
             - name: Run VectorStore tests
-              working-directory: ai-components/vectorestore
+              working-directory: ai-components/vector-store
               run: |
                   uv run pytest -v || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then

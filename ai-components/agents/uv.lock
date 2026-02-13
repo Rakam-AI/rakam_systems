@@ -2901,7 +2901,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-agent"
-version = "0.1.1rc7"
+version = "0.1.1rc8"
 source = { editable = "." }
 dependencies = [
     { name = "psycopg2-binary" },
