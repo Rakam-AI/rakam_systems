@@ -2,7 +2,7 @@ name: Main CI
 
 on:
     push:
-        branches: [chores/restructure]
+        branches: [main]
     pull_request:
 
 jobs:
