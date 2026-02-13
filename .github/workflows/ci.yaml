@@ -52,7 +52,7 @@ jobs:
 
             - name: Install Core dependencies
               working-directory: core
-              run: uv sync
+              run: uv sync --all-extras --dev
 
             - name: Run Core tests
               working-directory: core
