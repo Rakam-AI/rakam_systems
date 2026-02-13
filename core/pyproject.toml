@@ -8,9 +8,11 @@ authors = [
     {name = "Peng Zheng", email = "pengzheng990630@outlook.com"},
     {name = "somebodyawesome-dev", email = "luckynoob2011830@gmail.com"}
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.8"
+
 dependencies = [
     "pydantic",
+    "PyYAML"
 ]
 
 [build-system]
