@@ -1,0 +1,21 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:packaging.bzl", "py_wheel")
+
+py_binary(
+    name = "cli",
+    srcs = glob(["src/**/*.py"]),
+    main = "src/rakam_systems_cli/cli.py",
+    imports = ["src"],
+    deps = [
+        
+        "//tools:tools",
+    ],
+)
+
+
+py_wheel(
+    name = "cli_wheel",
+    distribution = "rakam-systems-cli",
+    version = "0.2.4rc15",
+    deps = [":cli"],
+)
