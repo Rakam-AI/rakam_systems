@@ -28,7 +28,7 @@ setup(
     },
     packages=find_packages(
         where="..",
-        include=["rakam_systems_vectorstore*", "rakam_systems_core.ai_core*"]
+        include=["rakam_systems_vectorstore*", "rakam_systems_core*"]
     ),
     package_dir={"": ".."},
     python_requires=">=3.10",

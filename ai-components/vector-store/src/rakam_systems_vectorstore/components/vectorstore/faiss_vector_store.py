@@ -14,8 +14,8 @@ import numpy as np
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 from rakam_systems_vectorstore.core import Node
 from rakam_systems_vectorstore.core import VSFile
 

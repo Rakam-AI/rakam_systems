@@ -11,7 +11,7 @@ import os
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from rakam_systems_core.ai_core.interfaces.chat_history import ChatHistoryComponent
+from rakam_systems_core.interfaces.chat_history import ChatHistoryComponent
 
 # Optional pydantic-ai integration
 try:

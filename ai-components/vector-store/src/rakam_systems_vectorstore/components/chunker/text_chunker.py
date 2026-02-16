@@ -6,8 +6,8 @@ from __future__ import annotations
 
 from typing import Any, List
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.chunker import Chunker
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.chunker import Chunker
 
 try:
     from chonkie import SentenceChunker

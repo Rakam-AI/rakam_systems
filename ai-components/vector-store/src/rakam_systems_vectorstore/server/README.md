@@ -158,7 +158,7 @@ result = await mcp_server.asend_message(
 ### Integration with Tool Registry
 
 ```python
-from rakam_systems_core.ai_core.interfaces import ToolRegistry, ToolInvoker
+from rakam_systems_core.interfaces import ToolRegistry, ToolInvoker
 
 # Create registry and invoker
 registry = ToolRegistry()

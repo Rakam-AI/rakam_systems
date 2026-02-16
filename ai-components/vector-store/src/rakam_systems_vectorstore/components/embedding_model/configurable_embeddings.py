@@ -17,8 +17,8 @@ from typing import List, Optional, Union
 
 import numpy as np
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.embedding_model import EmbeddingModel
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.embedding_model import EmbeddingModel
 from rakam_systems_vectorstore.config import EmbeddingConfig
 
 logger = logging.getLogger(__name__)

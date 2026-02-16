@@ -24,8 +24,8 @@ from docling.datamodel.pipeline_options import PdfPipelineOptions
 from docling.document_converter import DocumentConverter, PdfFormatOption
 from docling_core.types.doc import ImageRefMode, PictureItem, TableItem
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.loader import Loader
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.loader import Loader
 from rakam_systems_vectorstore.components.chunker import AdvancedChunker
 from rakam_systems_vectorstore.core import Node, NodeMetadata, VSFile
 

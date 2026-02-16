@@ -11,7 +11,7 @@ This module provides a thin wrapper around boto3's S3 client with:
 - Consistent error handling and logging
 - A stable import path for all internal modules:
 
-    >>> from rakam_systems_core.ai_utils import s3
+    >>> from rakam_systems_tools.utils import s3
     >>> s3.upload_file("my-key.txt", "Hello World")
     >>> content = s3.download_file("my-key.txt")  # Returns bytes
     >>> text = content.decode('utf-8')  # Decode to string if needed

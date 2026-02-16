@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import List
-from rakam_systems_core.ai_core.interfaces.embedding_model import EmbeddingModel
+from rakam_systems_core.interfaces.embedding_model import EmbeddingModel
 from openai import OpenAI
-from rakam_systems_core.ai_utils import logging
+from rakam_systems_tools.utils import logging
 
 logger = logging.getLogger(__name__)
 

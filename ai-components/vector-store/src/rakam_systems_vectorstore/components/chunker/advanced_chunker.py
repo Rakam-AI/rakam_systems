@@ -30,7 +30,7 @@ import re
 from typing import Any, Iterable, List, Optional, Type
 from abc import abstractmethod
 
-from rakam_systems_core.ai_core.interfaces.chunker import Chunker
+from rakam_systems_core.interfaces.chunker import Chunker
 
 try:
     from chonkie import SentenceChunker

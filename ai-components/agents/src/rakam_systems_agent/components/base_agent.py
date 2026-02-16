@@ -1,12 +1,12 @@
 from __future__ import annotations
 from typing import Any, AsyncIterator, Callable, Iterator, List, Optional, Type, Union
-from rakam_systems_core.ai_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput, ModelSettings
-from rakam_systems_core.ai_core.interfaces.tool import ToolComponent
-from rakam_systems_core.ai_core.tracking import track_method, TrackingMixin
+from rakam_systems_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput, ModelSettings
+from rakam_systems_core.interfaces.tool import ToolComponent
+from rakam_systems_core.tracking import track_method, TrackingMixin
 
 try:
-    from rakam_systems_core.ai_core.interfaces.tool_registry import ToolRegistry, ToolMode
-    from rakam_systems_core.ai_core.interfaces.tool_invoker import ToolInvoker
+    from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMode
+    from rakam_systems_core.interfaces.tool_invoker import ToolInvoker
     TOOL_SYSTEM_AVAILABLE = True
 except ImportError:
     ToolRegistry = None  # type: ignore

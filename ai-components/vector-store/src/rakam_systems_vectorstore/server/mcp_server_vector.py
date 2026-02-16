@@ -33,9 +33,9 @@ Example:
 from __future__ import annotations
 from typing import Dict, Any, List, Optional
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.mcp.mcp_server import MCPServer
-from rakam_systems_core.ai_core.interfaces import ToolComponent
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.mcp.mcp_server import MCPServer
+from rakam_systems_core.interfaces import ToolComponent
 
 logger = logging.getLogger(__name__)
 

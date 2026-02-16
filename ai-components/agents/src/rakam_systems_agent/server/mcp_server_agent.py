@@ -14,7 +14,7 @@ Features:
 
 Example:
     >>> from rakam_system_agent.server.mcp_server_agent import run_agent_mcp
-    >>> from rakam_systems_core.ai_core.base import BaseComponent
+    >>> from rakam_systems_core.base import BaseComponent
     >>> 
     >>> # Create some agent components
     >>> class SearchTool(BaseComponent):
@@ -37,10 +37,10 @@ Example:
 from __future__ import annotations
 from typing import Iterable, Optional
 
-from rakam_systems_core.ai_utils import logging
+from rakam_systems_tools.utils import logging
 
-from rakam_systems_core.ai_core.mcp.mcp_server import MCPServer
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.mcp.mcp_server import MCPServer
+from rakam_systems_core.base import BaseComponent
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ def run_agent_mcp(
 
     Example:
         >>> from rakam_system_agent.server import run_agent_mcp
-        >>> from rakam_systems_core.ai_core.base import BaseComponent
+        >>> from rakam_systems_core.base import BaseComponent
         >>> 
         >>> # Create components
         >>> class CalculatorTool(BaseComponent):

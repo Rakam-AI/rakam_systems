@@ -17,8 +17,8 @@ from django.db import transaction
 from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 from rakam_systems_vectorstore.components.vectorstore.pg_models import Collection
 from rakam_systems_vectorstore.components.vectorstore.pg_models import NodeEntry
 from rakam_systems_vectorstore.core import Node

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
-# from rakam_systems_core.ai_core.interfaces.tool import ToolComponent
-from rakam_systems_core.ai_core.interfaces.tool import ToolComponent
+# from rakam_systems_core.interfaces.tool import ToolComponent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 
 class SearchTool(ToolComponent):

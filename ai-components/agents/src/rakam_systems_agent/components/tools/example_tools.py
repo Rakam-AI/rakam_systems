@@ -6,7 +6,7 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime
 from typing import Dict, List, Any, Optional
-from rakam_systems_core.ai_core.interfaces.tool import ToolComponent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 
 # === Simple Direct Tools ===

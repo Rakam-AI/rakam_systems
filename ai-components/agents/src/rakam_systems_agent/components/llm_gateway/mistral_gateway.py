@@ -6,8 +6,8 @@ from typing import Any, Dict, Iterator, Optional, Type, TypeVar
 from mistralai import Mistral
 from pydantic import BaseModel
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 

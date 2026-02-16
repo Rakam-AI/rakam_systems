@@ -99,7 +99,7 @@ Issues = "https://github.com/Rakam-AI/rakam_systems-inhouse/issues"
 
 [tool.setuptools.packages.find]
 where = [".."]
-include = ["rakam_systems_vectorstore*", "rakam_systems_core.ai_core*"]
+include = ["rakam_systems_vectorstore*", "rakam_systems_core*"]
 
 [tool.setuptools.package-data]
 "rakam_systems_vectorstore" = ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.md"]

@@ -11,7 +11,7 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 from psycopg2.pool import SimpleConnectionPool
-from rakam_systems_core.ai_core.interfaces.chat_history import \
+from rakam_systems_core.interfaces.chat_history import \
     ChatHistoryComponent
 
 # Optional pydantic-ai integration

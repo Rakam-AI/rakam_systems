@@ -18,7 +18,7 @@ The Agent MCP Server creates a message-based component registry that allows AI a
 
 ```python
 from rakam_system_agent.server import run_agent_mcp
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.base import BaseComponent
 
 # Create some components
 class SearchTool(BaseComponent):
@@ -134,7 +134,7 @@ print(results)
 ### Integration with Tool Registry
 
 ```python
-from rakam_systems_core.ai_core.interfaces import ToolRegistry, ToolInvoker
+from rakam_systems_core.interfaces import ToolRegistry, ToolInvoker
 
 # Create registry and invoker
 registry = ToolRegistry()
@@ -168,7 +168,7 @@ result = await invoker.ainvoke("calculate", operation="add", a=5, b=3)
 ### Custom Component with Message Handler
 
 ```python
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.base import BaseComponent
 from typing import Dict, Any
 
 class CustomTool(BaseComponent):
@@ -253,7 +253,7 @@ Components registered with the agent MCP server must:
 1. **Inherit from BaseComponent**
 
    ```python
-   from rakam_systems_core.ai_core.base import BaseComponent
+   from rakam_systems_core.base import BaseComponent
 
    class MyTool(BaseComponent):
        pass

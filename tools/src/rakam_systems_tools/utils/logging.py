@@ -9,14 +9,14 @@ library that provides:
 - A single place to configure default log format and level
 - A stable import path for all internal modules:
 
-    >>> from rakam_systems_core.ai_utils import logging
+    >>> from rakam_systems_tools.utils import logging
     >>> logger = logging.getLogger(__name__)
     >>> logger.info("hello")
 
 It intentionally mirrors the standard logging API so most existing code
 can simply replace ``import logging`` with::
 
-    from rakam_systems_core.ai_utils import logging
+    from rakam_systems_tools.utils import logging
 
 and continue to work as before.
 """
@@ -104,7 +104,7 @@ def setLevel(level: int | str) -> None:
     Convenience helper to set the global root log level.
 
     Example:
-        >>> from rakam_systems_core.ai_utils import logging
+        >>> from rakam_systems_tools.utils import logging
         >>> logging.setLevel("DEBUG")
     """
     if isinstance(level, str):

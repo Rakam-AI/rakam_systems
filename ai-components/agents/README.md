@@ -47,8 +47,8 @@ pip install -e ./rakam-systems-agent
 ```python
 import asyncio
 from rakam_system_agent import BaseAgent
-from rakam_systems_core.ai_core.interfaces import ModelSettings
-from rakam_systems_core.ai_core.interfaces.tool import ToolComponent as Tool
+from rakam_systems_core.interfaces import ModelSettings
+from rakam_systems_core.interfaces.tool import ToolComponent as Tool
 
 # Define a tool function
 async def get_weather(city: str) -> dict:

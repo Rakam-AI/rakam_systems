@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any, Dict, Optional
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.llm_gateway import LLMGateway
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.llm_gateway import LLMGateway
 from .openai_gateway import OpenAIGateway
 from .mistral_gateway import MistralGateway
 

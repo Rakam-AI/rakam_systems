@@ -69,8 +69,8 @@ import numpy as np
 from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.db import connection, transaction
 
-from rakam_systems_core.ai_utils import logging
-from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_tools.utils import logging
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 from rakam_systems_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
 from rakam_systems_vectorstore.components.vectorstore.pg_models import Collection, NodeEntry
 from rakam_systems_vectorstore.config import VectorStoreConfig, load_config
