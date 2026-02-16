@@ -63,7 +63,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 async def main():
     # Create an agent
@@ -84,7 +84,7 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 async def main():
     agent = BaseAgent(
@@ -106,8 +106,8 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_core.ai_core.interfaces import ModelSettings
+from rakam_systems_agent import BaseAgent
+from rakam_systems_core.interfaces import ModelSettings
 
 async def main():
     agent = BaseAgent(
@@ -134,8 +134,8 @@ Create an agent that can use tools:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_core.ai_core.interfaces.tool import ToolComponent
+from rakam_systems_agent import BaseAgent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 # Define a tool function
 def get_weather(city: str, units: str = "celsius") -> str:
@@ -212,7 +212,7 @@ Get structured, typed responses from your agent:
 ```python
 import asyncio
 from pydantic import BaseModel, Field
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 # Define output structure
 class MovieReview(BaseModel):
@@ -256,8 +256,8 @@ Maintain conversation context across multiple interactions:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_agent.components.chat_history import JSONChatHistory
+from rakam_systems_agent import BaseAgent
+from rakam_systems_agent.components.chat_history import JSONChatHistory
 
 async def main():
     # Initialize chat history
@@ -301,8 +301,8 @@ For production deployments with PostgreSQL:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_agent.components.chat_history import PostgresChatHistory
+from rakam_systems_agent import BaseAgent
+from rakam_systems_agent.components.chat_history import PostgresChatHistory
 
 async def main():
     # Initialize PostgreSQL chat history
@@ -355,8 +355,8 @@ For local development with SQLite:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_agent.components.chat_history import SQLChatHistory
+from rakam_systems_agent import BaseAgent
+from rakam_systems_agent.components.chat_history import SQLChatHistory
 
 async def main():
     # Initialize SQLite chat history
@@ -553,7 +553,7 @@ agents:
 
 ```python
 import asyncio
-from rakam_system_core.ai_core.config_loader import ConfigurationLoader
+from rakam_systems_core.config_loader import ConfigurationLoader
 
 async def main():
     # Initialize configuration loader
@@ -620,8 +620,8 @@ agents:
 ### Using Tool Registry
 
 ```python
-from rakam_system_core.ai_core.config_loader import ConfigurationLoader
-from rakam_system_core.ai_core.interfaces.tool_registry import ToolRegistry
+from rakam_systems_core.config_loader import ConfigurationLoader
+from rakam_systems_core.interfaces.tool_registry import ToolRegistry
 
 loader = ConfigurationLoader()
 config = loader.load_from_yaml("config/agent_config.yaml")
@@ -1289,10 +1289,10 @@ Build a complete Retrieval-Augmented Generation pipeline:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 from rakam_system_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
 from rakam_system_vectorstore.components.loader import AdaptiveLoader
-from rakam_system_core.ai_core.interfaces.tool import ToolComponent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 # Step 1: Load and index documents
 loader = AdaptiveLoader(config={"chunk_size": 512, "chunk_overlap": 50})
@@ -1389,7 +1389,7 @@ asyncio.run(main())
 Use the LLM Gateway for direct LLM interactions:
 
 ```python
-from rakam_system_agent.components.llm_gateway import (
+from rakam_systems_agent.components.llm_gateway import (
     OpenAIGateway,
     MistralGateway,
     LLMGatewayFactory,
@@ -1419,7 +1419,7 @@ print(f"Tokens used: {response.usage}")
 
 ```python
 from pydantic import BaseModel
-from rakam_system_agent.components.llm_gateway import OpenAIGateway, LLMRequest
+from rakam_systems_agent.components.llm_gateway import OpenAIGateway, LLMRequest
 
 class Recipe(BaseModel):
     name: str
@@ -1444,7 +1444,7 @@ print(f"Ingredients: {', '.join(recipe.ingredients)}")
 ### Streaming with Gateway
 
 ```python
-from rakam_system_agent.components.llm_gateway import OpenAIGateway, LLMRequest
+from rakam_systems_agent.components.llm_gateway import OpenAIGateway, LLMRequest
 
 gateway = OpenAIGateway(model="gpt-4o")
 
@@ -1549,7 +1549,7 @@ agents:
 ```
 
 ```python
-from rakam_system_core.ai_core.config_loader import ConfigurationLoader
+from rakam_systems_core.config_loader import ConfigurationLoader
 
 loader = ConfigurationLoader()
 
@@ -1598,7 +1598,7 @@ Now that you've completed the quick start:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 async def main():
     agent = BaseAgent(
@@ -1632,7 +1632,7 @@ with ConfigurablePgVectorStore(config=config) as store:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 async def process_queries(queries: list[str]):
     agent = BaseAgent(

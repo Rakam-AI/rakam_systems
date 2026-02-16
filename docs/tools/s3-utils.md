@@ -90,7 +90,7 @@ S3_REGION=us-east-1
 After installing `rakam-system-tools` and setting the required env vars (see [Configuration](#configuration)):
 
 ```python
-from rakam_system_core.ai_utils import s3
+from rakam_systems_tools.utils import s3
 
 # Upload a file
 s3.upload_file(
@@ -122,8 +122,8 @@ Minimal script you can run locally (set `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BU
 
 ```python
 # quick_s3_example.py
-from rakam_system_core.ai_utils import s3
-from rakam_system_core.ai_utils.s3 import S3Error, S3ConfigError
+from rakam_systems_tools.utils import s3
+from rakam_systems_tools.utils.s3 import S3Error, S3ConfigError
 
 try:
     # Ensure bucket is reachable
@@ -388,7 +388,7 @@ Get current S3 configuration (with masked secrets).
 The component provides custom exceptions for better error handling:
 
 ```python
-from rakam_system_core.ai_utils import s3
+from rakam_systems_tools.utils import s3
 
 try:
     content = s3.download_file("missing-file.txt")
@@ -533,7 +533,7 @@ except ClientError as e:
 ### RS Component Style (clean and simple)
 
 ```python
-from rakam_system_core.ai_utils import s3
+from rakam_systems_tools.utils import s3
 
 try:
     s3.upload_file(file_key, content)

@@ -116,7 +116,7 @@ rakam-systems-core/
 ```python
 # rakam-systems-agent uses core interfaces
 from rakam_systems_core.ai_core.interfaces.agent import AgentComponent
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 agent = BaseAgent(name="my_agent", model="openai:gpt-4o")
 ```

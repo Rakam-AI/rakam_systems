@@ -5,9 +5,9 @@ Rakam Systems is a modular AI framework designed to build production-ready AI ap
 ## 📑 Table of Contents
 
 1. [🏗️ Architecture Overview](#️-architecture-overview)
-2. [🧱 Core Package (`rakam-system-core`)](#core-package-rakam-systems-core)
-3. [🤖 Agent Package (`rakam-system-agent`)](#-agent-package-rakam-system-agent)
-4. [🔍 Vectorstore Package (`rakam-system-vectorstore`)](#-vectorstore-package-rakam-system-vectorstore)
+2. [🧱 Core Package (`rakam-systems-core`)](#core-package-rakam-systems-core)
+3. [🤖 Agent Package (`rakam-systems-agent`)](#-agent-package-rakam-system-agent)
+4. [🔍 Vectorstore Package (`rakam-systems-vectorstore`)](#-vectorstore-package-rakam-system-vectorstore)
 5. [⚙️ Configuration System](#️-configuration-system)
 6. [🚀 Quick Start Examples](#-quick-start-examples)
 7. [🌍 Environment Variables](#environment-variables)
@@ -68,7 +68,7 @@ The core package provides foundational abstractions used throughout the system. 
 The base class for all components, providing lifecycle management and evaluation capabilities.
 
 ```python
-from rakam_system_core.ai_core.base import BaseComponent
+from rakam_system_core.base import BaseComponent
 
 class BaseComponent(ABC):
     """
@@ -101,12 +101,12 @@ class BaseComponent(ABC):
 
 ### Interfaces
 
-Located in `ai_core/interfaces/`, these define the contracts for various component types:
+Located in `interfaces/`, these define the contracts for various component types:
 
 #### AgentComponent
 
 ```python
-from rakam_system_core.ai_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput
+from rakam_system_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput
 
 class AgentInput:
     """Input DTO for agents."""
@@ -131,7 +131,7 @@ class AgentComponent(BaseComponent, ABC):
 #### ToolComponent
 
 ```python
-from rakam_system_core.ai_core.interfaces.tool import ToolComponent
+from rakam_system_core.interfaces.tool import ToolComponent
 
 class ToolComponent(BaseComponent, ABC):
     """
@@ -155,7 +155,7 @@ class ToolComponent(BaseComponent, ABC):
 Central registry for managing tools across the system:
 
 ```python
-from rakam_system_core.ai_core.interfaces.tool_registry import ToolRegistry, ToolMode
+from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMode
 
 registry = ToolRegistry()
 
@@ -186,7 +186,7 @@ tools = registry.get_tools_by_mode(ToolMode.DIRECT)
 #### LLMGateway
 
 ```python
-from rakam_system_core.ai_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
+from rakam_systems_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
 
 class LLMRequest(BaseModel):
     system_prompt: Optional[str]
@@ -214,7 +214,7 @@ class LLMGateway(BaseComponent, ABC):
 #### VectorStore
 
 ```python
-from rakam_system_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 
 class VectorStore(BaseComponent, ABC):
     """Abstract vector store interface."""
@@ -227,7 +227,7 @@ class VectorStore(BaseComponent, ABC):
 #### Loader
 
 ```python
-from rakam_system_core.ai_core.interfaces.loader import Loader
+from rakam_systems_core.interfaces.loader import Loader
 
 class Loader(BaseComponent, ABC):
     """Abstract document loader interface."""
@@ -243,7 +243,7 @@ class Loader(BaseComponent, ABC):
 Built-in input/output tracking for debugging and evaluation:
 
 ```python
-from rakam_system_core.ai_core.tracking import TrackingManager, track_method, TrackingMixin
+from rakam_systems_core.tracking import TrackingManager, track_method, TrackingMixin
 
 class MyAgent(TrackingMixin, BaseAgent):
     @track_method()
@@ -266,7 +266,7 @@ stats = agent.get_tracking_statistics()
 Load agent configurations from YAML files:
 
 ```python
-from rakam_system_core.ai_core.config_loader import ConfigurationLoader
+from rakam_systems_core.config_loader import ConfigurationLoader
 
 loader = ConfigurationLoader()
 config = loader.load_from_yaml("agent_config.yaml")
@@ -286,15 +286,15 @@ is_valid, errors = loader.validate_config("config.yaml")
 
 ## 🤖 Agent Package (`rakam-system-agent`)
 
-The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install -e ./rakam-system-agent` (requires core).
+The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent` (requires core).
 
 ### BaseAgent
 
 The main agent implementation using Pydantic AI:
 
 ```python
-from rakam_system_agent import BaseAgent
-from rakam_system_core.ai_core.interfaces.agent import AgentInput, AgentOutput, ModelSettings
+from rakam_systems_agent import BaseAgent
+from rakam_systems_core.interfaces.agent import AgentInput, AgentOutput, ModelSettings
 
 agent = BaseAgent(
     name="my_agent",
@@ -376,7 +376,7 @@ result = await agent.arun(
 #### OpenAI Gateway
 
 ```python
-from rakam_system_agent import OpenAIGateway, LLMRequest
+from rakam_systems_agent import OpenAIGateway, LLMRequest
 
 gateway = OpenAIGateway(
     model="gpt-4o",
@@ -414,7 +414,7 @@ token_count = gateway.count_tokens("Hello, world!")
 #### Mistral Gateway
 
 ```python
-from rakam_system_agent import MistralGateway
+from rakam_systems_agent import MistralGateway
 
 gateway = MistralGateway(
     model="mistral-large-latest",
@@ -425,7 +425,7 @@ gateway = MistralGateway(
 #### Gateway Factory
 
 ```python
-from rakam_system_agent import LLMGatewayFactory, get_llm_gateway
+from rakam_systems_agent import LLMGatewayFactory, get_llm_gateway
 
 # Using factory
 gateway = LLMGatewayFactory.create(
@@ -443,7 +443,7 @@ gateway = get_llm_gateway(provider="openai", model="gpt-4o")
 #### JSON Chat History
 
 ```python
-from rakam_system_agent.components.chat_history import JSONChatHistory
+from rakam_systems_agent.components.chat_history import JSONChatHistory
 
 history = JSONChatHistory(config={"storage_path": "./chat_history.json"})
 
@@ -469,7 +469,7 @@ history.clear_all()
 #### SQL Chat History (SQLite)
 
 ```python
-from rakam_system_agent.components.chat_history import SQLChatHistory
+from rakam_systems_agent.components.chat_history import SQLChatHistory
 
 history = SQLChatHistory(config={"db_path": "./chat_history.db"})
 
@@ -491,7 +491,7 @@ history.save_messages("chat123", result.all_messages())
 For production deployments with PostgreSQL-backed storage:
 
 ```python
-from rakam_system_agent.components.chat_history import PostgresChatHistory
+from rakam_systems_agent.components.chat_history import PostgresChatHistory
 
 # Configuration
 history = PostgresChatHistory(config={
@@ -971,7 +971,7 @@ More content...
 The core package includes logging utilities:
 
 ```python
-from rakam_system_core.ai_utils import logging
+from rakam_systems_tools.utils import logging
 
 logger = logging.getLogger(__name__)
 logger.info("Processing document...")
@@ -1202,7 +1202,7 @@ tools:
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 async def main():
     agent = BaseAgent(
@@ -1221,8 +1221,8 @@ asyncio.run(main())
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
-from rakam_system_core.ai_core.interfaces.tool import ToolComponent
+from rakam_systems_agent import BaseAgent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 def get_weather(city: str) -> str:
     return f"The weather in {city} is sunny, 25°C"
@@ -1287,9 +1287,9 @@ store.shutdown()
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 from rakam_system_vectorstore import ConfigurablePgVectorStore, AdaptiveLoader, VectorStoreConfig
-from rakam_system_core.ai_core.interfaces.tool import ToolComponent
+from rakam_systems_core.interfaces.tool import ToolComponent
 
 # Setup vector store
 config = VectorStoreConfig()

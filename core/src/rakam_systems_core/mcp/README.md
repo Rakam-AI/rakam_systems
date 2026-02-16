@@ -19,8 +19,8 @@ The `mcp_server` module provides a Model Context Protocol (MCP) server implement
 ### Basic Usage
 
 ```python
-from rakam_systems_core.ai_core.mcp.mcp_server import MCPServer
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.mcp.mcp_server import MCPServer
+from rakam_systems_core.base import BaseComponent
 
 # Create server
 server = MCPServer(name="my_server")
@@ -207,7 +207,7 @@ The server automatically extracts `arguments` and passes them to the component's
 ### Basic Component
 
 ```python
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.base import BaseComponent
 
 class MyComponent(BaseComponent):
     """Component with automatic argument extraction."""
@@ -345,7 +345,7 @@ results = await asyncio.gather(
 ### Pattern 4: Tool Invoker Integration
 
 ```python
-from rakam_systems_core.ai_core.interfaces import ToolRegistry, ToolInvoker
+from rakam_systems_core.interfaces import ToolRegistry, ToolInvoker
 
 # Create MCP server
 server = MCPServer(name="tool_server")

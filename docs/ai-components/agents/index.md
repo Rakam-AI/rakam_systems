@@ -50,7 +50,7 @@ pip install -e ./rakam-systems-agent
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 from rakam_systems_core.ai_core.interfaces import ModelSettings
 from rakam_systems_core.ai_core.interfaces.tool import ToolComponent as Tool
 
@@ -290,7 +290,7 @@ rakam-systems-agent/
 `BaseAgent` is the core Pydantic AI-powered agent implementation in this framework.
 
 ```python
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 agent = BaseAgent(
     name="agent",

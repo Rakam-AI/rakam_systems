@@ -32,7 +32,7 @@ All components extend `BaseComponent` which provides:
 - Built-in evaluation harness
 
 ```python
-from rakam_systems_core.ai_core.base import BaseComponent
+from rakam_systems_core.base import BaseComponent
 
 class MyComponent(BaseComponent):
     def setup(self):
@@ -61,9 +61,9 @@ Standard interfaces for building AI systems:
 - **Chunker**: Text chunking interface
 
 ```python
-from rakam_systems_core.ai_core.interfaces.agent import AgentComponent
-from rakam_systems_core.ai_core.interfaces.tool import ToolComponent
-from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_core.interfaces.agent import AgentComponent
+from rakam_systems_core.interfaces.tool import ToolComponent
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 ```
 
 ### Configuration System
@@ -71,7 +71,7 @@ from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
 Load and validate configurations from YAML files:
 
 ```python
-from rakam_systems_core.ai_core.config_loader import ConfigurationLoader
+from rakam_systems_core.config_loader import ConfigurationLoader
 
 loader = ConfigurationLoader()
 config = loader.load_from_yaml("agent_config.yaml")
@@ -83,7 +83,7 @@ agent = loader.create_agent("my_agent", config)
 Track inputs and outputs for debugging:
 
 ```python
-from rakam_systems_core.ai_core.tracking import TrackingMixin
+from rakam_systems_core.tracking import TrackingMixin
 
 class MyAgent(TrackingMixin, BaseAgent):
     pass
@@ -115,7 +115,7 @@ rakam-systems-core/
 
 ```python
 # rakam-systems-agent uses core interfaces
-from rakam_systems_core.ai_core.interfaces.agent import AgentComponent
+from rakam_systems_core.interfaces.agent import AgentComponent
 from rakam_system_agent import BaseAgent
 
 agent = BaseAgent(name="my_agent", model="openai:gpt-4o")
@@ -125,7 +125,7 @@ agent = BaseAgent(name="my_agent", model="openai:gpt-4o")
 
 ```python
 # rakam-systems-vectorstore uses core interfaces
-from rakam_systems_core.ai_core.interfaces.vectorstore import VectorStore
+from rakam_systems_core.interfaces.vectorstore import VectorStore
 from rakam_systems_vectorstore import ConfigurablePgVectorStore
 
 store = ConfigurablePgVectorStore(config=config)
