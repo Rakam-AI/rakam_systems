@@ -1,65 +1,76 @@
-# CLI - Step-by-Step Guide
+# CLI Quick Start Guide
 
-This guide will help you set up and use the CLI tools for local evaluation and monitoring.
-
-## Prerequisites
-
-- [Docker](https://docs.docker.com/get-docker/) installed
-- Access to the private container registry (credentials required)
-- Python 3.8+
+Welcome! This guide will help you set up and use the Rakam Systems CLI tools for local evaluation and monitoring.
 
 ---
 
-## Start the Eval Service Stack
+## Prerequisites
 
-This will launch all required services:
+Before you begin, make sure you have:
+
+- [Docker](https://docs.docker.com/get-docker/) installed
+- Access credentials for the private container registry
+- Python 3.8 or newer
+
+---
+
+## 1. Start the Evaluation Service
+
+To launch all required backend services, run the following command (replace `YOUR_API` with your actual OpenAI API key):
 
 ```bash
 docker run -d \
   --name eval-framework \
   -p 8080:8000 \
-  -e OPENAI_API_KEY= YOUR_API \
+  -e OPENAI_API_KEY=YOUR_API \
   -e API_PREFIX="/eval-framework" \
   -e APP_NAME="eval-framework" \
   346k0827.c1.de1.container-registry.ovh.net/monitoring/evaluation-service:v0.2.4rc8
 ```
 
-## Using the CLI package
+---
 
-### Setup Python Environment
+## 2. Set Up the CLI Environment
 
-First, create and activate a virtual environment (recommended):
+**a. Create and activate a Python virtual environment:**
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # On macOS/Linux
-# Or on Windows: venv\Scripts\activate
+# On Windows: venv\Scripts\activate
 ```
 
-Then install the required dependencies:
+**b. Install the CLI package:**
 
 ```bash
-pip install rakam-systems-cli==0.2.4rc15
+pip install rakam-systems-cli==0.2.4rc16
 ```
 
-### Configuration Options
+---
 
-The client can be configured in the following way:
+## 3. Configure the CLI
 
-**Using environment variables:** The client will automatically pick up the `EVALFRAMEWORK_URL` and `EVALFRAMEWORK_API_KEY` environment variables if they are set or it will try to read from `.env` file in the root of the project.
+The CLI can be configured using environment variables or a `.env` file in your project root.
 
-    ```bash
-    export EVALFRAMEWORK_URL="http://eval-service-url.com"
-    export EVALFRAMEWORK_API_KEY="your-api-token"
-    ```
+**Option 1: Set environment variables**
 
-If no `base_url` is provided, it defaults to `http://localhost:8080`.
+```bash
+export EVALFRAMEWORK_URL="http://eval-service-url.com"
+export EVALFRAMEWORK_API_KEY="your-api-token"
+```
 
-### Writing Evaluation Functions
+If you do not set a `base_url`, it will default to `http://localhost:8080`.
 
-Evaluation functions are placed in the `eval/` directory. Each function must be decorated with `@eval_run` and return an `EvalConfig` or `SchemaEvalConfig` object.
+---
 
-See `eval/examples.py` for complete examples. Here's a simple one:
+## 4. Write Your First Evaluation Function
+
+1. Create an `eval/` directory in your project if it doesn't exist.
+2. Add your evaluation functions there. Each function must:
+   - Be decorated with `@eval_run`
+   - Return an `EvalConfig` or `SchemaEvalConfig` object
+
+**Example:**
 
 ```python
 # eval/examples.py
@@ -73,7 +84,7 @@ from rakam_systems_tools.evaluation.schema import (
 
 @eval_run
 def test_simple_text_eval():
-    """A simple text evaluation showcasing basic client-side metric"""
+    """A simple text evaluation showcasing a basic client-side metric."""
     return EvalConfig(
         component="text_component_1",
         label="demo_simple_text",
@@ -90,22 +101,28 @@ def test_simple_text_eval():
     )
 ```
 
-And then run:
+---
+
+## 5. Run Your Evaluation
+
+From your project root, run:
 
 ```bash
 rakam eval run
 ```
 
-**Key Points:**
+---
 
-- Place evaluation scripts in the `eval/` directory
-- Use `@eval_run` to decorate your function
+## Key Points
+
+- Place all evaluation scripts in the `eval/` directory
+- Decorate each function with `@eval_run`
 - Return a valid config object (`EvalConfig` or `SchemaEvalConfig`)
 - Each input should be a `TextInputItem` or `SchemaInputItem`
-- Specify metrics to be computed
+- Specify the metrics to compute
 
 ---
 
-## CLI Usage
+## More Information
 
-Refer to https://github.com/Rakam-AI/evaluation-tools/blob/ft/better-process-tags/sdk/CLI.md for more information
+For advanced usage and CLI options, see the [full CLI documentation](https://github.com/Rakam-AI/evaluation-tools/blob/ft/better-process-tags/sdk/CLI.md).

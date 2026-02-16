@@ -1,6 +1,8 @@
-# Components Documentation
+# Rakam Systems Components Guide
 
-Rakam Systems is a modular AI framework designed to build production-ready AI applications. It provides a comprehensive set of components for building AI agents, vector stores, and LLM-powered applications.
+Welcome! This guide introduces the modular components of Rakam Systems, a framework for building robust, production-ready AI applications. Here, you'll find clear explanations and practical examples for using agents, vector stores, and configuration systems.
+
+---
 
 ## 📑 Table of Contents
 
@@ -18,358 +20,117 @@ Rakam Systems is a modular AI framework designed to build production-ready AI ap
 
 ## 🏗️ Architecture Overview
 
-Rakam Systems is organized into three independent packages:
+Rakam Systems is split into three main packages:
 
-```
-rakam-systems-inhouse/
-├── rakam-system-core/           # Core abstractions, interfaces, and base classes
-│   └── src/rakam_system_core/
-│       ├── ai_core/             # Core interfaces and base component
-│       │   ├── base.py          # BaseComponent
-│       │   ├── interfaces/      # Abstract interfaces
-│       │   ├── config_loader.py # Configuration system
-│       │   └── tracking.py      # Input/output tracking
-│       └── ai_utils/            # Logging utilities
-├── rakam-system-agent/          # Agent implementations (depends on core)
-│   └── src/rakam_systems_agent/
-│       └── components/
-│           ├── base_agent.py    # BaseAgent implementation
-│           ├── llm_gateway/     # LLM provider gateways
-│           ├── chat_history/    # Chat history backends
-│           └── tools/           # Built-in tools
-└── rakam-system-vectorstore/    # Vector storage (depends on core)
-    └── src/rakam_systems_vectorstore/
-        ├── core.py              # Node, VSFile data structures
-        ├── config.py            # VectorStoreConfig
-        └── components/
-            ├── vectorstore/     # Store implementations
-            ├── embedding_model/ # Embedding models
-            ├── loader/          # Document loaders
-            └── chunker/         # Text chunkers
-```
+- **Core**: Abstractions, interfaces, and base classes
+- **Agent**: AI agent implementations (depends on core)
+- **Vectorstore**: Vector storage and document processing (depends on core)
 
-### Design Principles
+**Design Highlights:**
 
-- **Modular Architecture**: Three independent packages that can be installed separately
-- **Clear Dependencies**: Agent and vectorstore packages depend on core
-- **Component-Based**: All components extend `BaseComponent` with lifecycle management (`setup()`, `shutdown()`)
-- **Interface-Driven**: Abstract interfaces define contracts for extensibility
-- **Configuration-First**: YAML/JSON configuration support for all components
-- **Provider-Agnostic**: Support for multiple LLM providers, embedding models, and vector stores
+- Modular: Install only what you need
+- Clear dependencies: Agent/vectorstore depend on core
+- Component-based: All components extend `BaseComponent` with lifecycle methods (`setup()`, `shutdown()`)
+- Interface-driven: Abstract interfaces for easy extension
+- Configuration-first: YAML/JSON config for all components
+- Provider-agnostic: Works with many LLMs, embedding models, and vector stores
+
+---
 
 ---
 
 ## Core Package (`rakam-systems-core`)
 
-The core package provides foundational abstractions used throughout the system. This package must be installed before using agent or vectorstore packages.
+The core package provides the foundational building blocks for Rakam Systems. Install this first before using agents or vector stores.
 
-### BaseComponent
+**Key Features:**
 
-The base class for all components, providing lifecycle management and evaluation capabilities.
+- Base classes for all components
+- Abstract interfaces for agents, tools, LLM gateways, vector stores, and loaders
+- Built-in tracking for debugging and evaluation
+- Configuration loader for YAML/JSON configs
+
+**Example: Using the BaseComponent**
 
 ```python
 from rakam_system_core.base import BaseComponent
 
-class BaseComponent(ABC):
-    """
-    Base class with:
-    - name and config attributes
-    - setup()/shutdown() lifecycle hooks
-    - __call__ for auto-setup execution
-    - Context manager support
-    - Built-in evaluation harness
-    """
-
-    def __init__(self, name: str, config: Optional[Dict] = None):
-        self.name = name
-        self.config = config or {}
-        self.initialized = False
-
-    def setup(self) -> None:
-        """Initialize heavy resources - override in subclasses."""
-        self.initialized = True
-
-    def shutdown(self) -> None:
-        """Release resources - override in subclasses."""
-        self.initialized = False
-
-    @abstractmethod
-    def run(self, *args, **kwargs) -> Any:
-        """Execute the primary operation."""
-        raise NotImplementedError
+class MyComponent(BaseComponent):
+    def setup(self):
+        # Initialization logic
+        pass
+    def shutdown(self):
+        # Cleanup logic
+        pass
 ```
 
-### Interfaces
-
-Located in `interfaces/`, these define the contracts for various component types:
-
-#### AgentComponent
+**Tracking Example:**
 
 ```python
-from rakam_system_core.interfaces.agent import AgentComponent, AgentInput, AgentOutput
-
-class AgentInput:
-    """Input DTO for agents."""
-    input_text: str
-    context: Dict[str, Any]
-
-class AgentOutput:
-    """Output DTO for agents."""
-    output_text: str
-    metadata: Dict[str, Any]
-    output: Optional[Any]  # Structured output when output_type is used
-
-class AgentComponent(BaseComponent, ABC):
-    """Abstract agent interface with streaming and async support."""
-
-    def run(input_data, deps=None, model_settings=None) -> AgentOutput
-    async def arun(input_data, deps=None, model_settings=None) -> AgentOutput
-    def stream(input_data, deps=None) -> Iterator[str]
-    async def astream(input_data, deps=None) -> AsyncIterator[str]
-```
-
-#### ToolComponent
-
-```python
-from rakam_system_core.interfaces.tool import ToolComponent
-
-class ToolComponent(BaseComponent, ABC):
-    """
-    Base class for callable tools, compatible with Pydantic AI.
-
-    Attributes:
-        name: Unique tool name
-        description: Human-readable description
-        function: The callable function
-        json_schema: JSON schema for parameters
-        takes_ctx: Whether tool takes context as first argument
-    """
-
-    @classmethod
-    def from_function(cls, function, name, description, json_schema, takes_ctx=False):
-        """Create a ToolComponent from a standalone function."""
-```
-
-#### ToolRegistry
-
-Central registry for managing tools across the system:
-
-```python
-from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMode
-
-registry = ToolRegistry()
-
-# Register a direct tool
-registry.register_direct_tool(
-    name="calculate",
-    function=lambda x, y: x + y,
-    description="Add two numbers",
-    json_schema={...},
-    category="math",
-    tags=["arithmetic"]
-)
-
-# Register an MCP tool
-registry.register_mcp_tool(
-    name="search",
-    mcp_server="search_server",
-    mcp_tool_name="web_search",
-    description="Search the web"
-)
-
-# Query tools
-tools = registry.get_tools_by_category("math")
-tools = registry.get_tools_by_tag("arithmetic")
-tools = registry.get_tools_by_mode(ToolMode.DIRECT)
-```
-
-#### LLMGateway
-
-```python
-from rakam_systems_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
-
-class LLMRequest(BaseModel):
-    system_prompt: Optional[str]
-    user_prompt: str
-    temperature: Optional[float]
-    max_tokens: Optional[int]
-    extra_params: Dict[str, Any]
-
-class LLMResponse(BaseModel):
-    content: str
-    parsed_content: Optional[Any]
-    usage: Optional[Dict[str, Any]]
-    model: Optional[str]
-    finish_reason: Optional[str]
-
-class LLMGateway(BaseComponent, ABC):
-    """Abstract LLM gateway for provider-agnostic LLM interactions."""
-
-    def generate(request: LLMRequest) -> LLMResponse
-    def generate_structured(request: LLMRequest, schema: Type[T]) -> T
-    def stream(request: LLMRequest) -> Iterator[str]
-    def count_tokens(text: str, model: str = None) -> int
-```
-
-#### VectorStore
-
-```python
-from rakam_systems_core.interfaces.vectorstore import VectorStore
-
-class VectorStore(BaseComponent, ABC):
-    """Abstract vector store interface."""
-
-    def add(vectors: List[List[float]], metadatas: List[Dict]) -> Any
-    def query(vector: List[float], top_k: int = 5) -> List[Dict]
-    def count() -> Optional[int]
-```
-
-#### Loader
-
-```python
-from rakam_systems_core.interfaces.loader import Loader
-
-class Loader(BaseComponent, ABC):
-    """Abstract document loader interface."""
-
-    def load_as_text(source: Union[str, Path]) -> str
-    def load_as_chunks(source: Union[str, Path]) -> List[str]
-    def load_as_nodes(source, source_id=None, custom_metadata=None) -> List[Node]
-    def load_as_vsfile(file_path, custom_metadata=None) -> VSFile
-```
-
-### Tracking System
-
-Built-in input/output tracking for debugging and evaluation:
-
-```python
-from rakam_systems_core.tracking import TrackingManager, track_method, TrackingMixin
+from rakam_systems_core.tracking import TrackingMixin, track_method
 
 class MyAgent(TrackingMixin, BaseAgent):
     @track_method()
-    async def arun(self, input_data, deps=None):
-        return await super().arun(input_data, deps)
+    def run(self, input):
+        ...
 
 # Enable tracking
 agent.enable_tracking(output_dir="./tracking")
-
-# Export tracking data
 agent.export_tracking_data(format='csv')
-agent.export_tracking_data(format='json')
-
-# Get statistics
-stats = agent.get_tracking_statistics()
 ```
 
-### Configuration Loader
-
-Load agent configurations from YAML files:
+**Configuration Loader Example:**
 
 ```python
 from rakam_systems_core.config_loader import ConfigurationLoader
 
 loader = ConfigurationLoader()
 config = loader.load_from_yaml("agent_config.yaml")
-
-# Create agents from config
 agent = loader.create_agent("my_agent", config)
-all_agents = loader.create_all_agents(config)
-
-# Get tool registry
-registry = loader.get_tool_registry(config)
-
-# Validate configuration
-is_valid, errors = loader.validate_config("config.yaml")
 ```
 
 ---
 
 ## 🤖 Agent Package (`rakam-system-agent`)
 
-The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent` (requires core).
+The agent package provides ready-to-use AI agent implementations powered by Pydantic AI. Install with:
 
-### BaseAgent
+```bash
+pip install rakam-systems-agent
+```
 
-The main agent implementation using Pydantic AI:
+(Requires the core package.)
+
+**Key Features:**
+
+- BaseAgent class for building and running agents
+- Dynamic system prompts for context-aware responses
+- Multiple chat history backends (JSON, SQLite, PostgreSQL)
+- LLM gateway support (OpenAI, Mistral, and more)
+
+**Example: Running an Agent**
 
 ```python
 from rakam_systems_agent import BaseAgent
-from rakam_systems_core.interfaces.agent import AgentInput, AgentOutput, ModelSettings
 
-agent = BaseAgent(
-    name="my_agent",
-    model="openai:gpt-4o",
-    system_prompt="You are a helpful assistant.",
-    tools=[my_tool],  # Optional tools
-    output_type=MyOutputModel,  # Optional structured output
-    enable_tracking=True  # Optional tracking
-)
-
-# Async inference (required for Pydantic AI)
+agent = BaseAgent(name="my_agent", enable_tracking=True)
 result = await agent.arun("What is AI?")
 print(result.output_text)
-
-# With dependencies
-result = await agent.arun("Hello", deps={"user_id": "123"})
-
-# With model settings
-settings = ModelSettings(temperature=0.5, max_tokens=1000)
-result = await agent.arun("Explain quantum computing", model_settings=settings)
-
-# Streaming
-async for chunk in agent.astream("Tell me a story"):
-    print(chunk, end="")
 ```
 
-#### Dynamic System Prompts
+**Dynamic System Prompts:**
 
-Dynamic system prompts allow you to inject context at runtime based on current state, user information, or external data:
+Inject context at runtime using decorators or direct registration:
 
 ```python
-from datetime import date, datetime
-from pydantic_ai import RunContext
-
-agent = BaseAgent(
-    name="dynamic_agent",
-    model="openai:gpt-4o",
-    system_prompt="You are a helpful assistant."
-)
-
-# Method 1: Decorator syntax
 @agent.dynamic_system_prompt
-def add_date() -> str:
-    """Add current date to system prompt."""
+
     return f"Today's date is {date.today().strftime('%B %d, %Y')}."
 
-@agent.dynamic_system_prompt
-def add_user_context(ctx: RunContext[dict]) -> str:
-    """Add user-specific context from dependencies."""
-    if ctx.deps and "user_name" in ctx.deps:
-        return f"You are assisting {ctx.deps['user_name']}."
-    return ""
-
-# Method 2: Direct registration
-def add_time_context() -> str:
-    """Add current time to system prompt."""
-    return f"Current time: {datetime.now().strftime('%H:%M:%S')}"
-
 agent.add_dynamic_system_prompt(add_time_context)
-
-# Method 3: Async dynamic prompts
-@agent.dynamic_system_prompt
-async def fetch_external_context(ctx: RunContext[dict]) -> str:
-    """Fetch and add external context asynchronously."""
-    # Example: fetch from API or database
-    import asyncio
-    await asyncio.sleep(0.1)
-    return "Additional context from external source."
-
-# Usage with dependencies
-result = await agent.arun(
-    "What day is it?",
-    deps={"user_name": "Alice", "user_id": "123"}
-)
 ```
+
+---
 
 ### LLM Gateways
 
@@ -531,85 +292,33 @@ history.shutdown()
 
 ## 🔍 Vectorstore Package (`rakam-system-vectorstore`)
 
-The vectorstore package provides vector database solutions and document processing. Install with `pip install -e ./rakam-system-vectorstore` (requires core).
+The vectorstore package provides vector database and document processing tools. Install with:
 
-### Core Data Structures
-
-```python
-from rakam_systems_vectorstore.core import Node, NodeMetadata, VSFile
-
-# VSFile - Represents a document source
-vsfile = VSFile(file_path="/path/to/document.pdf")
-print(vsfile.uuid, vsfile.file_name, vsfile.mime_type)
-
-# NodeMetadata - Metadata for document chunks
-metadata = NodeMetadata(
-    source_file_uuid=str(vsfile.uuid),
-    position=0,  # Page number or chunk position
-    custom={"author": "John", "date": "2024-01-01"}
-)
-
-# Node - A chunk with content and metadata
-node = Node(content="Document content here...", metadata=metadata)
-node.embedding = [0.1, 0.2, 0.3, ...]  # Set after embedding
+```bash
+pip install -e ./rakam-system-vectorstore
 ```
 
-### ConfigurablePgVectorStore
+(Requires the core package.)
 
-Enhanced PostgreSQL vector store with full configuration support:
+**Key Features:**
+
+- Store and search document embeddings
+- Hybrid, vector, and keyword search
+- Multi-backend embedding support (OpenAI, Cohere, HuggingFace, etc.)
+- Adaptive file loaders for many formats
+
+**Example: Using the Vector Store**
 
 ```python
 from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
-# From configuration object
 config = VectorStoreConfig()
 store = ConfigurablePgVectorStore(config=config)
-
-# From YAML file
-store = ConfigurablePgVectorStore(config="vectorstore_config.yaml")
-
-# From dictionary
-store = ConfigurablePgVectorStore(config={
-    "name": "my_store",
-    "embedding": {
-        "model_type": "sentence_transformer",
-        "model_name": "Snowflake/snowflake-arctic-embed-m"
-    },
-    "search": {
-        "similarity_metric": "cosine",
-        "enable_hybrid_search": True,
-        "hybrid_alpha": 0.7
-    }
-})
-
-# Setup (initializes embedding model, database tables)
 store.setup()
-
-# Add documents
-store.add_nodes(nodes)
-store.add_vsfile(vsfile)
-
-# Vector search (semantic similarity)
 results = store.search("What is machine learning?", top_k=5)
-
-# Hybrid search (combines vector + keyword search)
-results = store.hybrid_search("machine learning", top_k=10, alpha=0.7)
-
-# Keyword search (full-text search with BM25 or ts_rank)
-results = store.keyword_search(
-    query="machine learning algorithms",
-    top_k=10,
-    ranking_algorithm="bm25",  # or "ts_rank"
-    k1=1.2,  # BM25 parameter
-    b=0.75   # BM25 parameter
-)
-
-# Update vectors
-store.update_vector(node_id, new_embedding)
-
-# Cleanup
-store.shutdown()
 ```
+
+---
 
 #### Keyword Search
 
@@ -983,216 +692,37 @@ logger.error("An error occurred")
 
 ## ⚙️ Configuration System
 
-**The Core Advantage: Configuration Without Code Changes**
+Rakam Systems is configuration-first: you can change agent behavior, vector store settings, and more—without touching your code.
 
-Rakam Systems embraces a configuration-first approach, allowing you to modify agent behavior, vector store settings, and system parameters without touching your application code. This provides:
+**Why use configuration?**
 
-### Benefits of Configuration-First Design
+- Rapidly test different models, prompts, or parameters
+- Manage dev/staging/production environments easily
+- Enable A/B testing and team collaboration
+- Optimize costs and reduce deployment risk
 
-1. **Rapid Iteration**: Test different models, prompts, or parameters instantly
-2. **Environment Management**: Use different configs for dev/staging/production
-3. **A/B Testing**: Compare performance of different settings by swapping configs
-4. **Team Collaboration**: Non-developers can tune prompts and parameters
-5. **Cost Optimization**: Switch to cheaper models for development, expensive for production
-6. **Risk Reduction**: Change behavior without code deployment risks
-
-### Real-World Scenarios
-
-**Scenario 1: Model Optimization**
+**Example: Switching Models with YAML**
 
 ```yaml
-# Week 1: Start with GPT-4o
+# Week 1: Use GPT-4o
 model: openai:gpt-4o
 temperature: 0.7
 
-# Week 2: Test GPT-4o-mini for cost savings (no code changes!)
+# Week 2: Try GPT-4o-mini (no code changes!)
 model: openai:gpt-4o-mini
 temperature: 0.7
-
-# Week 3: Back to GPT-4o for production (just revert config)
-model: openai:gpt-4o
-temperature: 0.5  # Also tuned temperature
 ```
 
-**Scenario 2: Search Algorithm Testing**
-
-```yaml
-# Current: Using BM25 for keyword search
-search:
-  keyword_ranking_algorithm: bm25
-
-# Test: Try ts_rank (just update config, no code changes!)
-search:
-  keyword_ranking_algorithm: ts_rank
-
-# Decide: Compare results and keep the best one
-```
-
-**Scenario 3: Multi-Environment Deployment**
+**Example: Programmatic Configuration**
 
 ```python
-# Application code (never changes)
-import os
-config_file = os.getenv("AGENT_CONFIG", "config/agent_config.yaml")
-config = loader.load_from_yaml(config_file)
-agent = loader.create_agent("my_agent", config)
+from rakam_systems_vectorstore.config import VectorStoreConfig
 
-# Dev: AGENT_CONFIG=config/agent_config_dev.yaml
-# Staging: AGENT_CONFIG=config/agent_config_staging.yaml
-# Prod: AGENT_CONFIG=config/agent_config_prod.yaml
-```
-
-## ⚙️ Configuration System Details
-
-### VectorStoreConfig
-
-```python
-from rakam_systems_vectorstore.config import (
-    VectorStoreConfig,
-    EmbeddingConfig,
-    DatabaseConfig,
-    SearchConfig,
-    IndexConfig,
-    load_config
-)
-
-# Programmatic configuration
-config = VectorStoreConfig(
-    name="my_vectorstore",
-    embedding=EmbeddingConfig(
-        model_type="sentence_transformer",
-        model_name="Snowflake/snowflake-arctic-embed-m",
-        batch_size=128,
-        normalize=True
-    ),
-    database=DatabaseConfig(
-        host="localhost",
-        port=5432,
-        database="vectorstore_db",
-        user="postgres",
-        password="postgres"
-    ),
-    search=SearchConfig(
-        similarity_metric="cosine",
-        default_top_k=5,
-        enable_hybrid_search=True,
-        hybrid_alpha=0.7
-    ),
-    index=IndexConfig(
-        chunk_size=512,
-        chunk_overlap=50,
-        batch_insert_size=10000
-    )
-)
-
-# From YAML file
-config = VectorStoreConfig.from_yaml("config.yaml")
-
-# From JSON file
-config = VectorStoreConfig.from_json("config.json")
-
-# From dictionary
-config = VectorStoreConfig.from_dict(config_dict)
-
-# Validation
-config.validate()
-
-# Save configuration
+config = VectorStoreConfig(name="my_vectorstore")
 config.save_yaml("output_config.yaml")
-config.save_json("output_config.json")
 ```
 
-### YAML Configuration Example
-
-```yaml
-# vectorstore_config.yaml
-name: production_vectorstore
-
-embedding:
-  model_type: sentence_transformer
-  model_name: Snowflake/snowflake-arctic-embed-m
-  batch_size: 128
-  normalize: true
-
-database:
-  host: localhost
-  port: 5432
-  database: vectorstore_db
-  user: postgres
-  password: postgres
-
-search:
-  similarity_metric: cosine
-  default_top_k: 5
-  enable_hybrid_search: true
-  hybrid_alpha: 0.7
-
-index:
-  chunk_size: 512
-  chunk_overlap: 50
-  batch_insert_size: 10000
-
-enable_caching: true
-cache_size: 1000
-enable_logging: true
-log_level: INFO
-```
-
-### Agent Configuration Example
-
-```yaml
-# agent_config.yaml
-agents:
-  my_agent:
-    name: my_agent
-    llm_config:
-      model: openai:gpt-4o
-      temperature: 0.7
-      max_tokens: 2000
-      parallel_tool_calls: true
-    prompt_config: default_prompt
-    tools:
-      - search_tool
-      - calculator
-    deps_type: myapp.models.AgentDeps
-    output_type:
-      name: AgentOutput
-      fields:
-        answer:
-          type: str
-          description: The answer
-        confidence:
-          type: float
-          description: Confidence score
-    enable_tracking: true
-
-prompts:
-  default_prompt:
-    system_prompt: |
-      You are a helpful AI assistant.
-      Always provide accurate and helpful responses.
-
-tools:
-  search_tool:
-    name: search_tool
-    type: direct
-    module: myapp.tools
-    function: search
-    description: Search for information
-    json_schema:
-      type: object
-      properties:
-        query:
-          type: string
-      required: [query]
-
-  calculator:
-    name: calculator
-    type: direct
-    module: myapp.tools
-    function: calculate
-    description: Perform calculations
-```
+---
 
 ---
 
