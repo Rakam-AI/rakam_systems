@@ -6,8 +6,8 @@ Rakam Systems is a modular AI framework designed to build production-ready AI ap
 
 1. [🏗️ Architecture Overview](#️-architecture-overview)
 2. [🧱 Core Package (`rakam-system-core`)](#core-package-rakam-systems-core)
-3. [🤖 Agent Package (`rakam-system-agent`)](#-agent-package-rakam-system-agent)
-4. [🔍 Vectorstore Package (`rakam-system-vectorstore`)](#-vectorstore-package-rakam-system-vectorstore)
+3. [🤖 Agent Package (`rakam-systems-agent`)](#-agent-package-rakam-systems-agent)
+4. [🔍 Vectorstore Package (`rakam-systems-vectorstore`)](#-vectorstore-package-rakam-systems-vectorstore)
 5. [⚙️ Configuration System](#️-configuration-system)
 6. [🚀 Quick Start Examples](#-quick-start-examples)
 7. [🌍 Environment Variables](#environment-variables)
@@ -284,9 +284,9 @@ is_valid, errors = loader.validate_config("config.yaml")
 
 ---
 
-## 🤖 Agent Package (`rakam-system-agent`)
+## 🤖 Agent Package (`rakam-systems-agent`)
 
-The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install -e ./rakam-system-agent` (requires core).
+The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install -e ./rakam-systems-agent` (requires core).
 
 ### BaseAgent
 
@@ -529,9 +529,9 @@ history.shutdown()
 
 ---
 
-## 🔍 Vectorstore Package (`rakam-system-vectorstore`)
+## 🔍 Vectorstore Package (`rakam-systems-vectorstore`)
 
-The vectorstore package provides vector database solutions and document processing. Install with `pip install -e ./rakam-system-vectorstore` (requires core).
+The vectorstore package provides vector database solutions and document processing. Install with `pip install -e ./rakam-systems-vectorstore` (requires core).
 
 ### Core Data Structures
 
@@ -1374,5 +1374,5 @@ The system supports the following environment variables:
 - Example configurations: `examples/configs/`
 - Agent examples: `examples/ai_agents_examples/`
 - Vector store examples: `examples/ai_vectorstore_examples/`
-- Loader documentation: `rakam-system-vectorstore/src/rakam_systems_vectorstore/components/loader/docs/`
-- Architecture documentation: `rakam-system-vectorstore/src/rakam_systems_vectorstore/docs/ARCHITECTURE.md`
+- Loader documentation: `rakam-systems-vectorstore/src/rakam_systems_vectorstore/components/loader/docs/`
+- Architecture documentation: `rakam-systems-vectorstore/src/rakam_systems_vectorstore/docs/ARCHITECTURE.md`

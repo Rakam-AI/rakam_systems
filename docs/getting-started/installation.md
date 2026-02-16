@@ -64,7 +64,7 @@ pip install rakam-systems-agent[all]==0.1.1rc9
 pip install rakam-systems-vectorstore[all]==0.1.1rc10
 
 # Agent + Vectorstore (for RAG applications)
-pip install rakam-system-agent[all]==0.1.1rc9 rakam-systems-vectorstore[all]==0.1.1rc10
+pip install rakam-systems-agent[all]==0.1.1rc9 rakam-systems-vectorstore[all]==0.1.1rc10
 ```
 
 ---

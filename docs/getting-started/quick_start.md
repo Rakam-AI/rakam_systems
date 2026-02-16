@@ -33,16 +33,16 @@ Get up and running with Rakam Systems in 5 minutes!
 
 ```bash
 # Install core package (required)
-pip install -e ./rakam-system-core
+pip install rakam-system-core
 
 # Install agent package for AI agents
-pip install -e ./rakam-system-agent
+pip install rakam-systems-agent[all]
 
 # Install vectorstore package for vector search
-pip install -e ./rakam-system-vectorstore
+pip install rakam-systems-vectorstore[all]
 
 # Or install everything at once
-pip install -e ./rakam-system-core ./rakam-system-agent ./rakam-system-vectorstore
+pip install rakam-systems
 ```
 
 Set your API key:
