@@ -46,7 +46,7 @@ pip install -e ./rakam-systems-agent
 
 ```python
 import asyncio
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 from rakam_systems_core.interfaces import ModelSettings
 from rakam_systems_core.interfaces.tool import ToolComponent as Tool
 
@@ -260,7 +260,7 @@ See the `examples/ai_agents_examples/` directory in the main repository for comp
 
 ```
 rakam-systems-agent/
-├── src/rakam_system_agent/
+├── src/rakam_systems_agent/
 │   ├── components/
 │   │   ├── base_agent.py         # BaseAgent (Pydantic AI-powered)
 │   │   ├── llm_gateway/          # LLM provider gateways
@@ -286,7 +286,7 @@ rakam-systems-agent/
 `BaseAgent` is the core Pydantic AI-powered agent implementation in this framework.
 
 ```python
-from rakam_system_agent import BaseAgent
+from rakam_systems_agent import BaseAgent
 
 agent = BaseAgent(
     name="agent",

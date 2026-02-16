@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rakam-systems"
-version = "0.2.5rc5"
+version = "0.2.5rc9"
 description = "Rakam Systems - Modular AI framework with agents, vectorstore, and LLM gateway"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -26,8 +26,8 @@ classifiers = [
 
 dependencies = [
     
-    "rakam-systems-tools==0.1.0rc1",
-    "rakam-systems-agent[all]==0.1.1rc9",
-    "rakam-systems-vectorstore[all]==0.1.1rc10",
-    "rakam-systems-cli==0.2.4rc15"
+    "rakam-systems-tools==0.1.0rc4",
+    "rakam-systems-agent[all]==0.1.1rc12",
+    "rakam-systems-vectorstore[all]==0.1.1rc11",
+    "rakam-systems-cli==0.2.4rc16"
 ]

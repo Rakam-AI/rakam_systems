@@ -32,7 +32,7 @@ rakam_systems/
 
 ## Import Structure
 
-### Why Use `from rakam_system_vectorstore.*`?
+### Why Use `from rakam_systems_vectorstore.*`?
 
 The module uses **namespace package** pattern for several important reasons:
 
@@ -48,6 +48,7 @@ from rakam_system_core.ai_core.base import BaseComponent
 ```
 
 These interfaces ensure:
+
 - Consistent API across all rakam_systems components
 - Type safety and IDE support
 - Interoperability with other rakam_systems modules (e.g., ai_agents)
@@ -59,11 +60,12 @@ When installed standalone, the `setup.py` includes both modules:
 ```python
 packages=find_packages(
     where="..",
-    include=["rakam_system_vectorstore*", "rakam_system_core*"]
+    include=["rakam_systems_vectorstore*", "rakam_system_core*"]
 )
 ```
 
 This means:
+
 - Users get all required interfaces automatically
 - No code duplication
 - Single source of truth for interfaces
@@ -71,15 +73,16 @@ This means:
 #### 3. Consistent Import Pattern
 
 Whether installed as:
+
 - `pip install rakam-systems[ai-vectorstore]` (part of full framework)
 - `pip install ./rakam_systems/ai_vectorstore` (standalone)
 
 Users **always import the same way**:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore
-from rakam_system_vectorstore import Node, NodeMetadata
-from rakam_system_vectorstore.config import VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import Node, NodeMetadata
+from rakam_systems_vectorstore.config import VectorStoreConfig
 ```
 
 ## Internal vs External Imports
@@ -90,12 +93,13 @@ These are imports within the ai_vectorstore module:
 
 ```python
 # ✅ Correct: Internal imports use full path
-from rakam_system_vectorstore.core import Node, NodeMetadata
-from rakam_system_vectorstore.config import VectorStoreConfig
-from rakam_system_vectorstore.components.vectorstore.pg_models import Collection
+from rakam_systems_vectorstore.core import Node, NodeMetadata
+from rakam_systems_vectorstore.config import VectorStoreConfig
+from rakam_systems_vectorstore.components.vectorstore.pg_models import Collection
 ```
 
 **Why not relative imports?**
+
 - Clearer and more explicit
 - Easier to refactor and move files
 - Consistent with cross-module imports
@@ -113,6 +117,7 @@ from rakam_system_core.ai_core.base import BaseComponent
 ```
 
 **Why this pattern?**
+
 - ai_core provides standard interfaces
 - All components share the same base classes
 - Enables plugin architecture
@@ -209,7 +214,7 @@ Installs ai_vectorstore + ai_core (minimal rakam_systems footprint).
 **In all cases, imports are identical:**
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
 ```
 
 ## Package Distribution
@@ -221,10 +226,10 @@ When distributed via PyPI (future):
 pip install rakam-systems-ai-vectorstore
 
 # Still import as:
-from rakam_system_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
 ```
 
-The package name (`rakam-systems-ai-vectorstore`) is different from the import path (`rakam_system_vectorstore`), which is standard Python practice.
+The package name (`rakam-systems-ai-vectorstore`) is different from the import path (`rakam_systems_vectorstore`), which is standard Python practice.
 
 ## Design Principles
 
@@ -240,11 +245,12 @@ The current import structure:
 
 ```python
 from rakam_system_core.ai_core.interfaces.vectorstore import VectorStore
-from rakam_system_vectorstore.core import Node, NodeMetadata
-from rakam_system_vectorstore.config import VectorStoreConfig
+from rakam_systems_vectorstore.core import Node, NodeMetadata
+from rakam_systems_vectorstore.config import VectorStoreConfig
 ```
 
 Is the **correct and recommended approach** for a namespace submodule that:
+
 - Can be installed standalone
 - Shares interfaces with other components
 - Maintains consistency across installation modes
@@ -260,4 +266,3 @@ Is the **correct and recommended approach** for a namespace submodule that:
 
 **Last Updated**: 2025-11-18  
 **Author**: Rakam Systems Team
-

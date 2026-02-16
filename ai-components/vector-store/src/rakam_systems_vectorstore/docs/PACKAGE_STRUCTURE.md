@@ -94,13 +94,13 @@ ai_vectorstore Components
 ```
 User Code
    │
-   ├─ from rakam_system_vectorstore import ConfigurablePgVectorStore
+   ├─ from rakam_systems_vectorstore import ConfigurablePgVectorStore
    │                  │
    │                  └─→ rakam_systems/ai_vectorstore/__init__.py
    │                                  │
    │                                  └─→ Lazy import from components/
    │
-   ├─ from rakam_system_vectorstore.config import VectorStoreConfig
+   ├─ from rakam_systems_vectorstore.config import VectorStoreConfig
    │                  │
    │                  └─→ rakam_systems/ai_vectorstore/config.py
    │
@@ -396,12 +396,12 @@ pip install -e ".[faiss,openai]"
 ### Main Exports (`__init__.py`)
 
 ```python
-from rakam_system_vectorstore import (
+from rakam_systems_vectorstore import (
     # Data structures
     Node,
     NodeMetadata,
     VSFile,
-    
+
     # Configuration
     VectorStoreConfig,
     EmbeddingConfig,
@@ -409,12 +409,12 @@ from rakam_system_vectorstore import (
     SearchConfig,
     IndexConfig,
     load_config,
-    
+
     # Vector stores (lazy loaded)
     ConfigurablePgVectorStore,  # ⭐ Recommended
     PgVectorStore,              # Legacy
     FaissVectorStore,
-    
+
     # Components (lazy loaded)
     AdaptiveLoader,
     ConfigurableEmbeddings,
@@ -426,7 +426,7 @@ from rakam_system_vectorstore import (
 ### Configuration API
 
 ```python
-from rakam_system_vectorstore.config import (
+from rakam_systems_vectorstore.config import (
     VectorStoreConfig,
     EmbeddingConfig,
     DatabaseConfig,
@@ -440,20 +440,20 @@ from rakam_system_vectorstore.config import (
 
 ```python
 # Vector stores
-from rakam_system_vectorstore.components.vectorstore import (
+from rakam_systems_vectorstore.components.vectorstore import (
     ConfigurablePgVectorStore,
     PgVectorStore,
     FaissStore,
 )
 
 # Embeddings
-from rakam_system_vectorstore.components.embedding_model import (
+from rakam_systems_vectorstore.components.embedding_model import (
     ConfigurableEmbeddings,
     OpenAIEmbeddings,
 )
 
 # Loaders
-from rakam_system_vectorstore.components.loader import (
+from rakam_systems_vectorstore.components.loader import (
     AdaptiveLoader,
     FileLoader,
 )
@@ -470,14 +470,16 @@ The `ai_vectorstore` package:
 ✅ **Integrated**: Works with other rakam_systems components  
 ✅ **Configurable**: YAML/JSON configuration support  
 ✅ **Extensible**: Clear interfaces for custom implementations  
-✅ **Production-Ready**: Multiple backend options  
+✅ **Production-Ready**: Multiple backend options
 
 Import as:
+
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
 ```
 
 Whether installed via:
+
 - `pip install rakam-systems[ai-vectorstore]`
 - `pip install ./ai_vectorstore[all]`
 - `pip install ./ai_vectorstore[postgres,local-embeddings]`
@@ -485,7 +487,7 @@ Whether installed via:
 ---
 
 **See also**:
+
 - [INSTALLATION.md](INSTALLATION.md) - Installation guide
 - [ARCHITECTURE.md](ARCHITECTURE.md) - Design decisions
 - [README.md](README.md) - Usage documentation
-

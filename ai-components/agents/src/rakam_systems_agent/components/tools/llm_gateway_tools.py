@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Type
 from pydantic import BaseModel
 
 from rakam_systems_core.interfaces.llm_gateway import LLMGateway, LLMRequest, LLMResponse
-from rakam_system_agent.components.llm_gateway import get_llm_gateway
+from rakam_systems_agent.components.llm_gateway import get_llm_gateway
 
 
 # === LLM Gateway Tool Functions ===

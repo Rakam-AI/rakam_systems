@@ -29,7 +29,7 @@ For legacy `.doc` file support, you'll need one of:
 ### Basic Usage
 
 ```python
-from rakam_system_vectorstore.components.loader import DocLoader, create_doc_loader
+from rakam_systems_vectorstore.components.loader import DocLoader, create_doc_loader
 
 # Using factory function (recommended)
 loader = create_doc_loader()
@@ -65,7 +65,7 @@ chunks = loader.run("report.docx")
 ### Using DocLoader Class Directly
 
 ```python
-from rakam_system_vectorstore.components.loader import DocLoader
+from rakam_systems_vectorstore.components.loader import DocLoader
 
 loader = DocLoader(config={
     'chunk_size': 2048,
@@ -85,18 +85,18 @@ nodes = loader.load_as_nodes(
 
 ## Configuration Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `chunk_size` | int | 2048 | Maximum tokens per chunk |
-| `chunk_overlap` | int | 128 | Overlap between consecutive chunks |
-| `min_sentences_per_chunk` | int | 1 | Minimum sentences to include in each chunk |
-| `tokenizer` | str | "character" | Tokenizer type: "character", "gpt2", or HuggingFace model ID |
-| `embed_model_id` | str | "sentence-transformers/all-MiniLM-L6-v2" | Model ID for tokenization |
-| `save_images` | bool | True | Whether to extract and save images |
-| `scratch_folder_name` | str | "scratch" | Name of folder to store extracted images |
-| `include_images_in_text` | bool | True | Whether to append image references to text |
-| `extract_tables` | bool | True | Whether to include table content |
-| `preserve_formatting` | bool | False | Whether to add markdown formatting markers |
+| Option                    | Type | Default                                  | Description                                                  |
+| ------------------------- | ---- | ---------------------------------------- | ------------------------------------------------------------ |
+| `chunk_size`              | int  | 2048                                     | Maximum tokens per chunk                                     |
+| `chunk_overlap`           | int  | 128                                      | Overlap between consecutive chunks                           |
+| `min_sentences_per_chunk` | int  | 1                                        | Minimum sentences to include in each chunk                   |
+| `tokenizer`               | str  | "character"                              | Tokenizer type: "character", "gpt2", or HuggingFace model ID |
+| `embed_model_id`          | str  | "sentence-transformers/all-MiniLM-L6-v2" | Model ID for tokenization                                    |
+| `save_images`             | bool | True                                     | Whether to extract and save images                           |
+| `scratch_folder_name`     | str  | "scratch"                                | Name of folder to store extracted images                     |
+| `include_images_in_text`  | bool | True                                     | Whether to append image references to text                   |
+| `extract_tables`          | bool | True                                     | Whether to include table content                             |
+| `preserve_formatting`     | bool | False                                    | Whether to add markdown formatting markers                   |
 
 ## Output Formats
 
@@ -172,7 +172,7 @@ If all methods fail, an error is raised with installation suggestions.
 The `DocLoader` can also be used through the `AdaptiveLoader`, which automatically detects file types:
 
 ```python
-from rakam_system_vectorstore.components.loader import AdaptiveLoader
+from rakam_systems_vectorstore.components.loader import AdaptiveLoader
 
 loader = AdaptiveLoader()
 chunks = loader.run("document.docx")  # Automatically uses DocLoader logic
@@ -181,7 +181,7 @@ chunks = loader.run("document.docx")  # Automatically uses DocLoader logic
 ## Error Handling
 
 ```python
-from rakam_system_vectorstore.components.loader import DocLoader
+from rakam_systems_vectorstore.components.loader import DocLoader
 
 loader = DocLoader()
 

@@ -16,7 +16,7 @@ The `EmlLoader` is a specialized loader for processing email files in EML format
 
 ## Installation
 
-The EML loader is part of the `rakam_system_vectorstore` package. Ensure you have the required dependencies:
+The EML loader is part of the `rakam_systems_vectorstore` package. Ensure you have the required dependencies:
 
 ```bash
 pip install beautifulsoup4  # For HTML to text conversion
@@ -28,7 +28,7 @@ pip install chonkie==1.4.2  # For text chunking
 ### Basic Usage
 
 ```python
-from rakam_system_vectorstore.components.loader import create_eml_loader
+from rakam_systems_vectorstore.components.loader import create_eml_loader
 
 # Create loader with default settings
 loader = create_eml_loader()
@@ -144,7 +144,7 @@ Attachments are currently skipped during processing. Only inline text content is
 The `EmlLoader` is automatically integrated with `AdaptiveLoader`, which can detect and process EML files:
 
 ```python
-from rakam_system_vectorstore.components.loader import AdaptiveLoader
+from rakam_systems_vectorstore.components.loader import AdaptiveLoader
 
 loader = AdaptiveLoader()
 chunks = loader.run("path/to/email.eml")  # Automatically uses EmlLoader
@@ -171,23 +171,25 @@ EML File → Email Parser → Header Extraction → Body Extraction → Text Chu
 
 ## Comparison with Other Loaders
 
-| Feature | EmlLoader | PdfLoader | OdtLoader |
-|---------|-----------|-----------|-----------|
-| Chunker | TextChunker | AdvancedChunker | AdvancedChunker |
-| Structure | Simple text | Complex layout | Document structure |
-| Images | No | Yes | Yes |
-| Tables | No | Yes | No |
-| Speed | Fast | Slower | Medium |
-| Use Case | Emails | Documents | Office docs |
+| Feature   | EmlLoader   | PdfLoader       | OdtLoader          |
+| --------- | ----------- | --------------- | ------------------ |
+| Chunker   | TextChunker | AdvancedChunker | AdvancedChunker    |
+| Structure | Simple text | Complex layout  | Document structure |
+| Images    | No          | Yes             | Yes                |
+| Tables    | No          | Yes             | No                 |
+| Speed     | Fast        | Slower          | Medium             |
+| Use Case  | Emails      | Documents       | Office docs        |
 
 ## Examples
 
 See the complete examples in:
+
 ```
 rakam_systems/examples/ai_vectorstore_examples/eml_loader_example.py
 ```
 
 Run the examples:
+
 ```bash
 python rakam_systems/examples/ai_vectorstore_examples/eml_loader_example.py
 ```
@@ -214,6 +216,7 @@ except Exception as e:
 - **Large emails** (>100KB): ~0.1-0.5s processing time
 
 Processing time depends on:
+
 - Email size
 - Number of HTML parts
 - Chunk size settings
@@ -237,6 +240,7 @@ Processing time depends on:
 ## Future Enhancements
 
 Potential improvements:
+
 - [ ] Attachment extraction and processing
 - [ ] Image extraction from emails
 - [ ] MSG format support
@@ -252,9 +256,9 @@ Potential improvements:
 class EmlLoader(Loader):
     def __init__(self, name: str = "eml_loader", config: Optional[Dict[str, Any]] = None)
     def run(self, source: str) -> List[str]
-    def load_as_nodes(self, source: Union[str, Path], source_id: Optional[str] = None, 
+    def load_as_nodes(self, source: Union[str, Path], source_id: Optional[str] = None,
                       custom_metadata: Optional[Dict[str, Any]] = None) -> List[Node]
-    def load_as_vsfile(self, file_path: Union[str, Path], 
+    def load_as_vsfile(self, file_path: Union[str, Path],
                        custom_metadata: Optional[Dict[str, Any]] = None) -> VSFile
 ```
 
@@ -283,4 +287,3 @@ To extend the EML loader:
 ## License
 
 Part of the rakam_systems package.
-

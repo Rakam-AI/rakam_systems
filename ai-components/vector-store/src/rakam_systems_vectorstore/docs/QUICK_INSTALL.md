@@ -10,8 +10,9 @@ pip install -e ".[ai-vectorstore]"
 ```
 
 **Usage:**
+
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, Node, NodeMetadata
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, Node, NodeMetadata
 
 store = ConfigurablePgVectorStore(name="my_store")
 store.setup()
@@ -35,21 +36,24 @@ Installing `rakam-systems[ai-vectorstore]` includes:
 ✅ OpenAI & Cohere API support  
 ✅ Document loaders (PDF, DOCX, HTML)  
 ✅ Chunkers, retrievers, re-rankers  
-✅ Configuration system  
+✅ Configuration system
 
 ## 🎯 Installation Recipes
 
 ### Recipe 1: PostgreSQL Only
+
 ```bash
 pip install -e ".[postgres,local-embeddings]"
 ```
 
 ### Recipe 2: FAISS + OpenAI
+
 ```bash
 pip install -e ".[faiss,openai]"
 ```
 
 ### Recipe 3: Development Setup
+
 ```bash
 pip install -e ".[all,dev]"
 ```
@@ -79,16 +83,19 @@ export OPENAI_API_KEY="your-key"  # if using OpenAI
 ## ❓ Quick Troubleshooting
 
 **Import Error?**
+
 ```bash
 pip install -e ".[ai-vectorstore]"  # From rakam_systems root
 ```
 
 **Django Not Found?**
+
 ```bash
 pip install -e ".[postgres]"
 ```
 
 **PyTorch Too Large?**
+
 ```bash
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 ```
@@ -96,4 +103,3 @@ pip install torch --index-url https://download.pytorch.org/whl/cpu
 ---
 
 **Need more details?** See [INSTALLATION.md](INSTALLATION.md) for the complete guide.
-

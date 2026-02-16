@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-cli"
-version = "0.2.4rc15"
+version = "0.2.4rc16"
 description = "RAKAM SYSTEMS CLI"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -15,7 +15,7 @@ authors = [
 dependencies = [
     "psutil>=7.2.1",
     "typer",
-    "rakam-systems-tools>=0.1.0rc1"
+    "rakam-systems-tools>=0.1.0rc2"
 ]
 
 [dependency-groups]

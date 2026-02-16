@@ -17,7 +17,7 @@ The Agent MCP Server creates a message-based component registry that allows AI a
 ### Basic Setup
 
 ```python
-from rakam_system_agent.server import run_agent_mcp
+from rakam_systems_agent.server import run_agent_mcp
 from rakam_systems_core.base import BaseComponent
 
 # Create some components
@@ -240,7 +240,7 @@ def run_agent_mcp(
 **Example:**
 
 ```python
-from rakam_system_agent.server import run_agent_mcp
+from rakam_systems_agent.server import run_agent_mcp
 
 tools = [tool1, tool2, tool3]
 server = run_agent_mcp(tools, name="my_agent_server", enable_logging=True)

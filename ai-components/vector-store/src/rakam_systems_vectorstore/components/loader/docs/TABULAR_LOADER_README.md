@@ -25,7 +25,7 @@ CSV and TSV support is built-in (no additional dependencies).
 ### Basic Usage
 
 ```python
-from rakam_system_vectorstore.components.loader.tabular_loader import create_tabular_loader
+from rakam_systems_vectorstore.components.loader.tabular_loader import create_tabular_loader
 
 # Create loader
 loader = create_tabular_loader()
@@ -135,11 +135,11 @@ loader = create_tabular_loader(has_header=False)
 
 Given a tabular file with this content:
 
-| Name    | Age | City       | Country |
-|---------|-----|------------|---------|
-| Alice   | 30  | New York   | USA     |
-| Bob     |     | London     | UK      |
-| Charlie | 25  |            | Canada  |
+| Name    | Age | City     | Country |
+| ------- | --- | -------- | ------- |
+| Alice   | 30  | New York | USA     |
+| Bob     |     | London   | UK      |
+| Charlie | 25  |          | Canada  |
 
 The loader will produce these nodes:
 
@@ -173,6 +173,7 @@ python app/scripts/test_tabular_loader.py data/your_file.csv
 Main loader class for tabular files.
 
 **Constructor Parameters:**
+
 - `name` (str): Component name (default: "tabular_loader")
 - `config` (dict): Configuration options
   - `sheet_name` (int|str): Sheet to load for Excel files (default: 0)
@@ -185,55 +186,71 @@ Main loader class for tabular files.
 **Methods:**
 
 #### `run(source: str) -> List[str]`
+
 Load tabular file and return list of formatted row strings.
 
 **Parameters:**
+
 - `source`: Path to tabular file
 
 **Returns:**
+
 - List of strings, one per row (excluding header)
 
 **Raises:**
+
 - `FileNotFoundError`: If file doesn't exist
 - `ValueError`: If file is not a supported tabular format
 
 #### `load_as_text(source) -> str`
+
 Load tabular file and return as a single text string.
 
 **Parameters:**
+
 - `source`: Path to tabular file
 
 **Returns:**
+
 - Full text content as a single string (all rows joined)
 
 #### `load_as_chunks(source) -> List[str]`
+
 Load tabular file and return as a list of text chunks (same as run()).
 
 **Parameters:**
+
 - `source`: Path to tabular file
 
 **Returns:**
+
 - List of strings, one per row
 
 #### `load_as_nodes(source, source_id=None, custom_metadata=None) -> List[Node]`
+
 Load tabular file and return as Node objects.
 
 **Parameters:**
+
 - `source`: Path to tabular file
 - `source_id`: Optional source identifier
 - `custom_metadata`: Optional custom metadata dict
 
 **Returns:**
+
 - List of Node objects with metadata
 
 #### `load_as_vsfile(file_path, custom_metadata=None) -> VSFile`
+
 Load tabular file and return as VSFile object.
 
 **Parameters:**
+
 - `file_path`: Path to tabular file
 - `custom_metadata`: Optional custom metadata dict
 
 **Returns:**
+
 - VSFile object with nodes
 
 ### create_tabular_loader()
@@ -241,6 +258,7 @@ Load tabular file and return as VSFile object.
 Factory function to create a tabular loader.
 
 **Parameters:**
+
 - `sheet_name` (int|str): Sheet to load for Excel files (default: 0)
 - `skip_empty_rows` (bool): Skip empty rows (default: True)
 - `empty_value_text` (str): Text for empty cells (default: "")
@@ -249,6 +267,7 @@ Factory function to create a tabular loader.
 - `has_header` (bool): First row is header (default: True)
 
 **Returns:**
+
 - Configured TabularLoader instance
 
 ## Backward Compatibility
@@ -256,7 +275,7 @@ Factory function to create a tabular loader.
 For backward compatibility, `XlsxLoader` and `create_xlsx_loader` are available as aliases:
 
 ```python
-from rakam_system_vectorstore.components.loader.tabular_loader import (
+from rakam_systems_vectorstore.components.loader.tabular_loader import (
     XlsxLoader,  # Alias for TabularLoader
     create_xlsx_loader  # Alias for create_tabular_loader
 )

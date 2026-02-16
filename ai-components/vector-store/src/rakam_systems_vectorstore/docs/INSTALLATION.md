@@ -53,6 +53,7 @@ pip install -e .
 ```
 
 This installs:
+
 - Core data structures (Node, VSFile, NodeMetadata)
 - Configuration system
 - Base interfaces
@@ -66,6 +67,7 @@ pip install -e ".[postgres]"
 ```
 
 This adds:
+
 - `psycopg2-binary` - PostgreSQL adapter
 - `django` - ORM for database management
 
@@ -78,6 +80,7 @@ pip install -e ".[faiss]"
 ```
 
 This adds:
+
 - `faiss-cpu` - Facebook AI Similarity Search
 
 ### With Local Embeddings
@@ -89,6 +92,7 @@ pip install -e ".[local-embeddings]"
 ```
 
 This adds:
+
 - `sentence-transformers` - Local embedding models
 - `torch` - PyTorch for model inference
 
@@ -101,6 +105,7 @@ pip install -e ".[openai]"
 ```
 
 This adds:
+
 - `openai` - OpenAI API client
 
 ### With Cohere Embeddings
@@ -112,6 +117,7 @@ pip install -e ".[cohere]"
 ```
 
 This adds:
+
 - `cohere` - Cohere API client
 
 ### With Document Loaders
@@ -123,6 +129,7 @@ pip install -e ".[loaders]"
 ```
 
 This adds:
+
 - `pymupdf` - PDF processing
 - `python-docx` - Word document processing
 - `beautifulsoup4` - HTML parsing
@@ -190,16 +197,16 @@ pip install -e ".[all]"
 
 ### Available Extras
 
-| Extra | Description | Key Dependencies |
-|-------|-------------|------------------|
-| `postgres` | PostgreSQL backend with Django ORM | psycopg2-binary, django |
-| `faiss` | FAISS in-memory vector store | faiss-cpu |
-| `local-embeddings` | Local embedding models | sentence-transformers, torch |
-| `openai` | OpenAI embeddings API | openai |
-| `cohere` | Cohere embeddings API | cohere |
-| `loaders` | Document loaders for various formats | pymupdf, python-docx, beautifulsoup4 |
-| `all` | Everything above | All of the above |
-| `dev` | Development tools | pytest, black, ruff |
+| Extra              | Description                          | Key Dependencies                     |
+| ------------------ | ------------------------------------ | ------------------------------------ |
+| `postgres`         | PostgreSQL backend with Django ORM   | psycopg2-binary, django              |
+| `faiss`            | FAISS in-memory vector store         | faiss-cpu                            |
+| `local-embeddings` | Local embedding models               | sentence-transformers, torch         |
+| `openai`           | OpenAI embeddings API                | openai                               |
+| `cohere`           | Cohere embeddings API                | cohere                               |
+| `loaders`          | Document loaders for various formats | pymupdf, python-docx, beautifulsoup4 |
+| `all`              | Everything above                     | All of the above                     |
+| `dev`              | Development tools                    | pytest, black, ruff                  |
 
 ## Verification
 
@@ -207,8 +214,8 @@ After installation, verify that the package is correctly installed:
 
 ```python
 # Test core imports
-from rakam_system_vectorstore import Node, NodeMetadata, VSFile
-from rakam_system_vectorstore.config import VectorStoreConfig
+from rakam_systems_vectorstore import Node, NodeMetadata, VSFile
+from rakam_systems_vectorstore.config import VectorStoreConfig
 
 print("Core imports successful!")
 
@@ -218,19 +225,19 @@ print(f"Default config loaded: {config.name}")
 
 # Test optional imports (if installed)
 try:
-    from rakam_system_vectorstore import ConfigurablePgVectorStore
+    from rakam_systems_vectorstore import ConfigurablePgVectorStore
     print("PostgreSQL backend available!")
 except ImportError:
     print("PostgreSQL backend not installed")
 
 try:
-    from rakam_system_vectorstore import FaissVectorStore
+    from rakam_systems_vectorstore import FaissVectorStore
     print("FAISS backend available!")
 except ImportError:
     print("FAISS backend not installed")
 
 try:
-    from rakam_system_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
+    from rakam_systems_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
     print("Embedding models available!")
 except ImportError:
     print("Embedding models not installed")
@@ -246,9 +253,9 @@ Create a file `test_installation.py`:
 
 def test_core():
     """Test core functionality."""
-    from rakam_system_vectorstore import Node, NodeMetadata, VSFile
-    from rakam_system_vectorstore.config import VectorStoreConfig
-    
+    from rakam_systems_vectorstore import Node, NodeMetadata, VSFile
+    from rakam_systems_vectorstore.config import VectorStoreConfig
+
     # Create a sample node
     node = Node(
         content="Test content",
@@ -257,17 +264,17 @@ def test_core():
             position=0
         )
     )
-    
+
     # Load default config
     config = VectorStoreConfig()
-    
+
     print("✓ Core functionality working")
     return True
 
 def test_postgres():
     """Test PostgreSQL backend."""
     try:
-        from rakam_system_vectorstore import ConfigurablePgVectorStore
+        from rakam_systems_vectorstore import ConfigurablePgVectorStore
         print("✓ PostgreSQL backend available")
         return True
     except ImportError as e:
@@ -277,7 +284,7 @@ def test_postgres():
 def test_faiss():
     """Test FAISS backend."""
     try:
-        from rakam_system_vectorstore import FaissVectorStore
+        from rakam_systems_vectorstore import FaissVectorStore
         print("✓ FAISS backend available")
         return True
     except ImportError as e:
@@ -287,7 +294,7 @@ def test_faiss():
 def test_embeddings():
     """Test embedding models."""
     try:
-        from rakam_system_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
+        from rakam_systems_vectorstore.components.embedding_model.configurable_embeddings import ConfigurableEmbeddings
         print("✓ Embedding models available")
         return True
     except ImportError as e:
@@ -296,12 +303,12 @@ def test_embeddings():
 
 if __name__ == "__main__":
     print("Testing ai_vectorstore installation...\n")
-    
+
     test_core()
     test_postgres()
     test_faiss()
     test_embeddings()
-    
+
     print("\nInstallation test complete!")
 ```
 
@@ -386,7 +393,8 @@ pip install -e ".[local-embeddings]"
 
 **Problem**: Cannot connect to PostgreSQL
 
-**Solution**: 
+**Solution**:
+
 1. Make sure PostgreSQL is running with pgvector extension
 2. Set environment variables:
 
@@ -404,7 +412,8 @@ export POSTGRES_PASSWORD=postgres
 
 **Problem**: Changes to code not reflected after `pip install -e .`
 
-**Solution**: 
+**Solution**:
+
 1. Uninstall and reinstall:
 
 ```bash
@@ -428,7 +437,7 @@ If you encounter issues:
 
 - **Python**: 3.10 or higher
 - **Operating System**: Linux, macOS, or Windows
-- **RAM**: 
+- **RAM**:
   - Minimum: 4GB (core only)
   - Recommended: 8GB+ (with local embeddings)
   - PostgreSQL: 8GB+ (for production)
@@ -470,7 +479,7 @@ After installation, check out:
 ## Quick Start After Installation
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, Node, NodeMetadata
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, Node, NodeMetadata
 
 # Initialize vector store
 store = ConfigurablePgVectorStore(name="my_store")
@@ -503,4 +512,3 @@ print(f"Found {len(nodes)} results")
 ---
 
 **Note**: This package is part of the Rakam Systems framework. For the complete framework, install `rakam-systems[all]`.
-

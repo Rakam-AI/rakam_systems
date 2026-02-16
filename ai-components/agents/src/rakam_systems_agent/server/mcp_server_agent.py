@@ -13,7 +13,7 @@ Features:
 - Easy integration with AI agents and tool systems
 
 Example:
-    >>> from rakam_system_agent.server.mcp_server_agent import run_agent_mcp
+    >>> from rakam_systems_agent.server.mcp_server_agent import run_agent_mcp
     >>> from rakam_systems_core.base import BaseComponent
     >>> 
     >>> # Create some agent components
@@ -66,7 +66,7 @@ def run_agent_mcp(
         MCPServer instance with registered components
 
     Example:
-        >>> from rakam_system_agent.server import run_agent_mcp
+        >>> from rakam_systems_agent.server import run_agent_mcp
         >>> from rakam_systems_core.base import BaseComponent
         >>> 
         >>> # Create components
