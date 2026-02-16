@@ -31,14 +31,14 @@ rakam-systems-inhouse/
 │       │   └── tracking.py      # Input/output tracking
 │       └── ai_utils/            # Logging utilities
 ├── rakam-system-agent/          # Agent implementations (depends on core)
-│   └── src/rakam_system_agent/
+│   └── src/rakam_systems_agent/
 │       └── components/
 │           ├── base_agent.py    # BaseAgent implementation
 │           ├── llm_gateway/     # LLM provider gateways
 │           ├── chat_history/    # Chat history backends
 │           └── tools/           # Built-in tools
 └── rakam-system-vectorstore/    # Vector storage (depends on core)
-    └── src/rakam_system_vectorstore/
+    └── src/rakam_systems_vectorstore/
         ├── core.py              # Node, VSFile data structures
         ├── config.py            # VectorStoreConfig
         └── components/
@@ -536,7 +536,7 @@ The vectorstore package provides vector database solutions and document processi
 ### Core Data Structures
 
 ```python
-from rakam_system_vectorstore.core import Node, NodeMetadata, VSFile
+from rakam_systems_vectorstore.core import Node, NodeMetadata, VSFile
 
 # VSFile - Represents a document source
 vsfile = VSFile(file_path="/path/to/document.pdf")
@@ -559,7 +559,7 @@ node.embedding = [0.1, 0.2, 0.3, ...]  # Set after embedding
 Enhanced PostgreSQL vector store with full configuration support:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
 # From configuration object
 config = VectorStoreConfig()
@@ -616,7 +616,7 @@ store.shutdown()
 Full-text search using PostgreSQL's built-in capabilities with BM25 or ts_rank ranking:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
 config = VectorStoreConfig(
     search={
@@ -683,7 +683,7 @@ store = ConfigurablePgVectorStore(
 Multi-backend embedding model with unified interface:
 
 ```python
-from rakam_system_vectorstore import ConfigurableEmbeddings, create_embedding_model
+from rakam_systems_vectorstore import ConfigurableEmbeddings, create_embedding_model
 
 # Using Sentence Transformers (local)
 embeddings = ConfigurableEmbeddings(config={
@@ -757,7 +757,7 @@ embeddings = create_embedding_model(
 Automatically detects and processes various file types:
 
 ```python
-from rakam_system_vectorstore import AdaptiveLoader, create_adaptive_loader
+from rakam_systems_vectorstore import AdaptiveLoader, create_adaptive_loader
 
 loader = AdaptiveLoader(config={
     "encoding": "utf-8",
@@ -821,7 +821,7 @@ Located in `ai_vectorstore/components/loader/`:
 A lightweight alternative to PdfLoader using pymupdf4llm for efficient PDF processing:
 
 ```python
-from rakam_system_vectorstore.components.loader import PdfLoaderLight
+from rakam_systems_vectorstore.components.loader import PdfLoaderLight
 
 loader = PdfLoaderLight(
     name="pdf_loader_light",
@@ -863,7 +863,7 @@ for img_id, img_path in image_paths.items():
 Multiple loaders now support image extraction:
 
 ```python
-from rakam_system_vectorstore.components.loader import DocLoader, OdtLoader, PdfLoaderLight
+from rakam_systems_vectorstore.components.loader import DocLoader, OdtLoader, PdfLoaderLight
 
 # DocLoader with image extraction
 doc_loader = DocLoader(config={
@@ -897,7 +897,7 @@ nodes = pdf_loader.load_as_nodes("document.pdf")
 Sentence-based text chunking using Chonkie:
 
 ```python
-from rakam_system_vectorstore.components.chunker import TextChunker, create_text_chunker
+from rakam_systems_vectorstore.components.chunker import TextChunker, create_text_chunker
 
 chunker = TextChunker(
     chunk_size=512,        # Tokens per chunk
@@ -918,7 +918,7 @@ all_chunks = chunker.run(["doc1 text", "doc2 text"])
 Advanced document chunking using Docling for context-aware chunking with heading preservation:
 
 ```python
-from rakam_system_vectorstore.components.chunker import AdvancedChunker
+from rakam_systems_vectorstore.components.chunker import AdvancedChunker
 
 chunker = AdvancedChunker(
     name="advanced_chunker",
@@ -1047,7 +1047,7 @@ agent = loader.create_agent("my_agent", config)
 ### VectorStoreConfig
 
 ```python
-from rakam_system_vectorstore.config import (
+from rakam_systems_vectorstore.config import (
     VectorStoreConfig,
     EmbeddingConfig,
     DatabaseConfig,
@@ -1255,7 +1255,7 @@ asyncio.run(main())
 ### Document Search Pipeline
 
 ```python
-from rakam_system_vectorstore import (
+from rakam_systems_vectorstore import (
     ConfigurablePgVectorStore,
     VectorStoreConfig,
     AdaptiveLoader
@@ -1288,7 +1288,7 @@ store.shutdown()
 ```python
 import asyncio
 from rakam_systems_agent import BaseAgent
-from rakam_system_vectorstore import ConfigurablePgVectorStore, AdaptiveLoader, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, AdaptiveLoader, VectorStoreConfig
 from rakam_systems_core.interfaces.tool import ToolComponent
 
 # Setup vector store
@@ -1374,5 +1374,5 @@ The system supports the following environment variables:
 - Example configurations: `examples/configs/`
 - Agent examples: `examples/ai_agents_examples/`
 - Vector store examples: `examples/ai_vectorstore_examples/`
-- Loader documentation: `rakam-system-vectorstore/src/rakam_system_vectorstore/components/loader/docs/`
-- Architecture documentation: `rakam-system-vectorstore/src/rakam_system_vectorstore/docs/ARCHITECTURE.md`
+- Loader documentation: `rakam-system-vectorstore/src/rakam_systems_vectorstore/components/loader/docs/`
+- Architecture documentation: `rakam-system-vectorstore/src/rakam_systems_vectorstore/docs/ARCHITECTURE.md`

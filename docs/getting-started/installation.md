@@ -244,7 +244,7 @@ if not settings.configured:
     settings.configure(
         INSTALLED_APPS=[
             'django.contrib.contenttypes',
-            'rakam_system_vectorstore.components.vectorstore',
+            'rakam_systems_vectorstore.components.vectorstore',
         ],
         DATABASES={
             'default': {
@@ -403,7 +403,7 @@ pip install -e .
 #### 2. Missing Optional Dependencies
 
 ```
-ImportError: cannot import name 'BaseAgent' from 'rakam_system_agent'
+ImportError: cannot import name 'BaseAgent' from 'rakam_systems_agent'
 ```
 
 **Solution:** Install the required module:
@@ -431,7 +431,7 @@ settings.configure(
 django.setup()
 
 # Now import Django-dependent components
-from rakam_system_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
 ```
 
 #### 4. PyTorch Installation Issues

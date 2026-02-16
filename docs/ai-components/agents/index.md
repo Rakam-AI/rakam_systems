@@ -264,7 +264,7 @@ See the `examples/ai_agents_examples/` directory in the main repository for comp
 
 ```
 rakam-systems-agent/
-├── src/rakam_system_agent/
+├── src/rakam_systems_agent/
 │   ├── components/
 │   │   ├── base_agent.py         # BaseAgent (Pydantic AI-powered)
 │   │   ├── llm_gateway/          # LLM provider gateways

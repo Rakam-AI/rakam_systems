@@ -447,7 +447,7 @@ tools:
   get_weather:
     name: "get_weather"
     type: "direct"
-    module: "rakam_system_agent.components.tools.example_tools"
+    module: "rakam_systems_agent.components.tools.example_tools"
     function: "get_current_weather"
     description: "Get the current weather for a location"
     category: "utility"
@@ -468,7 +468,7 @@ tools:
   analyze_sentiment:
     name: "analyze_sentiment"
     type: "direct"
-    module: "rakam_system_agent.components.tools.example_tools"
+    module: "rakam_systems_agent.components.tools.example_tools"
     function: "analyze_sentiment"
     description: "Analyze the sentiment of text"
     category: "nlp"
@@ -686,8 +686,8 @@ Create a vector store for semantic search:
 ### Using FAISS (In-Memory)
 
 ```python
-from rakam_system_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
-from rakam_system_vectorstore.core import Node, NodeMetadata
+from rakam_systems_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
+from rakam_systems_vectorstore.core import Node, NodeMetadata
 
 # Create sample documents
 documents = [
@@ -745,7 +745,7 @@ if not settings.configured:
     settings.configure(
         INSTALLED_APPS=[
             'django.contrib.contenttypes',
-            'rakam_system_vectorstore.components.vectorstore',
+            'rakam_systems_vectorstore.components.vectorstore',
         ],
         DATABASES={
             'default': {
@@ -761,7 +761,7 @@ if not settings.configured:
     )
     django.setup()
 
-from rakam_system_vectorstore import (
+from rakam_systems_vectorstore import (
     ConfigurablePgVectorStore,
     VectorStoreConfig,
     Node,
@@ -823,7 +823,7 @@ store.shutdown()
 ### VectorStoreConfig Overview
 
 ```python
-from rakam_system_vectorstore.config import (
+from rakam_systems_vectorstore.config import (
     VectorStoreConfig,
     EmbeddingConfig,
     DatabaseConfig,
@@ -922,7 +922,7 @@ log_level: INFO
 Load and use:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
 # Load from YAML - all behavior controlled by config!
 config = VectorStoreConfig.from_yaml("config/vectorstore.yaml")
@@ -931,7 +931,7 @@ config = VectorStoreConfig.from_yaml("config/vectorstore.yaml")
 config = VectorStoreConfig.from_json("config/vectorstore.json")
 
 # Or use the helper function (auto-detects format)
-from rakam_system_vectorstore.config import load_config
+from rakam_systems_vectorstore.config import load_config
 config = load_config("config/vectorstore.yaml")
 
 # Create store - behavior defined entirely by config
@@ -976,7 +976,7 @@ search:
 ### Using Different Embedding Models
 
 ```python
-from rakam_system_vectorstore.config import VectorStoreConfig, EmbeddingConfig
+from rakam_systems_vectorstore.config import VectorStoreConfig, EmbeddingConfig
 
 # Local embeddings with Sentence Transformers
 config_local = VectorStoreConfig(
@@ -1012,7 +1012,7 @@ config_cohere = VectorStoreConfig(
 Each embedding model automatically gets dedicated tables, preventing mixing of incompatible vector spaces:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig, EmbeddingConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig, EmbeddingConfig
 
 # Store using MiniLM model
 config_minilm = VectorStoreConfig(
@@ -1044,7 +1044,7 @@ store_arctic = ConfigurablePgVectorStore(config=config_arctic)
 Combine vector similarity with keyword search:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
 config = VectorStoreConfig()
 config.search.enable_hybrid_search = True
@@ -1072,7 +1072,7 @@ for r in results:
 Full-text search using PostgreSQL's BM25 or ts_rank:
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
+from rakam_systems_vectorstore import ConfigurablePgVectorStore, VectorStoreConfig
 
 # Configure keyword search
 config = VectorStoreConfig(
@@ -1087,7 +1087,7 @@ store = ConfigurablePgVectorStore(config=config)
 store.setup()
 
 # Add some documents
-from rakam_system_vectorstore import Node, NodeMetadata
+from rakam_systems_vectorstore import Node, NodeMetadata
 
 nodes = [
     Node(
@@ -1148,7 +1148,7 @@ if not settings.configured:
     settings.configure(
         INSTALLED_APPS=[
             'django.contrib.contenttypes',
-            'rakam_system_vectorstore.components.vectorstore',
+            'rakam_systems_vectorstore.components.vectorstore',
         ],
         DATABASES={
             'default': {
@@ -1164,14 +1164,14 @@ if not settings.configured:
     )
     django.setup()
 
-from rakam_system_vectorstore import (
+from rakam_systems_vectorstore import (
     ConfigurablePgVectorStore,
     VectorStoreConfig,
     Node,
     NodeMetadata,
     VSFile
 )
-from rakam_system_vectorstore.components.loader import AdaptiveLoader
+from rakam_systems_vectorstore.components.loader import AdaptiveLoader
 
 # Create configuration
 config = VectorStoreConfig.from_yaml("config/vectorstore.yaml")
@@ -1290,8 +1290,8 @@ Build a complete Retrieval-Augmented Generation pipeline:
 ```python
 import asyncio
 from rakam_systems_agent import BaseAgent
-from rakam_system_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
-from rakam_system_vectorstore.components.loader import AdaptiveLoader
+from rakam_systems_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
+from rakam_systems_vectorstore.components.loader import AdaptiveLoader
 from rakam_systems_core.interfaces.tool import ToolComponent
 
 # Step 1: Load and index documents
@@ -1301,7 +1301,7 @@ loader = AdaptiveLoader(config={"chunk_size": 512, "chunk_overlap": 50})
 # nodes = loader.load_as_nodes("path/to/document.pdf")
 
 # For demo, use sample text
-from rakam_system_vectorstore.core import Node, NodeMetadata
+from rakam_systems_vectorstore.core import Node, NodeMetadata
 
 sample_docs = [
     "Our company was founded in 2020 and specializes in AI solutions.",
@@ -1466,7 +1466,7 @@ print()
 Load and process various document types:
 
 ```python
-from rakam_system_vectorstore.components.loader import AdaptiveLoader
+from rakam_systems_vectorstore.components.loader import AdaptiveLoader
 
 # Create loader
 loader = AdaptiveLoader(config={
@@ -1619,7 +1619,7 @@ asyncio.run(main())
 ### Context Manager Pattern
 
 ```python
-from rakam_system_vectorstore import ConfigurablePgVectorStore
+from rakam_systems_vectorstore import ConfigurablePgVectorStore
 
 # Automatic setup and cleanup
 with ConfigurablePgVectorStore(config=config) as store:
