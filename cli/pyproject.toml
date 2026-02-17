@@ -1,0 +1,52 @@
+[build-system]
+requires = ["uv_build >= 0.7.19, <0.9.0"]
+build-backend = "uv_build"
+
+[project]
+name = "rakam-systems-cli"
+version = "0.2.4rc16"
+description = "RAKAM SYSTEMS CLI"
+readme = "README.md"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+authors = [
+    { name = "Mohamed Bachar Touil" }
+]
+dependencies = [
+    "psutil>=7.2.1",
+    "typer",
+    "rakam-systems-tools>=0.1.0rc2"
+]
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "pytest>=8.3.5",
+    "twine>=6.1.0",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+[project.scripts]
+rakam = "rakam_systems_cli.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"

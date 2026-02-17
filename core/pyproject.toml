@@ -1,0 +1,33 @@
+[project]
+name = "rakam-systems-core"
+version = "0.1.1rc9"
+description = "A Package containing core logic and schema for rakam-systems"
+readme = "README.md"
+authors = [
+    {name = "Mohamed Hilel", email = "mohammedjassemhlel@gmail.com"},
+    {name = "Peng Zheng", email = "pengzheng990630@outlook.com"},
+    {name = "somebodyawesome-dev", email = "luckynoob2011830@gmail.com"}
+]
+requires-python = ">=3.8"
+
+dependencies = [
+    "pydantic",
+    "PyYAML"
+]
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "pytest>=8.3.5",
+    "twine>=6.1.0",
+    "pytest-cov>=5.0.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

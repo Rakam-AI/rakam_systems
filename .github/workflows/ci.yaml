@@ -1,0 +1,177 @@
+name: Main CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+
+jobs:
+    changes:
+        runs-on: ubuntu-latest
+        outputs:
+            core: ${{ steps.filter.outputs.core }}
+            cli: ${{ steps.filter.outputs.cli }}
+            agents: ${{ steps.filter.outputs.agents }}
+            vectorstore: ${{ steps.filter.outputs.vectorstore }}
+            tools: ${{ steps.filter.outputs.tools }}
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: dorny/paths-filter@v3
+              id: filter
+              with:
+                  filters: |
+
+                      core:
+                        - 'core/**'
+                      cli:
+                        - 'cli/**'
+                        - 'tools/**'
+                      agents:
+                        - 'ai-components/agents/**'
+                        - 'core/**'
+                      vectorstore:
+                        - 'ai-components/vector-store/**'
+                        - 'core/**'
+                      tools:
+                        - 'tools/**'
+
+    core-tests:
+        needs: changes
+        if: needs.changes.outputs.core == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install Core dependencies
+              working-directory: core
+              run: uv sync --all-extras --dev
+
+            - name: Run Core tests
+              working-directory: core
+              run: |
+                  uv run pytest -v || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No Core tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}
+
+    agents-tests:
+        needs: changes
+        if: needs.changes.outputs.agents == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: [ "3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install Agents dependencies
+              working-directory: ai-components/agents
+              run: uv sync --all-extras --dev
+
+            - name: Run Agents tests
+              working-directory: ai-components/agents
+              run: |
+                  uv run pytest -v || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No Agents tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}
+
+    vectorstore-tests:
+        needs: changes
+        if: needs.changes.outputs.vectorstore == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install VectorStore dependencies
+              working-directory: ai-components/vector-store
+              run: uv sync --all-extras --dev
+
+            - name: Run VectorStore tests
+              working-directory: ai-components/vector-store
+              run: |
+                  uv run pytest -v || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No VectorStore tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}
+
+    tools-tests:
+        needs: changes
+        if: needs.changes.outputs.tools == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install Tools dependencies
+              working-directory: tools
+              run: uv sync --all-extras --dev
+
+            - name: Run Tools tests
+              working-directory: tools
+              run: |
+                  uv run pytest -v || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No Tools tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}
+
+    cli-tests:
+        needs: changes
+        if: needs.changes.outputs.cli == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install CLI dependencies
+              working-directory: cli
+              run: uv sync --all-extras --dev
+
+            - name: Run CLI tests
+              working-directory: cli
+              run: |
+                  uv run pytest -v || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No CLI tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}

@@ -1,3 +1,33 @@
-[build-system] 
-requires = ["setuptools", "wheel"] 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "rakam-systems"
+version = "0.2.5rc9"
+description = "Rakam Systems - Modular AI framework with agents, vectorstore, and LLM gateway"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Mohamed Hilel", email = "mohammedjassemhlel@gmail.com"},
+    {name = "Peng Zheng", email = "pengzheng990630@outlook.com"},
+    {name = "somebodyawesome-dev", email = "luckynoob2011830@gmail.com"}
+
+]
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    
+    "rakam-systems-tools==0.1.0rc4",
+    "rakam-systems-agent[all]==0.1.1rc12",
+    "rakam-systems-vectorstore[all]==0.1.1rc11",
+    "rakam-systems-cli==0.2.4rc16"
+]
