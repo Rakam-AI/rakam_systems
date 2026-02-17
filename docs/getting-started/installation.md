@@ -58,13 +58,13 @@ pip install  rakam-systems==0.2.5rc9
 pip install  rakam-systems-core
 
 # Agent package (includes core as dependency)
-pip install rakam-systems-agent[all]==0.1.1rc9
+pip install rakam-systems-agent[all]==0.1.1rc12
 
 # Vectorstore package (includes core as dependency)
-pip install rakam-systems-vectorstore[all]==0.1.1rc10
+pip install rakam-systems-agent[all]==0.1.1rc11
 
 # Agent + Vectorstore (for RAG applications)
-pip install rakam-systems-agent[all]==0.1.1rc9 rakam-systems-vectorstore[all]==0.1.1rc10
+pip install rakam-systems-agent[all]==0.1.1rc12 rakam-systems-agent[all]==0.1.1rc11
 ```
 
 ---
@@ -442,8 +442,6 @@ docker start postgres-vectorstore
 # Or start with docker compose
 docker compose up -d postgres
 ```
-
-
 
 ### Verification
 

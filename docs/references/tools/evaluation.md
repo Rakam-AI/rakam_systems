@@ -7,7 +7,7 @@ This document provides a comprehensive guide to using the `rakam-system-tools`, 
 To get started, install the `rakam-system-tools` package using pip:
 
 ```bash
-pip install rakam-system-tools==0.1.12
+pip install rakam-system-tools==0.1.0rc4
 ```
 
 ## Configuration
