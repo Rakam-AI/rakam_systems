@@ -14,7 +14,7 @@ A typical workflow is:
 1. Write eval function
 
 ```bash
-edit eval/my_eval.py # see SDK docs
+edit eval/my_eval.py # Similair to Get Started Example
 ```
 
 2. Run evaluation
@@ -46,10 +46,10 @@ For writing evaluation functions, see the [SDK documentation](https://github.com
 ### Listing runs
 
 This shows all runs hosted on the evaluation server.
+
 ```bash
 rakam eval list runs
 ```
-
 
 <!-- TODO: Document tagging when in scope
 ## Tagging runs

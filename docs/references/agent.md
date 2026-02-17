@@ -332,6 +332,3 @@ When adding new agent types:
 3. Add tests in `tests/`
 4. Update this README with examples
 
-## License
-
-See main project LICENSE file.

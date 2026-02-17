@@ -1,3 +1,7 @@
+---
+title: Developer Guide
+---
+
 # Rakam's Development Guide
 
 Rakam Systems is a modular AI framework designed to build production-ready AI applications. It provides a comprehensive set of components for building AI agents, vector stores, and LLM-powered applications.
@@ -286,7 +290,7 @@ is_valid, errors = loader.validate_config("config.yaml")
 
 ## 🤖 Agent Package (`rakam-systems-agent`)
 
-The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent` (requires core).
+The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent[all]` (requires core).
 
 ### BaseAgent
 
@@ -531,7 +535,7 @@ history.shutdown()
 
 ## 🔍 Vectorstore Package (`rakam-systems-vectorstore`)
 
-The vectorstore package provides vector database solutions and document processing. Install with `pip install rakam-systems-vectorstore` (requires core).
+The vectorstore package provides vector database solutions and document processing. Install with `pip install rakam-systems-vectorstore[all]` (requires core).
 
 ### Core Data Structures
 
@@ -1369,10 +1373,3 @@ The system supports the following environment variables:
 
 ---
 
-## 📚 Further Reading
-
-- Example configurations: `examples/configs/`
-- Agent examples: `examples/ai_agents_examples/`
-- Vector store examples: `examples/ai_vectorstore_examples/`
-- Loader documentation: `rakam-systems-vectorstore/src/rakam_systems_vectorstore/components/loader/docs/`
-- Architecture documentation: `rakam-systems-vectorstore/src/rakam_systems_vectorstore/docs/ARCHITECTURE.md`
