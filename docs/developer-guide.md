@@ -16,7 +16,6 @@ Rakam Systems is a modular AI framework designed to build production-ready AI ap
 6. [🚀 Quick Start Examples](#-quick-start-examples)
 7. [🌍 Environment Variables](#environment-variables)
 8. [✅ Best Practices](#-best-practices)
-9. [📚 Further Reading](#-further-reading)
 
 ---
 
