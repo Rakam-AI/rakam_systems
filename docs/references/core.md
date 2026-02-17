@@ -135,10 +135,11 @@ store = ConfigurablePgVectorStore(config=config)
 
 This package contains only interfaces and utilities. To contribute:
 
-1. Install in editable mode: `pip install rakam-systems-core`
+1. Fork Rakam Systems repo
 2. Make changes to interfaces or utilities
 3. Ensure backward compatibility with agent and vectorstore packages
 4. Update version in `pyproject.toml`
+5. Open PR
 
 ## License
 

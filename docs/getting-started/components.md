@@ -295,7 +295,7 @@ history.shutdown()
 The vectorstore package provides vector database and document processing tools. Install with:
 
 ```bash
-pip install -e ./rakam-systems-vectorstore
+pip install rakam-systems-vectorstore
 ```
 
 (Requires the core package.)

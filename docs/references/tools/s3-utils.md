@@ -29,9 +29,9 @@ Or from the repo (development/editable):
 
 ```bash
 # From the repository root
-pip install -e rakam-system-tools/
+pip install  rakam-system-tools
 # or with uv
-uv pip install -e rakam-system-tools/
+uv pip install  rakam-system-tools
 ```
 
 Or add to your `requirements.txt`:
@@ -600,7 +600,3 @@ When extending the S3 component:
 4. Add custom exceptions for specific error cases
 5. Update this documentation
 6. Add tests to `test_s3_component.py`
-
-## License
-
-Part of the Rakam Systems Core library.

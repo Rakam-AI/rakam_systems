@@ -293,13 +293,3 @@ See the `examples/ai_vectorstore_examples/` directory in the main repository for
 - `COHERE_API_KEY`: For Cohere embeddings
 - `HUGGINGFACE_TOKEN`: For private HuggingFace models
 
-## License
-
-Apache 2.0
-
-<!-- ## Links
-
-- [Main Repository](https://github.com/Rakam-AI/rakam-systems)
-- [Documentation](../docs/)
-- [Core Package](../rakam-systems-core/)
-- [Agent Package](../rakam-systems-agent/) -->

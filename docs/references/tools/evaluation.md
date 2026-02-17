@@ -7,7 +7,7 @@ This document provides a comprehensive guide to using the `rakam-system-tools`, 
 To get started, install the `rakam-system-tools` package using pip:
 
 ```bash
-pip install -i https://test.pypi.org/simple/ rakam-system-tools==0.1.12
+pip install rakam-system-tools==0.1.12
 ```
 
 ## Configuration
@@ -32,12 +32,12 @@ client = DeepEvalClient(
 The client can be configured in three ways, in the following order of precedence:
 
 1.  **Directly in the constructor:** As shown in the example above.
-2.  **Using a settings module:** You can pass a settings module to the client. The client will look for `EVALFRAMEWORK_URL` and `EVALFRAMWORK_API_KEY` attributes in the module.
+2.  **Using a settings module:** You can pass a settings module to the client. The client will look for `EVALFRAMEWORK_URL` and `EVALFRAMEWORK_API_KEY` attributes in the module.
 
     ```python
     # settings.py
     EVALFRAMEWORK_URL = "http://your-deepeval-api-url.com"
-    EVALFRAMWORK_API_KEY = "your-api-token"
+    EVALFRAMEWORK_API_KEY = "your-api-token"
 
     # your_app.py
     from rakam_systems_tools.evaluation import DeepEvalClient
@@ -46,11 +46,11 @@ The client can be configured in three ways, in the following order of precedence
     client = DeepEvalClient(settings_module=settings)
     ```
 
-3.  **Using environment variables:** The client will automatically pick up the `EVALFRAMEWORK_URL` and `EVALFRAMWORK_API_KEY` environment variables if they are set.
+3.  **Using environment variables:** The client will automatically pick up the `EVALFRAMEWORK_URL` and `EVALFRAMEWORK_API_KEY` environment variables if they are set.
 
     ```bash
     export EVALFRAMEWORK_URL="http://your-deepeval-api-url.com"
-    export EVALFRAMWORK_API_KEY="your-api-token"
+    export EVALFRAMEWORK_API_KEY="your-api-token"
     ```
 
     ```python

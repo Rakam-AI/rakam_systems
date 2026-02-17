@@ -92,7 +92,7 @@ asyncio.run(main())
 ```python
 async def main():
     agent = BaseAgent(name="stream_agent", model="openai:gpt-4o")
-
+    
     print("Response: ", end="", flush=True)
     async for chunk in agent.astream("Tell me a short story."):
         print(chunk, end="", flush=True)
@@ -176,7 +176,7 @@ async def main():
         output_type=MovieReview
     )
     result = await agent.arun("Review the movie 'Inception'")
-
+    
     review: MovieReview = result.output
     print(f"Rating: {review.rating}/10")
     print(f"Recommended: {'Yes' if review.recommended else 'No'}")
@@ -188,11 +188,11 @@ asyncio.run(main())
 
 Choose the right backend for your needs:
 
-| Backend        | Use Case    | Quick Setup            |
-| -------------- | ----------- | ---------------------- |
-| **JSON**       | Prototyping | File-based, no setup   |
-| **SQLite**     | Local dev   | Single file, no server |
-| **PostgreSQL** | Production  | Scalable, concurrent   |
+| Backend | Use Case | Quick Setup |
+|---------|----------|-------------|
+| **JSON** | Prototyping | File-based, no setup |
+| **SQLite** | Local dev | Single file, no server |
+| **PostgreSQL** | Production | Scalable, concurrent |
 
 **JSON (simplest):**
 
@@ -204,14 +204,14 @@ from rakam_systems_agent.components.chat_history import JSONChatHistory
 async def main():
     history = JSONChatHistory(config={"storage_path": "./chat.json"})
     agent = BaseAgent(name="chatty", model="openai:gpt-4o")
-
+    
     chat_id = "user_123"
-
+    
     # First message
     messages = history.get_message_history(chat_id)
     result = await agent.arun("My name is Alice!", message_history=messages)
     history.save_messages(chat_id, result.all_messages())
-
+    
     # Second message (remembers context)
     messages = history.get_message_history(chat_id)
     result = await agent.arun("What's my name?", message_history=messages)
@@ -243,7 +243,7 @@ store = FaissStore(
 
 # Add documents
 nodes = [
-    Node(content="Python is a programming language.",
+    Node(content="Python is a programming language.", 
          metadata=NodeMetadata(source_file_uuid="doc1", position=0)),
     Node(content="Machine learning is AI subset.",
          metadata=NodeMetadata(source_file_uuid="doc1", position=1)),
@@ -287,7 +287,7 @@ from rakam_systems_vectorstore import FaissStore, Node, NodeMetadata
 from rakam_systems_core.interfaces.tool import ToolComponent
 
 # 1. Create vector store with your documents
-store = FaissStore(name="kb", base_index_path="./kb_index",
+store = FaissStore(name="kb", base_index_path="./kb_index", 
                    embedding_model="Snowflake/snowflake-arctic-embed-m", initialising=True)
 
 kb_nodes = [
@@ -319,7 +319,7 @@ async def main():
         system_prompt="Use search_kb tool to find information. Answer based on retrieved docs.",
         tools=[search_tool]
     )
-
+    
     result = await agent.arun("How much does your product cost?")
     print(result.output_text)  # "$99/month"
 
@@ -333,7 +333,6 @@ asyncio.run(main())
 Create agents from config files - no code changes needed to switch models/prompts:
 
 **`config/agent.yaml`:**
-
 ```yaml
 version: "1.0"
 
@@ -347,7 +346,6 @@ agents:
 ```
 
 **Use in code:**
-
 ```python
 import asyncio
 from rakam_systems_core.config_loader import ConfigurationLoader
