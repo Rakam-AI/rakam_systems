@@ -362,19 +362,14 @@ def run(
 
         typer.echo(f"\n📄 {file}")
 
-        module = None
-        if not dry_run:
-            try:
-                module = load_module_from_path(file)
-            except Exception as e:
-                typer.echo(f"  ❌ Failed to import module: {e}")
-                continue
+        try:
+            module = load_module_from_path(file)
+        except Exception as e:
+            typer.echo(f"  ❌ Failed to import module: {e}")
+            continue
 
         for fn_name in functions:
             typer.echo(f"  ▶ {fn_name}")
-
-            if dry_run:
-                continue
 
             try:
                 func = getattr(module, fn_name)
@@ -384,6 +379,11 @@ def run(
                 if not eval_type:
                     continue
 
+                if dry_run:
+                    typer.echo(f"    🧪 Dry-run OK → {eval_type}")
+                    continue
+
+                # 🔥 Real execution (only if NOT dry-run)
                 client = DeepEvalClient()
 
                 if eval_type == "text_eval":
@@ -423,9 +423,6 @@ def run(
 
             except Exception as e:
                 typer.echo(f"    ❌ Execution failed: {e}")
-
-    if not executed_any and not dry_run:
-        typer.echo("\nNo evaluations executed.")
 
 
 def fetch_run(
