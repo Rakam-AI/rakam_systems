@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-vectorstore"
-version = "0.1.1rc13"
+version = "0.1.1rc14"
 description = "Utility package for interacting with vectorstores"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,6 +23,7 @@ classifiers = [
 # Core dependencies required for base functionality
 dependencies = [
     "rakam-systems-core>=0.1.1rc10",
+    "rakam-systems-tools==0.1.0rc4",
     "pyyaml>=6.0",
     "numpy>=1.24.0",
     "tqdm>=4.66.0",
