@@ -47,7 +47,7 @@ source venv/bin/activate  # On macOS/Linux
 **b. Install Rakam Systems package:**
 
 ```bash
-pip install rakam-systems==0.2.5rc9
+pip install rakam-systems==0.2.5rc10
 ```
 
 **c. Set API keys:**
@@ -56,7 +56,7 @@ pip install rakam-systems==0.2.5rc9
 # Option 1: Environment variable
 export OPENAI_API_KEY="sk-your-api-key"
 # These will come from Step 2
-# And Required to use Evaluation Service  
+# And Required to use Evaluation Service
 export EVALFRAMEWORK_URL="http://eval-service-url.com" # url of docker container
 export EVALFRAMEWORK_API_KEY="your-api-token" # can be generated from '/docs' swagger-ui
 
