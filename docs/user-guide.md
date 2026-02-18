@@ -8,7 +8,7 @@ title: User Guide
 
 ```bash
 # Install all  components
-pip install  rakam-systems==0.2.5rc9
+pip install  rakam-systems==0.2.5rc10
 ```
 
 ### Option 2: Install Specific Packages

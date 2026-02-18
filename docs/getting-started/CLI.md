@@ -43,7 +43,7 @@ source venv/bin/activate  # On macOS/Linux
 **b. Install the CLI package:**
 
 ```bash
-pip install rakam-systems-cli==0.2.4rc16
+pip install rakam-systems-cli==0.2.5rc17
 ```
 
 ---
