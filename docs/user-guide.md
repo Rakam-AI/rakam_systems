@@ -2,6 +2,10 @@
 title: User Guide
 ---
 
+import Prerequisites from './_partials/_prerequisites.md';
+
+<Prerequisites />
+
 ## Installation
 
 ### Option 1: Install All Packages

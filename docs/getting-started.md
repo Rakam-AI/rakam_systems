@@ -8,13 +8,11 @@ Welcome! This guide will help you set up and use the Rakam Systems tools for loc
 
 ---
 
-## Prerequisites
+import Prerequisites from './_partials/_prerequisites.md';
 
-Before you begin, make sure you have:
+<Prerequisites />
 
-- [Docker](https://docs.docker.com/get-docker/) installed
 - Access credentials for the private container registry (for running evaluation)
-- Python 3.8 or newer (Python 3.10 or newer in case of using agent or vectorstore module)
 
 ---
 
