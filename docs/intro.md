@@ -2,41 +2,81 @@
 title: Introduction
 ---
 
+# Introduction
 
+**Rakam Systems** is a platform designed to industrialize the construction, deployment, and operation of enterprise-grade AI systems with a focus on quality, scalability, and production-readiness.
 
-## 🥵 Problem Statement
+## Origins
 
-Building custom AI and Gen AI systems can be challenging due to the need for flexibility, scalability, and production-readiness. Developers often face problems like:
+Rakam Systems was born from an internal need at Rakam AI. For every new AI project, teams faced recurring technical challenges: collecting test data, evaluating quality, orchestrating components, configuring cloud infrastructure, and ensuring regulatory compliance. Rather than rebuilding these elements each time, Rakam decided to standardize and automate the entire AI production pipeline.
 
-- **Complexity**: Creating AI systems from scratch is complex, especially when combining different technologies for model management, data processing, and integration.
-  
-- **Scalability**: Ensuring that AI systems can handle large-scale data and provide efficient, real-time responses.
-  
-- **Integration**: Standardizing and fluid data communication between the different core components of an AI System, especially when deployed on different servers.
-  
-- **Maintenance & Updates**: The AI landscape evolves rapidly, and maintaining systems with the latest models and technologies is challenging, stressful and costly.
+This platform represents years of expertise in building production AI systems, distilled into a comprehensive framework that follows industry best practices and leverages state-of-the-art technologies.
 
-`rakam_systems` addresses these challenges by offering a flexible, lean framework that helps developers build AI systems efficiently, while minimizing code maintenance overhead and focusing on ease of deployment.
+## Target Users
 
-## ✨ Key Features
+Rakam Systems is built for **AI teams** working on production systems, serving three primary personas:
 
-- **Modular Framework**: `rakam_systems` is a framework for building AI and Gen AI systems, with **Components** serving as the core building blocks.
-  
-- **Customizability**: Designed to provide robust tools for developing custom Gen AI solutions. Many classes are abstract, offering flexibility while keeping the codebase streamlined by limiting predefined functionality to common use cases.
-  
-- **Production-Ready**: Built for scalability and ease of deployment:
-  - Libraries are chosen for their efficiency and scalability.
-  - Components exchange data in a structured way, facilitating API integration.
-  - Includes Docker/Django API templates for easy deployment: [Service Template](https://github.com/Rakam-AI/rakam-systems-service-template).
-    
-- **Lean Design**: Focused on minimizing breaking changes and ensuring code fluidity.
-  
-- **Best-in-Class Supporting Tools & Approaches**: We select the best libraries and technical approaches for each specific task to keep the codebase lean and manageable, addressing the challenge of evolving technologies. We welcome contributions to improve these approaches and are open to new ideas.
-  
+- **AI Engineers**: who build and maintain AI systems
+- **Technical Leads**: who architect and guide AI development
+- **Platform Teams**: who need visibility into system performance, quality metrics, and production readiness
 
-- **Engine Update**: We also deploy regular **Engine Updates** to ensure that the library stays current with the latest advancements in AI, minimizing maintenance challenges.
+## Why Rakam Systems
 
+Rakam Systems was built to solve real production challenges encountered while deploying demanding AI systems. The framework reflects years of experience in what actually works at scale, distilled into reusable components and patterns.
 
+**State-of-the-Art Technology**
+
+We select proven, cutting-edge technologies for each layer of the stack:
+
+- **Modern Python frameworks**: FastAPI for APIs, Pydantic for data validation and type safety
+- **Leading AI libraries**: Pydantic AI for agent orchestration, integration with OpenAI, Anthropic, and Mistral
+- **Production-grade vector search**: FAISS for similarity search, PostgreSQL with pgvector for persistent storage
+- **Best-in-class ML tools**: Sentence Transformers and Hugging Face models for embeddings, PyTorch as the deep learning backend
+- **Robust data processing**: BeautifulSoup4 for HTML, PyMuPDF for PDFs, pandas for tabular data
+
+The platform stays current through continuous updates, ensuring access to the latest advancements while maintaining stability for production deployments.
+
+**Production-First Framework**
+
+Every design decision prioritizes real-world deployment:
+
+- **Type safety throughout**: Pydantic models ensure data consistency across component boundaries
+- **Structured data exchange**: Components communicate via well-defined schemas, making integration predictable
+- **Scalable architecture**: Libraries chosen for efficiency (FAISS for vector operations, Django ORM for database access)
+- **Production templates included**: FastAPI service templates with Docker configurations for immediate deployment
+- **Observability built-in**: Evaluation framework for quality monitoring, metrics collection, and compliance tracking
+
+The framework emerged from actual production requirements—performance bottlenecks, debugging challenges, scaling issues—and addresses them systematically.
+
+**Open Source**
+
+Rakam Systems is fully open source and welcomes contributions:
+
+- **Transparent design**: All architectural decisions are documented and open for discussion
+- **Community-driven**: We welcome improvements, new integrations, and feature proposals
+- **Standard tooling**: Built on widely-adopted open source libraries (torch, Django, PostgreSQL)
+- **Clear contribution paths**: Issues, pull requests, and discussions are encouraged
+
+The codebase is public because we believe the best frameworks emerge from collective expertise and real-world testing.
+
+## Core Components
+
+Rakam Systems provides modular, independently installable packages:
+
+- **Core** - Foundational interfaces and utilities required by all other packages
+- **Agents** - AI agent implementations with multi-LLM support and tool integration
+- **Vector Store** - Vector storage and document processing for semantic search and RAG applications
+- **Tools** - Evaluation framework, cloud storage utilities, and monitoring capabilities
+- **CLI** - Command-line interface for running evaluations and tracking quality
+
+## Supporting Services & Tools
+
+Managed separately with independent versioning:
+
+- **Evaluation Services** - Deployed as standalone services. Available as a public Docker image for external users.
+- **Templates** - Project templates (e.g., FastAPI microservice template) that provide starting points for new AI systems using Rakam Systems components.
+
+---
 
 - **GitHub Repo:** https://github.com/Rakam-AI/rakam_systems
 - **Create an Issue:** https://github.com/Rakam-AI/rakam_systems/issues/new/choose
