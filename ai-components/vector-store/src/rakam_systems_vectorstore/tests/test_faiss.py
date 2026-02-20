@@ -1,4 +1,4 @@
-import os
+import pickle
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -90,3 +90,122 @@ def test_count_multiple_collections(store):
     assert store.count() == 1
 
 
+def test_load_collection_reads_files(tmp_path):
+    collection_path = tmp_path / "my_collection"
+    collection_path.mkdir()
+
+    fake_index = MagicMock()
+    with patch(
+        "rakam_systems_vectorstore.components.vectorstore.faiss_vector_store.faiss.read_index",
+        return_value=fake_index,
+    ):
+
+        with open(collection_path / "category_index_mapping.pkl", "wb") as f:
+            pickle.dump({1: "doc1"}, f)
+
+        with open(collection_path / "metadata_index_mapping.pkl", "wb") as f:
+            pickle.dump({1: {"content": "doc1"}}, f)
+
+        with open(collection_path / "nodes.pkl", "wb") as f:
+            pickle.dump(["node1"], f)
+
+        with open(collection_path / "embeddings_index_mapping.pkl", "wb") as f:
+            pickle.dump({1: [0.1, 0.2]}, f)
+
+        store = FaissStore(
+            base_index_path=str(tmp_path),
+            initialising=True,
+        )
+
+        result = store.load_collection(str(collection_path))
+
+        assert result["index"] == fake_index
+        assert result["category_index_mapping"] == {1: "doc1"}
+        assert result["metadata_index_mapping"] == {1: {"content": "doc1"}}
+        assert result["nodes"] == ["node1"]
+        assert result["embeddings"] == {1: [0.1, 0.2]}
+
+
+def test_load_vector_store_loads_all_collections(tmp_path):
+    (tmp_path / "collection1").mkdir()
+    (tmp_path / "collection2").mkdir()
+
+    with patch.object(
+        FaissStore,
+        "load_collection",
+        return_value={"index": "mocked"},
+    ) as mock_load_collection:
+
+        store = FaissStore(
+            base_index_path=str(tmp_path),
+            initialising=True,
+        )
+
+        store.load_vector_store()
+
+        assert "collection1" in store.collections
+        assert "collection2" in store.collections
+        assert mock_load_collection.call_count == 2
+
+
+def test_predict_embeddings_local_model(store):
+    mock_model = MagicMock()
+    mock_model.encode.return_value = [0.1, 0.2, 0.3]
+    store.embedding_model = mock_model
+    store.use_embedding_api = False
+
+    result = store.predict_embeddings("hello")
+
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (1, 3)
+    mock_model.encode.assert_called_once_with("hello")
+
+
+def test_predict_embeddings_api_mode(tmp_path):
+    mock_client = MagicMock()
+    mock_client.embeddings.create.return_value.data = [
+        MagicMock(embedding=[0.5, 0.6, 0.7])
+    ]
+
+    with patch(
+        "rakam_systems_vectorstore.components.vectorstore.faiss_vector_store.OpenAI",
+        return_value=mock_client,
+    ):
+        store = FaissStore(
+            base_index_path=str(tmp_path),
+            initialising=True,
+            use_embedding_api=True,
+        )
+
+        result = store.predict_embeddings("query")
+
+        assert isinstance(result, np.ndarray)
+        assert result.shape == (1, 3)
+        mock_client.embeddings.create.assert_called_once()
+
+
+def test_get_index_copy_creates_valid_index(store):
+    store_data = {
+        "category_index_mapping": {1: "doc1", 2: "doc2"},
+        "embeddings": {
+            1: np.array([1.0, 0.0], dtype=np.float32),
+            2: np.array([0.0, 1.0], dtype=np.float32)
+        },
+    }
+
+    index_copy = store.get_index_copy(store_data)
+
+    # Ensure FAISS index created
+    assert index_copy.ntotal == 2
+
+
+def test_get_index_copy_mismatch_assert(store):
+    store_data = {
+        "category_index_mapping": {1: "doc1"},
+        "embeddings": {
+            1: [1.0, 0.0],
+            2: [0.0, 1.0],
+    }
+
+    with pytest.raises(AssertionError):
+        store.get_index_copy(store_data)
