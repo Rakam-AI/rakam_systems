@@ -4,13 +4,11 @@ Welcome! This guide will help you set up and use the Rakam Systems CLI tools for
 
 ---
 
-## Prerequisites
+import Prerequisites from '../_partials/_prerequisites.md';
 
-Before you begin, make sure you have:
+<Prerequisites />
 
-- [Docker](https://docs.docker.com/get-docker/) installed
 - Access credentials for the private container registry
-- Python 3.8 or newer
 
 ---
 
