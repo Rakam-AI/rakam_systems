@@ -195,7 +195,6 @@ def test_get_index_copy_creates_valid_index(store):
 
     index_copy = store.get_index_copy(store_data)
 
-    # Ensure FAISS index created
     assert index_copy.ntotal == 2
 
 
@@ -205,7 +204,7 @@ def test_get_index_copy_mismatch_assert(store):
         "embeddings": {
             1: [1.0, 0.0],
             2: [0.0, 1.0],
+        }
     }
-
     with pytest.raises(AssertionError):
         store.get_index_copy(store_data)
