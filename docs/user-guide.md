@@ -604,7 +604,6 @@ To List runs:
 
 ```bash
 rakam eval list runs
-
 ```
 
 To View latest results:
