@@ -48,7 +48,7 @@ Complete installation instructions for Rakam Systems Components- a modular AI fr
 
 ```bash
 # Install all  components
-pip install  rakam-systems==0.2.5rc10
+pip install  rakam-systems==0.2.5rc12
 ```
 
 ### Option 2: Install Specific Packages
@@ -58,13 +58,13 @@ pip install  rakam-systems==0.2.5rc10
 pip install  rakam-systems-core
 
 # Agent package (includes core as dependency)
-pip install rakam-systems-agent[all]==0.1.1rc12
+pip install rakam-systems-agent[all]==0.1.1rc13
 
 # Vectorstore package (includes core as dependency)
 pip install rakam-systems-agent[all]==0.1.1rc11
 
 # Agent + Vectorstore (for RAG applications)
-pip install rakam-systems-agent[all]==0.1.1rc12 rakam-systems-agent[all]==0.1.1rc11
+pip install rakam-systems-agent[all]==0.1.1rc13 rakam-systems-agent[all]==0.1.1rc11
 ```
 
 ---
