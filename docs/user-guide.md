@@ -785,7 +785,5 @@ except ImportError as e:
 
 ### Getting Help
 
-- **Documentation**: See `docs/` directory
-- **Issues**: [GitHub Issues](https://github.com/Rakam-AI/rakam_systems/issues)
 
 ---
