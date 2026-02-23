@@ -12,7 +12,7 @@ import Prerequisites from './\_partials/\_prerequisites.md';
 
 ```bash
 # Install all  components
-pip install  rakam-systems==0.2.5rc12
+pip install  rakam-systems==0.3.0
 ```
 
 ### Option 2: Install Specific Packages
@@ -22,13 +22,13 @@ pip install  rakam-systems==0.2.5rc12
 pip install  rakam-systems-core
 
 # Agent package (includes core as dependency)
-pip install rakam-systems-agent[all]==0.1.1rc13
+pip install rakam-systems-agent[all]
 
 # Vectorstore package (includes core as dependency)
-pip install rakam-systems-vectorstore[all]==0.1.1rc14
+pip install rakam-systems-vectorstore[all]
 
 # Agent + Vectorstore (for RAG applications)
-pip install rakam-systems-agent[all]==0.1.1rc13 rakam-systems-vectorstore[all]==0.1.1rc14
+pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]
 ```
 
 ### Packages Deps
