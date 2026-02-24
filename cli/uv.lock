@@ -1763,7 +1763,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-cli"
-version = "0.2.4rc11"
+version = "0.2.4rc17"
 source = { editable = "." }
 dependencies = [
     { name = "psutil" },
@@ -1788,8 +1788,8 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "psutil", specifier = ">=7.2.1" },
-    { name = "rakam-systems-tools", specifier = "==0.1.0a1" },
-    { name = "typer", specifier = ">=0.20.1" },
+    { name = "rakam-systems-tools", specifier = ">=0.1.0rc2" },
+    { name = "typer" },
 ]
 
 [package.metadata.requires-dev]
@@ -1802,7 +1802,7 @@ dev = [
 
 [[package]]
 name = "rakam-systems-tools"
-version = "0.1.0a1"
+version = "0.1.0rc4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3", version = "1.37.38", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
@@ -1813,12 +1813,10 @@ dependencies = [
     { name = "pydantic", version = "2.12.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
     { name = "requests", version = "2.32.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "requests", version = "2.32.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
-    { name = "typer", version = "0.20.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
-    { name = "typer", version = "0.22.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.9'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/12/a4/abc00765042145fdcf6071469eedba0310eb4155dcf094b38f1f74c3db93/rakam_systems_tools-0.1.0a1.tar.gz", hash = "sha256:dd05a4a0cb7823cc26b48413d7b5358584fa2f404591274faafda19d6a88f7b5", size = 14196, upload-time = "2026-02-10T22:10:48.105Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d6/b3/a2a2b898cfcf9d10b6438bbd77098541d6e7a72d3053ce8b7ffe8d99c979/rakam_systems_tools-0.1.0rc4.tar.gz", hash = "sha256:81f6116587109e0400290d233b8a3a6f1e4c0ec32169ab03ba62ee08af1e9f38", size = 14170, upload-time = "2026-02-16T21:51:54.27Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c8/bb/4a6c6daa6914bf002320c4d4d88f9fd325104a6491f05fd172bf182fe39f/rakam_systems_tools-0.1.0a1-py3-none-any.whl", hash = "sha256:9cfc084e87a1554dcd2a1468223c8ffb96111ab4fc8f44f2888179d7bdc7af63", size = 18873, upload-time = "2026-02-10T22:10:46.909Z" },
+    { url = "https://files.pythonhosted.org/packages/27/07/76538ad368bcd61f784da2f761c1e6ff6addfc181db488a6add8fa411cb5/rakam_systems_tools-0.1.0rc4-py3-none-any.whl", hash = "sha256:d7d73cd913842d78470900f2b70855bf555816b949e2ce675c4af76cccc4b9ea", size = 18754, upload-time = "2026-02-16T21:51:52.571Z" },
 ]
 
 [[package]]
