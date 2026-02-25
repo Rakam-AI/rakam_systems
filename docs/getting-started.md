@@ -6,23 +6,17 @@ title: Getting Started Guide
 
 Welcome! This guide will help you set up and use the Rakam Systems tools for local development and evaluation.
 
----
-
 import Prerequisites from './_partials/_prerequisites.md';
 
 <Prerequisites />
-
----
 
 ## 1. Start the Evaluation Service (required for evaluation)
 
 The evaluation service must be running to use the evaluation features. Contact us if you need help setting it up.
 
----
-
 ## 2. Set Up the Environment
 
-**a. Create and activate a Python virtual environment:**
+**1. Create and activate a Python virtual environment:**
 
 ```bash
 python3 -m venv venv
@@ -30,13 +24,13 @@ source venv/bin/activate  # On macOS/Linux
 # On Windows: venv\Scripts\activate
 ```
 
-**b. Install Rakam Systems package:**
+**2. Install Rakam Systems package:**
 
 ```bash
 pip install rakam-systems
 ```
 
-**c. Set up your API keys:**
+**3. Set up your API keys:**
 
 Create a `.env` file in your project root with your OpenAI API key:
 
@@ -55,8 +49,6 @@ load_dotenv()
 :::note
 The evaluation service connection is configured separately. Contact us for evaluation service setup details.
 :::
-
----
 
 ## 3. Your First Agent
 
@@ -124,8 +116,6 @@ def test_simple_text_eval():
         metrics=[ToxicityConfig(name="toxicity_demo", include_reason=False)],
     )
 ```
-
----
 
 ## 5. Run Your Evaluation
 
