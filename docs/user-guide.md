@@ -783,7 +783,3 @@ except ImportError as e:
     print(f"❌ LLM Gateway not installed: {e}")
 ```
 
-### Getting Help
-
-
----
