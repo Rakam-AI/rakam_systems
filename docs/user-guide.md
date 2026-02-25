@@ -12,7 +12,7 @@ import Prerequisites from './\_partials/\_prerequisites.md';
 
 ```bash
 # Install all  components
-pip install  rakam-systems==0.3.0
+pip install  rakam-systems
 ```
 
 ### Option 2: Install Specific Packages
