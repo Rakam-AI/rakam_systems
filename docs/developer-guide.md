@@ -1,25 +1,11 @@
 ---
 title: Developer Guide
----
 
 # Rakam's Development Guide
 
 Rakam Systems is a modular AI framework designed to build production-ready AI applications. It provides a comprehensive set of components for building AI agents, vector stores, and LLM-powered applications.
 
-## 📑 Table of Contents
-
-1. [🏗️ Architecture Overview](#️-architecture-overview)
-2. [🧱 Core Package (`rakam-system-core`)](#core-package-rakam-systems-core)
-3. [🤖 Agent Package (`rakam-systems-agent`)](#-agent-package-rakam-systems-agent)
-4. [🔍 Vectorstore Package (`rakam-systems-vectorstore`)](#-vectorstore-package-rakam-systems-vectorstore)
-5. [⚙️ Configuration System](#️-configuration-system)
-6. [🚀 Quick Start Examples](#-quick-start-examples)
-7. [🌍 Environment Variables](#environment-variables)
-8. [✅ Best Practices](#-best-practices)
-
----
-
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 Rakam Systems is organized into three independent packages:
 
@@ -59,7 +45,6 @@ rakam-systems/
 - **Configuration-First**: YAML/JSON configuration support for all components
 - **Provider-Agnostic**: Support for multiple LLM providers, embedding models, and vector stores
 
----
 
 ## Core Package (`rakam-systems-core`)
 
@@ -284,9 +269,8 @@ registry = loader.get_tool_registry(config)
 is_valid, errors = loader.validate_config("config.yaml")
 ```
 
----
 
-## 🤖 Agent Package (`rakam-systems-agent`)
+## Agent Package (`rakam-systems-agent`)
 
 The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent[all]` (requires core).
 
@@ -529,9 +513,8 @@ history.clear_all()
 history.shutdown()
 ```
 
----
 
-## 🔍 Vectorstore Package (`rakam-systems-vectorstore`)
+## Vectorstore Package (`rakam-systems-vectorstore`)
 
 The vectorstore package provides vector database solutions and document processing. Install with `pip install rakam-systems-vectorstore[all]` (requires core).
 
@@ -966,7 +949,6 @@ More content...
 - Markdown heading markers support
 - Configurable token limits and merging behavior
 
----
 
 ### Logging Utilities
 
@@ -981,9 +963,8 @@ logger.debug("Detailed debug info")
 logger.error("An error occurred")
 ```
 
----
 
-## ⚙️ Configuration System
+## Configuration System
 
 **The Core Advantage: Configuration Without Code Changes**
 
@@ -1194,9 +1175,8 @@ tools:
     description: Perform calculations
 ```
 
----
 
-## 🚀 Quick Start Examples
+## Quick Start Examples
 
 ### Basic Agent
 
@@ -1338,7 +1318,6 @@ asyncio.run(main())
 store.shutdown()
 ```
 
----
 
 ## Environment Variables
 
@@ -1355,17 +1334,15 @@ The system supports the following environment variables:
 | `POSTGRES_USER`     | PostgreSQL user     | DatabaseConfig                        |
 | `POSTGRES_PASSWORD` | PostgreSQL password | DatabaseConfig                        |
 
----
 
-## ✅ Best Practices
+## Best Practices
 
-1. **Always use context managers** or explicit `setup()`/`shutdown()` for proper resource management
-2. **Use configuration files** for production deployments instead of hardcoded values
-3. **Enable tracking** during development for debugging and evaluation
-4. **Use model-specific tables** (default) to prevent mixing incompatible vector spaces
+1. **Use context managers** or explicit `setup()`/`shutdown()` for proper resource management
+2. **Prefer configuration files** over hardcoded values for production deployments
+3. **Enable tracking** during development to support debugging and evaluation
+4. **Keep model-specific tables** (the default) to prevent mixing incompatible vector spaces
 5. **Batch operations** when processing large document collections
-6. **Use async methods** (`arun`, `astream`) for agents as they are powered by Pydantic AI
-7. **Validate configurations** before deployment using `config.validate()` or `loader.validate_config()`
+6. **Prefer async methods** (`arun`, `astream`) for agents — they are powered by Pydantic AI
+7. **Validate configurations** before deployment with `config.validate()` or `loader.validate_config()`
 
----
 

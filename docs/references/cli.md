@@ -5,7 +5,6 @@ A CLI for running LLM evaluations and tracking quality over time.
 <!-- TODO: Decide whether "Writing Evaluations" should be duplicated here
      or if a link to SDK docs is sufficient. Current approach: link only. -->
 
----
 
 ## Quick Start
 
@@ -29,7 +28,6 @@ rakam eval run
 rakam eval show
 ```
 
----
 
 ## User Guide
 
@@ -87,7 +85,6 @@ rakam eval compare --tag baseline-v1 --tag current
 rakam eval compare --tag baseline-v1 --id 45
 -->
 
----
 
 ## Command Reference
 

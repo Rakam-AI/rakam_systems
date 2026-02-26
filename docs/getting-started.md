@@ -10,13 +10,13 @@ import Prerequisites from './_partials/_prerequisites.md';
 
 <Prerequisites />
 
-## 1. Start the Evaluation Service (required for evaluation)
+## Start the evaluation service
 
 The evaluation service must be running to use the evaluation features. Contact us if you need help setting it up.
 
-## 2. Set Up the Environment
+## Set up the environment
 
-**1. Create and activate a Python virtual environment:**
+### Create a virtual environment
 
 ```bash
 python3 -m venv venv
@@ -24,13 +24,13 @@ source venv/bin/activate  # On macOS/Linux
 # On Windows: venv\Scripts\activate
 ```
 
-**2. Install Rakam Systems package:**
+### Install Rakam Systems
 
 ```bash
 pip install rakam-systems
 ```
 
-**3. Set up your API keys:**
+### Configure API keys
 
 Create a `.env` file in your project root with your OpenAI API key:
 
@@ -50,7 +50,7 @@ load_dotenv()
 The evaluation service connection is configured separately. Contact us for evaluation service setup details.
 :::
 
-## 3. Your First Agent
+## Create your first agent
 
 Create a file named `my_first_agent.py`:
 
@@ -79,7 +79,7 @@ Run it with:
 python my_first_agent.py
 ```
 
-## 4. Write Your First Evaluation Function
+## Write an evaluation function
 
 1. Create an `eval/` directory in your project if it doesn't exist.
 2. Add your evaluation functions there. Each function must:
@@ -117,9 +117,9 @@ def test_simple_text_eval():
     )
 ```
 
-## 5. Run Your Evaluation
+## Run evaluations
 
-From your project root to run evaluation functions, run:
+From your project root:
 
 ```bash
 rakam eval run

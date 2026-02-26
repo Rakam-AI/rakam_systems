@@ -1,6 +1,5 @@
 ---
 title: User Guide
----
 
 import Prerequisites from './\_partials/\_prerequisites.md';
 
@@ -126,7 +125,6 @@ pip install rakam-systems-vectorstore
 - Document Q&A systems
 - Knowledge base management
 
----
 
 ## Environment Setup
 
@@ -255,7 +253,6 @@ if not settings.configured:
     django.setup()
 ```
 
----
 
 ## Agents
 
@@ -310,7 +307,6 @@ result = await agent.arun(
 )
 ```
 
----
 
 ### With Tools
 
@@ -517,7 +513,6 @@ async def main():
 asyncio.run(main())
 ```
 
----
 
 ## Agent with Configuration (YAML)
 
@@ -550,7 +545,6 @@ agent = loader.create_agent("assistant", config)
 asyncio.run(lambda: agent.arun("Hello!"))
 ```
 
----
 
 ## Write Evaluation Function
 
@@ -590,7 +584,6 @@ def test_simple_text_eval():
     )
 ```
 
----
 
 ## Run Your Evaluation
 

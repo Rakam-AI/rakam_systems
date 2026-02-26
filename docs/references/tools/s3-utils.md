@@ -1,7 +1,6 @@
 ---
 title: S3 Component
 description: Lightweight Pythonic wrapper for S3 operations in rakam-system-tools
----
 
 # S3 Component
 
@@ -197,7 +196,6 @@ s3.upload_file(
 )
 ```
 
----
 
 #### `download_file(key, bucket=None, as_bytes=False)`
 
@@ -226,7 +224,6 @@ text = s3.download_file("data/config.json").decode("utf-8")
 image_data = s3.download_file("images/photo.jpg", as_bytes=True)
 ```
 
----
 
 #### `delete_file(key, bucket=None)`
 
@@ -241,7 +238,6 @@ Delete a file from S3.
 
 **Raises:** `S3Error` if deletion fails
 
----
 
 #### `file_exists(key, bucket=None)`
 
@@ -256,7 +252,6 @@ Check if a file exists in S3.
 
 **Raises:** `S3Error` on errors other than "not found"
 
----
 
 #### `list_files(prefix="", bucket=None, max_keys=1000)`
 
@@ -286,7 +281,6 @@ for file in files:
     print(f"{file['Key']}: {file['Size']} bytes")
 ```
 
----
 
 #### `get_file_metadata(key, bucket=None)`
 
@@ -312,7 +306,6 @@ Contains:
 - `S3NotFoundError` if file doesn't exist
 - `S3Error` on other failures
 
----
 
 ### Bucket Operations
 
@@ -328,7 +321,6 @@ Create an S3 bucket.
 
 **Raises:** `S3Error` if creation fails
 
----
 
 #### `bucket_exists(bucket=None)`
 
@@ -342,7 +334,6 @@ Check if a bucket exists and is accessible.
 
 **Raises:** `S3PermissionError` if access is denied
 
----
 
 #### `list_buckets()`
 
@@ -355,7 +346,6 @@ Each dictionary contains:
 - `Name` (str): Bucket name
 - `CreationDate` (datetime): Creation time
 
----
 
 ### Client Management
 
@@ -367,13 +357,11 @@ Get or create the S3 client singleton.
 
 **Raises:** `S3ConfigError` if configuration is missing
 
----
 
 #### `reset_client()`
 
 Reset the S3 client singleton. Useful for testing or credential refresh.
 
----
 
 #### `get_config()`
 
@@ -381,7 +369,6 @@ Get current S3 configuration (with masked secrets).
 
 **Returns:** `Dict` - Configuration dictionary
 
----
 
 ## Exception Handling
 
