@@ -94,7 +94,8 @@ MetricConfig = Annotated[
 ]
 
 SchemaMetricConfig = Annotated[
-    Union[JsonCorrectnessConfig, FieldsPresenceConfig], Field(discriminator="type")
+    Union[JsonCorrectnessConfig, FieldsPresenceConfig], Field(
+        discriminator="type")
 ]
 
 
@@ -117,6 +118,9 @@ class SchemaInputItem(InputItem):
 class EvalConfig(BaseModel):
     __eval_config__ = "text_eval"
     component: str = "unknown"
+    scope: Optional[str] = None
+    reason: Optional[str] = None
+    risk_level: Optional[str] = None
     label: Union[str, None] = None
     data: List[TextInputItem]
     metrics: List[MetricConfig] = Field(default_factory=list)
@@ -125,6 +129,9 @@ class EvalConfig(BaseModel):
 class SchemaEvalConfig(BaseModel):
     __eval_config__ = "schema_eval"
     component: str = "unknown"
+    scope: Optional[str]
+    reason: Optional[str]
+    risk_level: Optional[str]
     label: Union[str, None] = None
     data: List[SchemaInputItem]
     metrics: List[SchemaMetricConfig] = Field(default_factory=list)
