@@ -4,10 +4,10 @@ title: Cloud Storage (S3)
 
 # Cloud Storage (S3)
 
-The `rakam-system-tools` package includes a lightweight wrapper around boto3 for S3-compatible storage (AWS S3, OVH, Scaleway, MinIO).
+The `rakam-systems-tools` package includes a lightweight wrapper around boto3 for S3-compatible storage (AWS S3, OVH, Scaleway, MinIO).
 
 ```bash
-pip install rakam-system-tools
+pip install rakam-systems-tools
 ```
 
 ## Configure S3

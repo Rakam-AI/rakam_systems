@@ -6,6 +6,17 @@ title: Agents
 
 This section covers the main usage patterns of `BaseAgent`: basic inference, streaming, model settings, tools, structured output, RAG pipelines, and YAML configuration.
 
+```bash
+pip install rakam-systems-agent[all]
+```
+
+Available extras:
+
+| Extra | What it adds |
+|-------|-------------|
+| `llm-providers` | `openai`, `mistralai`, `tiktoken` |
+| `all` | Everything above |
+
 ## Run a basic agent
 
 ```python

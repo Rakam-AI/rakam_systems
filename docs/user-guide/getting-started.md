@@ -18,7 +18,7 @@ Install all Rakam Systems packages at once:
 pip install rakam-systems
 ```
 
-This is the recommended starting point. It includes the core, agent, and vectorstore packages.
+This is the recommended starting point. It includes the core, agent, vectorstore, tools, and CLI packages.
 
 ### Install specific packages
 
@@ -31,20 +31,28 @@ pip install rakam-systems-core
 # Agent package (includes core)
 pip install rakam-systems-agent[all]
 
-# Vectorstore package (includes core)
+# Vectorstore package (includes core and tools)
 pip install rakam-systems-vectorstore[all]
+
+# Tools package (evaluation, S3 utilities)
+pip install rakam-systems-tools
+
+# CLI
+pip install rakam-systems-cli
 
 # Agent + Vectorstore (for RAG applications)
 pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]
 ```
 
-### Review dependencies
+### Dependencies
 
-| Package | Purpose | Min specs | Key dependencies |
-|---------|---------|-----------|-----------------|
-| `rakam-systems-core` | Foundational interfaces and utilities. Required by all other packages. | — | `pydantic`, `pyyaml`, `python-dotenv`, … |
-| `rakam-systems-agent` | AI agent implementations powered by Pydantic AI. | 4 GB RAM, internet access | Core + `pydantic-ai`, `mistralai`, `openai`, … |
-| `rakam-systems-vectorstore` | Vector storage and document processing. Requires PostgreSQL + pgvector for persistent storage. | 8 GB+ RAM, 5 GB+ disk | Core + `sentence-transformers`, `faiss-cpu`, `torch`, … |
+| Package | Purpose | Key dependencies |
+|---------|---------|-----------------|
+| `rakam-systems-core` | Foundational interfaces and utilities. Required by all other packages. | `pydantic`, `PyYAML` |
+| `rakam-systems-agent` | AI agent framework powered by Pydantic AI. `[all]` adds LLM provider clients. | Core + `pydantic-ai`, `python-dotenv`; `[all]`: `openai`, `mistralai` |
+| `rakam-systems-vectorstore` | Vector storage and document processing. `[all]` adds all backends and loaders. | Core + Tools + `numpy`; `[all]`: `faiss-cpu`, `sentence-transformers`, `torch`, `pgvector`, `openai`, `cohere` |
+| `rakam-systems-tools` | Evaluation framework and S3 utilities. | `pydantic`, `boto3`, `requests` |
+| `rakam-systems-cli` | Command-line interface (`rakam` command). | Tools + `typer` |
 
 
 ## Environment Setup
