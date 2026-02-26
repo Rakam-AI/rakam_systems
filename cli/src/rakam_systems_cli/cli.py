@@ -164,6 +164,11 @@ def list_evals(
 def list_runs(
     limit: int = typer.Option(20, "-l", "--limit", help="Max number of runs"),
     offset: int = typer.Option(0, help="Pagination offset"),
+    show_annotations: bool = typer.Option(
+        False,
+        "--show-annotations",
+        help="Display scope, reason and risk_level if present",
+    ),
 ) -> None:
     """
     List runs (newest first).
@@ -183,13 +188,27 @@ def list_runs(
         typer.echo("No runs found.")
         return
 
-    typer.echo(f"[id] {'tag':<20}{'label':<20}created_at")
+    # Display headers
+    columns = ["[id]", f"{'tag':<20}", f"{'label':<20}"]
+
+    if show_annotations:
+        columns.extend([
+            f"{'risk':<10}",
+            f"{'scope':<15}",
+            f"{'reason':<25}",
+        ])
+    columns.append("created_at")
+    typer.echo(" ".join(columns))
 
     for run in items:
         run_id = run.get("id")
         label = run.get("label") or "-"
         uid = run.get("tag") or "-"
         created_at = run.get("created_at")
+
+        risk = run.get("risk_level") or "-"
+        scope = run.get("scope") or "-"
+        reason = run.get("reason") or "-"
 
         if created_at:
             try:
@@ -198,8 +217,25 @@ def list_runs(
                 )
             except ValueError:
                 pass
+        else:
+            created_at = "-"
 
-        typer.echo(f"[{run_id}] {uid:<20} {label:<20} {created_at}")
+        columns = [
+            f"[{run_id}]",
+            f"{uid:<20}",
+            f"{label:<20}",
+        ]
+
+        if show_annotations:
+            columns.extend([
+                f"{risk:<10}",
+                f"{scope:<15}",
+                f"{reason:<25}",
+            ])
+
+        columns.append(str(created_at))
+
+        typer.echo(" ".join(columns))
 
     shown = offset + len(items)
     if shown < total:
