@@ -34,10 +34,10 @@ pip install rakam-systems-core
 pip install rakam-systems-agent[all]
 
 # Vectorstore package (includes core)
-pip install rakam-systems-vectorstore
+pip install rakam-systems-vectorstore[all]
 
 # Agent + Vectorstore (for RAG applications)
-pip install rakam-systems-agent[all] rakam-systems-vectorstore
+pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]
 ```
 
 ### Review dependencies
