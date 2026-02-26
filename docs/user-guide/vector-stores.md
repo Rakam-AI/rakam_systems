@@ -6,6 +6,22 @@ title: Vector Stores
 
 Vector Store is a standalone component for storing and searching document embeddings. It can be used independently for semantic search, or as the data layer in a RAG pipeline (see [Agents](./agents.md#build-a-rag-pipeline)).
 
+```bash
+pip install rakam-systems-vectorstore[all]
+```
+
+Available extras:
+
+| Extra | What it adds |
+|-------|-------------|
+| `postgres` | `psycopg2-binary`, `pgvector`, `django` |
+| `faiss` | `faiss-cpu` |
+| `local-embeddings` | `sentence-transformers`, `torch` |
+| `openai` | `openai` (for OpenAI embeddings) |
+| `cohere` | `cohere` (for Cohere embeddings) |
+| `loaders` | `python-magic`, `beautifulsoup4`, `python-docx`, `pymupdf`, `docling`, `chonkie` |
+| `all` | Everything above |
+
 ## Use FAISS (in-memory)
 
 ```python

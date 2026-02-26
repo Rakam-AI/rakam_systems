@@ -4,6 +4,10 @@ title: Evaluation
 
 # Evaluation
 
+```bash
+pip install rakam-systems-cli
+```
+
 The evaluation service must be running to use evaluation features. Contact us if you need help setting it up.
 
 Configure access to the evaluation service in your `.env`:
@@ -135,12 +139,6 @@ except requests.RequestException as e:
 ```
 
 ## Run evaluations
-
-Install the CLI package:
-
-```bash
-pip install rakam-systems-cli
-```
 
 ### Execute evaluations
 
