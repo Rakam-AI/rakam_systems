@@ -2,9 +2,6 @@
 
 A CLI for running LLM evaluations and tracking quality over time.
 
-<!-- TODO: Decide whether "Writing Evaluations" should be duplicated here
-     or if a link to SDK docs is sufficient. Current approach: link only. -->
-
 
 ## Quick Start
 
@@ -13,7 +10,7 @@ A typical workflow is:
 1. Write eval function
 
 ```bash
-edit eval/my_eval.py # Similair to Get Started Example
+edit eval/my_eval.py # Similar to the Getting Started example
 ```
 
 2. Run evaluation
@@ -49,22 +46,6 @@ This shows all runs hosted on the evaluation server.
 rakam eval list runs
 ```
 
-<!-- TODO: Document tagging when in scope
-## Tagging runs
-
-Tag a run as a reference point:
-
-```bash
-rakam eval tag --id 42 --tag baseline-v1
-```
-
-Delete a tag:
-
-```bash
-rakam eval tag --delete baseline-v1
-```
--->
-
 ### Comparing runs
 
 Compare two runs to see what changed:
@@ -77,13 +58,6 @@ rakam eval compare --id 42 --id 45
 rakam eval compare  --id 42 --id 45 -o comparison.json
 ```
 
-<!-- TODO: Document tagging when in scope
-# Compare by tags
-rakam eval compare --tag baseline-v1 --tag current
-
-# Mix ID and tag
-rakam eval compare --tag baseline-v1 --id 45
--->
 
 
 ## Command Reference

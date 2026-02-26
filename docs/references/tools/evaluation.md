@@ -1,3 +1,7 @@
+---
+title: Evaluation SDK
+---
+
 # Rakam Eval SDK Documentation
 
 This document provides a comprehensive guide to using the `rakam-system-tools`, a Python client for interacting with the DeepEval API. This SDK allows you to run evaluations on your text and schema data, either synchronously or in the background.
@@ -142,7 +146,7 @@ data = [
 
 metrics = [
     JsonCorrectnessConfig(
-        excpected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}
+        excpected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}  # Note: parameter name is misspelled in the SDK
     )
 ]
 
@@ -223,5 +227,4 @@ result = client.text_eval(data=data, metrics=[], component="review-analyzer")
 print(result)
 ```
 
-``Note: When you send client-side metrics, you can pass an empty list to the `metrics` parameter of the `text_eval` or `schema_eval` methods if you don't want to run any server-side evaluations.
-``
+> **Note:** When you send client-side metrics, you can pass an empty list to the `metrics` parameter of the `text_eval` or `schema_eval` methods if you don't want to run any server-side evaluations.

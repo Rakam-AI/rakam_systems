@@ -8,13 +8,13 @@ The S3 component provides a lightweight, Pythonic wrapper around boto3 for S3 op
 
 ## Features
 
-- ✅ **Simple API**: Clean, intuitive functions for common S3 operations
-- ✅ **Environment-based Configuration**: No hardcoded credentials
-- ✅ **S3-Compatible Services**: Works with AWS S3, OVH, Scaleway, MinIO, etc.
-- ✅ **Proper Error Handling**: Custom exceptions for different error cases
-- ✅ **Singleton Client**: Efficient connection reuse
-- ✅ **Type Hints**: Full type annotations for better IDE support
-- ✅ **RS Component Style**: Consistent with other rakam_system_core utilities
+- **Simple API**: Clean, intuitive functions for common S3 operations
+- **Environment-based Configuration**: No hardcoded credentials
+- **S3-Compatible Services**: Works with AWS S3, OVH, Scaleway, MinIO, etc.
+- **Proper Error Handling**: Custom exceptions for different error cases
+- **Singleton Client**: Efficient connection reuse
+- **Type Hints**: Full type annotations for better IDE support
+- **RS Component Style**: Consistent with other Rakam Systems utilities
 
 ## Installation
 
@@ -36,7 +36,7 @@ uv pip install  rakam-system-tools
 Or add to your `requirements.txt`:
 
 ```
-rakam-system-tools>=0.1.2
+rakam-system-tools
 ```
 
 ## Configuration
@@ -577,13 +577,3 @@ S3Error: Invalid bucket name
 - Start and end with a letter or number
 - NOT contain underscores or uppercase letters
 
-## Contributing
-
-When extending the S3 component:
-
-1. Follow the RS component pattern (see `logging.py` as reference)
-2. Add proper type hints
-3. Include docstrings with examples
-4. Add custom exceptions for specific error cases
-5. Update this documentation
-6. Add tests to `test_s3_component.py`
