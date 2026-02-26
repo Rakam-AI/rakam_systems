@@ -19,11 +19,11 @@ pip install -e core/ -e ai-components/agents/ -e ai-components/vector-store/ -e 
 ## Sections
 
 1. [Architecture](./architecture.md) — Package structure and design principles
-2. [Core concepts](./core-concepts.md) — BaseComponent lifecycle, interfaces, configuration-first design
+2. [Core concepts](./core.md) — BaseComponent lifecycle, interfaces, configuration-first design
 3. [Build agents](./agents.md) — BaseAgent, tools, ToolRegistry, dynamic system prompts, structured output
 4. [Use LLM gateways](./llm-gateways.md) — OpenAI, Mistral, Factory; direct generation, structured output, streaming
 5. [Manage chat history](./chat-history.md) — JSON, SQLite, PostgreSQL backends; Pydantic AI integration
-6. [Build vector pipelines](./vector-pipelines.md) — Data structures, embeddings, document loading, chunking
+6. [Build vector pipelines](./vectorstore.md) — Data structures, embeddings, document loading, chunking
 7. [Search](./search.md) — Vector search, keyword search, hybrid search
 8. [Configure with YAML](./configuration.md) — Agent configuration, VectorStore configuration, multi-environment deployment
 9. [Track and evaluate](./tracking.md) — Tracking system, cross-reference evaluation CLI and SDK
