@@ -1,14 +1,14 @@
 ---
-title: Core Package
+title: Core concepts
 ---
 
-# Core Package
+# Core concepts
 
-The core package provides foundational abstractions used throughout the system. This package must be installed before using agent or vectorstore packages.
+The core package (`rakam_systems_core`) provides foundational abstractions used throughout the system. Install it before using agent or vectorstore packages.
 
-## BaseComponent
+## BaseComponent lifecycle
 
-The base class for all components, providing lifecycle management and evaluation capabilities.
+All components extend `BaseComponent`, which provides lifecycle management and evaluation capabilities.
 
 ```python
 from rakam_systems_core.base import BaseComponent
@@ -42,9 +42,11 @@ class BaseComponent(ABC):
         raise NotImplementedError
 ```
 
+Use context managers or explicit `setup()`/`shutdown()` calls for proper resource management.
+
 ## Interfaces
 
-Located in `rakam_systems_core/interfaces/`, these define the contracts for various component types:
+Located in `rakam_systems_core/interfaces/`, these define the contracts for component types. Each interface extends `BaseComponent` and adds domain-specific methods.
 
 ### AgentComponent
 
@@ -91,39 +93,6 @@ class ToolComponent(BaseComponent, ABC):
     @classmethod
     def from_function(cls, function, name, description, json_schema, takes_ctx=False):
         """Create a ToolComponent from a standalone function."""
-```
-
-### ToolRegistry
-
-Central registry for managing tools across the system:
-
-```python
-from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMode
-
-registry = ToolRegistry()
-
-# Register a direct tool
-registry.register_direct_tool(
-    name="calculate",
-    function=lambda x, y: x + y,
-    description="Add two numbers",
-    json_schema={...},
-    category="math",
-    tags=["arithmetic"]
-)
-
-# Register an MCP tool
-registry.register_mcp_tool(
-    name="search",
-    mcp_server="search_server",
-    mcp_tool_name="web_search",
-    description="Search the web"
-)
-
-# Query tools
-tools = registry.get_tools_by_category("math")
-tools = registry.get_tools_by_tag("arithmetic")
-tools = registry.get_tools_by_mode(ToolMode.DIRECT)
 ```
 
 ### LLMGateway
@@ -181,46 +150,13 @@ class Loader(BaseComponent, ABC):
     def load_as_vsfile(file_path, custom_metadata=None) -> VSFile
 ```
 
-## Tracking System
+## Configuration-first design
 
-Built-in input/output tracking for debugging and evaluation:
+Rakam Systems embraces a configuration-first approach: modify agent behavior, vector store settings, and system parameters without touching application code.
 
-```python
-from rakam_systems_core.tracking import TrackingManager, track_method, TrackingMixin
+- **Rapid iteration**: Test different models, prompts, or parameters instantly
+- **Environment management**: Use different configs for dev/staging/production
+- **A/B testing**: Compare performance of different settings by swapping configs
+- **Team collaboration**: Non-developers can tune prompts and parameters
 
-class MyAgent(TrackingMixin, BaseAgent):
-    @track_method()
-    async def arun(self, input_data, deps=None):
-        return await super().arun(input_data, deps)
-
-# Enable tracking
-agent.enable_tracking(output_dir="./tracking")
-
-# Export tracking data
-agent.export_tracking_data(format='csv')
-agent.export_tracking_data(format='json')
-
-# Get statistics
-stats = agent.get_tracking_statistics()
-```
-
-## Configuration Loader
-
-Load agent configurations from YAML files:
-
-```python
-from rakam_systems_core.config_loader import ConfigurationLoader
-
-loader = ConfigurationLoader()
-config = loader.load_from_yaml("agent_config.yaml")
-
-# Create agents from config
-agent = loader.create_agent("my_agent", config)
-all_agents = loader.create_all_agents(config)
-
-# Get tool registry
-registry = loader.get_tool_registry(config)
-
-# Validate configuration
-is_valid, errors = loader.validate_config("config.yaml")
-```
+See [Configure with YAML](./configuration.md) for full configuration reference.

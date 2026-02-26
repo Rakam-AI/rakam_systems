@@ -4,7 +4,7 @@ title: Getting Started Guide
 
 # Getting Started Guide
 
-This guide walks you through a first end-to-end example: install Rakam Systems, create an agent, and run an evaluation. For detailed usage patterns, see the [User Guide](./user-guide.md).
+This guide walks you through a first end-to-end example: install Rakam Systems, create an agent, and run an evaluation. For detailed usage patterns, see the [User Guide](./user-guide/index.md).
 
 import Prerequisites from './_partials/_prerequisites.md';
 

@@ -1,14 +1,14 @@
 ---
-title: Agent Package
+title: Build agents
 ---
 
-# Agent Package
+# Build agents
 
 The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent[all]` (requires core).
 
-## BaseAgent
+For a quick-start tutorial, see the [User Guide — Agents](../user-guide/agents.md).
 
-The main agent implementation using Pydantic AI:
+## BaseAgent
 
 ```python
 from rakam_systems_agent import BaseAgent
@@ -39,9 +39,71 @@ async for chunk in agent.astream("Tell me a story"):
     print(chunk, end="")
 ```
 
-### Dynamic System Prompts
+## Tools
 
-Dynamic system prompts allow you to inject context at runtime based on current state, user information, or external data:
+Create tools with `ToolComponent.from_function`:
+
+```python
+from rakam_systems_core.interfaces.tool import ToolComponent
+
+def get_weather(city: str) -> str:
+    return f"The weather in {city} is sunny, 25°C"
+
+weather_tool = ToolComponent.from_function(
+    function=get_weather,
+    name="get_weather",
+    description="Get the current weather for a city",
+    json_schema={
+        "type": "object",
+        "properties": {"city": {"type": "string"}},
+        "required": ["city"]
+    }
+)
+
+agent = BaseAgent(
+    name="weather_assistant",
+    model="openai:gpt-4o",
+    system_prompt="You help users with weather information.",
+    tools=[weather_tool]
+)
+```
+
+## ToolRegistry
+
+Central registry for managing tools across the system:
+
+```python
+from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMode
+
+registry = ToolRegistry()
+
+# Register a direct tool
+registry.register_direct_tool(
+    name="calculate",
+    function=lambda x, y: x + y,
+    description="Add two numbers",
+    json_schema={...},
+    category="math",
+    tags=["arithmetic"]
+)
+
+# Register an MCP tool
+registry.register_mcp_tool(
+    name="search",
+    mcp_server="search_server",
+    mcp_tool_name="web_search",
+    description="Search the web"
+)
+
+# Query tools
+tools = registry.get_tools_by_category("math")
+tools = registry.get_tools_by_tag("arithmetic")
+tools = registry.get_tools_by_mode(ToolMode.DIRECT)
+```
+
+## Dynamic system prompts
+
+Dynamic system prompts inject context at runtime based on current state, user information, or external data:
 
 ```python
 from datetime import date, datetime
@@ -77,7 +139,6 @@ agent.add_dynamic_system_prompt(add_time_context)
 @agent.dynamic_system_prompt
 async def fetch_external_context(ctx: RunContext[dict]) -> str:
     """Fetch and add external context asynchronously."""
-    # Example: fetch from API or database
     import asyncio
     await asyncio.sleep(0.1)
     return "Additional context from external source."
@@ -89,158 +150,38 @@ result = await agent.arun(
 )
 ```
 
-## LLM Gateways
+## Structured output
 
-### OpenAI Gateway
+Pass an `output_type` to get typed responses:
 
 ```python
-from rakam_systems_agent import OpenAIGateway, LLMRequest
-
-gateway = OpenAIGateway(
-    model="gpt-4o",
-    api_key="...",  # Or use OPENAI_API_KEY env var
-    default_temperature=0.7
-)
-
-# Text generation
-request = LLMRequest(
-    system_prompt="You are a helpful assistant",
-    user_prompt="What is AI?",
-    temperature=0.7
-)
-response = gateway.generate(request)
-print(response.content)
-
-# Structured output
 from pydantic import BaseModel
 
 class Answer(BaseModel):
     answer: str
     confidence: float
 
-result = gateway.generate_structured(request, Answer)
-print(result.answer, result.confidence)
+agent = BaseAgent(
+    name="structured_agent",
+    model="openai:gpt-4o",
+    system_prompt="Answer questions with confidence scores.",
+    output_type=Answer
+)
 
-# Streaming
-for chunk in gateway.stream(request):
-    print(chunk, end="")
-
-# Token counting
-token_count = gateway.count_tokens("Hello, world!")
+result = await agent.arun("What is the capital of France?")
+print(result.output.answer)       # "Paris"
+print(result.output.confidence)   # 0.99
 ```
 
-### Mistral Gateway
+## Dependencies pattern
+
+Pass runtime dependencies to agents and tools via `deps`:
 
 ```python
-from rakam_systems_agent import MistralGateway
-
-gateway = MistralGateway(
-    model="mistral-large-latest",
-    api_key="..."  # Or use MISTRAL_API_KEY env var
+result = await agent.arun(
+    "Look up order status",
+    deps={"user_id": "123", "db_connection": db}
 )
 ```
 
-### Gateway Factory
-
-```python
-from rakam_systems_agent import LLMGatewayFactory, get_llm_gateway
-
-# Using factory
-gateway = LLMGatewayFactory.create(
-    provider="openai",
-    model="gpt-4o",
-    api_key="..."
-)
-
-# Using convenience function
-gateway = get_llm_gateway(provider="openai", model="gpt-4o")
-```
-
-## Chat History
-
-### JSON Chat History
-
-```python
-from rakam_systems_agent.components.chat_history import JSONChatHistory
-
-history = JSONChatHistory(config={"storage_path": "./chat_history.json"})
-
-# Add messages
-history.add_message("chat123", {"role": "user", "content": "Hello!"})
-history.add_message("chat123", {"role": "assistant", "content": "Hi there!"})
-
-# Get history
-messages = history.get_chat_history("chat123")
-readable = history.get_readable_chat_history("chat123")
-
-# Pydantic AI integration
-message_history = history.get_message_history("chat123")
-result = await agent.run("Hello", message_history=message_history)
-history.save_messages("chat123", result.all_messages())
-
-# Manage chats
-all_chats = history.get_all_chat_ids()
-history.delete_chat_history("chat123")
-history.clear_all()
-```
-
-### SQL Chat History (SQLite)
-
-```python
-from rakam_systems_agent.components.chat_history import SQLChatHistory
-
-history = SQLChatHistory(config={"db_path": "./chat_history.db"})
-
-# Same API as JSON Chat History
-history.add_message("chat123", {"role": "user", "content": "Hello!"})
-history.add_message("chat123", {"role": "assistant", "content": "Hi there!"})
-
-# Get history
-messages = history.get_chat_history("chat123")
-
-# Pydantic AI integration
-message_history = history.get_message_history("chat123")
-result = await agent.run("Hello", message_history=message_history)
-history.save_messages("chat123", result.all_messages())
-```
-
-### PostgreSQL Chat History
-
-For production deployments with PostgreSQL-backed storage:
-
-```python
-from rakam_systems_agent.components.chat_history import PostgresChatHistory
-
-# Configuration
-history = PostgresChatHistory(config={
-    "host": "localhost",
-    "port": 5432,
-    "database": "chat_db",
-    "user": "postgres",
-    "password": "postgres"
-})
-
-# Or use environment variables (POSTGRES_HOST, POSTGRES_PORT, etc.)
-history = PostgresChatHistory()
-
-# Same API as other chat history backends
-history.add_message("chat123", {"role": "user", "content": "Hello!"})
-history.add_message("chat123", {"role": "assistant", "content": "Hi there!"})
-
-# Get history
-messages = history.get_chat_history("chat123")
-readable = history.get_readable_chat_history("chat123")
-
-# Pydantic AI integration
-message_history = history.get_message_history("chat123")
-result = await agent.run("Hello", message_history=message_history)
-history.save_messages("chat123", result.all_messages())
-
-# Manage chats
-all_chats = history.get_all_chat_ids()
-history.delete_chat_history("chat123")
-history.clear_all()
-
-# Cleanup
-history.shutdown()
-```
+Dependencies are accessible in dynamic system prompts via `RunContext` and in tools that set `takes_ctx=True`.
