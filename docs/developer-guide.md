@@ -25,30 +25,29 @@ Rakam Systems is organized into three independent packages:
 
 ```
 rakam-systems/
-├── core/           # Core abstractions, interfaces, and base classes
-│   └── src/rakam_system_core/
-│       ├── ai_core/             # Core interfaces and base component
-│       │   ├── base.py          # BaseComponent
-│       │   ├── interfaces/      # Abstract interfaces
-│       │   ├── config_loader.py # Configuration system
-│       │   └── tracking.py      # Input/output tracking
-│       └── ai_utils/            # Logging utilities
-├── ai-components/agent/          # Agent implementations (depends on core)
+├── core/                          # Core abstractions, interfaces, and base classes
+│   └── src/rakam_systems_core/
+│       ├── base.py                # BaseComponent
+│       ├── interfaces/            # Abstract interfaces
+│       ├── config_loader.py       # Configuration system
+│       ├── tracking.py            # Input/output tracking
+│       └── utils/                 # Logging utilities
+├── ai-components/agents/          # Agent implementations (depends on core)
 │   └── src/rakam_systems_agent/
 │       └── components/
-│           ├── base_agent.py    # BaseAgent implementation
-│           ├── llm_gateway/     # LLM provider gateways
-│           ├── chat_history/    # Chat history backends
-│           └── tools/           # Built-in tools
-└── ai-components/vectorstore/    # Vector storage (depends on core)
+│           ├── base_agent.py      # BaseAgent implementation
+│           ├── llm_gateway/       # LLM provider gateways
+│           ├── chat_history/      # Chat history backends
+│           └── tools/             # Built-in tools
+└── ai-components/vector-store/    # Vector storage (depends on core)
     └── src/rakam_systems_vectorstore/
-        ├── core.py              # Node, VSFile data structures
-        ├── config.py            # VectorStoreConfig
+        ├── core.py                # Node, VSFile data structures
+        ├── config.py              # VectorStoreConfig
         └── components/
-            ├── vectorstore/     # Store implementations
-            ├── embedding_model/ # Embedding models
-            ├── loader/          # Document loaders
-            └── chunker/         # Text chunkers
+            ├── vectorstore/       # Store implementations
+            ├── embedding_model/   # Embedding models
+            ├── loader/            # Document loaders
+            └── chunker/           # Text chunkers
 ```
 
 ### Design Principles
@@ -104,7 +103,7 @@ class BaseComponent(ABC):
 
 ### Interfaces
 
-Located in `ai_core/interfaces/`, these define the contracts for various component types:
+Located in `rakam_systems_core/interfaces/`, these define the contracts for various component types:
 
 #### AgentComponent
 
@@ -805,7 +804,7 @@ loader = create_adaptive_loader(
 
 ### Specialized Loaders
 
-Located in `ai_vectorstore/components/loader/`:
+Located in `rakam_systems_vectorstore/components/loader/`:
 
 | Loader           | File Types              | Features                                                                           |
 | ---------------- | ----------------------- | ---------------------------------------------------------------------------------- |
@@ -1044,8 +1043,6 @@ agent = loader.create_agent("my_agent", config)
 # Staging: AGENT_CONFIG=config/agent_config_staging.yaml
 # Prod: AGENT_CONFIG=config/agent_config_prod.yaml
 ```
-
-## ⚙️ Configuration System Details
 
 ### VectorStoreConfig
 
