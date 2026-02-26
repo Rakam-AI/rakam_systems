@@ -76,8 +76,3 @@ Managed separately with independent versioning:
 - **Evaluation Services** - Deployed as standalone services. Available as a public Docker image for external users.
 - **Templates** - Project templates (e.g., FastAPI microservice template) that provide starting points for new AI systems using Rakam Systems components.
 
----
-
-:::note
-Use the version dropdown (top-right) to switch between versions.
-:::

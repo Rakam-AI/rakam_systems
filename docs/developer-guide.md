@@ -2,67 +2,81 @@
 title: Developer Guide
 ---
 
-# Rakam's Development Guide
+# Developer Guide
 
-Rakam Systems is a modular AI framework designed to build production-ready AI applications. It provides a comprehensive set of components for building AI agents, vector stores, and LLM-powered applications.
+This guide is for developers who want to understand the internals of Rakam Systems and contribute to the project. It covers the architecture, package structure, interfaces, and design patterns. For usage patterns and tutorials, see the [User Guide](./user-guide.md).
 
-## 📑 Table of Contents
+## Set up the development environment
 
-1. [🏗️ Architecture Overview](#️-architecture-overview)
-2. [🧱 Core Package (`rakam-system-core`)](#core-package-rakam-systems-core)
-3. [🤖 Agent Package (`rakam-systems-agent`)](#-agent-package-rakam-systems-agent)
-4. [🔍 Vectorstore Package (`rakam-systems-vectorstore`)](#-vectorstore-package-rakam-systems-vectorstore)
-5. [⚙️ Configuration System](#️-configuration-system)
-6. [🚀 Quick Start Examples](#-quick-start-examples)
-7. [🌍 Environment Variables](#environment-variables)
-8. [✅ Best Practices](#-best-practices)
+```bash
+git clone git@github.com:Rakam-AI/rakam_systems.git
+cd rakam_systems
+python3 -m venv venv
+source venv/bin/activate
+pip install -e core/ -e ai-components/agents/ -e ai-components/vector-store/ -e tools/ -e cli/
+```
 
----
+## Architecture Overview
 
-## 🏗️ Architecture Overview
-
-Rakam Systems is organized into three independent packages:
+Rakam Systems is organized into five packages:
 
 ```
 rakam-systems/
-├── core/           # Core abstractions, interfaces, and base classes
-│   └── src/rakam_system_core/
-│       ├── ai_core/             # Core interfaces and base component
-│       │   ├── base.py          # BaseComponent
-│       │   ├── interfaces/      # Abstract interfaces
-│       │   ├── config_loader.py # Configuration system
-│       │   └── tracking.py      # Input/output tracking
-│       └── ai_utils/            # Logging utilities
-├── ai-components/agent/          # Agent implementations (depends on core)
-│   └── src/rakam_systems_agent/
-│       └── components/
-│           ├── base_agent.py    # BaseAgent implementation
-│           ├── llm_gateway/     # LLM provider gateways
-│           ├── chat_history/    # Chat history backends
-│           └── tools/           # Built-in tools
-└── ai-components/vectorstore/    # Vector storage (depends on core)
-    └── src/rakam_systems_vectorstore/
-        ├── core.py              # Node, VSFile data structures
-        ├── config.py            # VectorStoreConfig
-        └── components/
-            ├── vectorstore/     # Store implementations
-            ├── embedding_model/ # Embedding models
-            ├── loader/          # Document loaders
-            └── chunker/         # Text chunkers
+│
+├─ core/                              ← Foundation (required by all others)
+│  └─ src/rakam_systems_core/
+│     ├─ base.py                         BaseComponent
+│     ├─ interfaces/                     Abstract interfaces
+│     ├─ config_loader.py                Configuration system
+│     ├─ tracking.py                     Input/output tracking
+│     └─ utils/                          Logging utilities
+│
+├─ ai-components/
+│  ├─ agents/                         ← Agent implementations
+│  │  └─ src/rakam_systems_agent/
+│  │     └─ components/
+│  │        ├─ base_agent.py             BaseAgent implementation
+│  │        ├─ llm_gateway/              LLM provider gateways
+│  │        ├─ chat_history/             Chat history backends
+│  │        └─ tools/                    Built-in tools
+│  │
+│  └─ vector-store/                   ← Vector storage and document processing
+│     └─ src/rakam_systems_vectorstore/
+│        ├─ core.py                      Node, VSFile data structures
+│        ├─ config.py                    VectorStoreConfig
+│        └─ components/
+│           ├─ vectorstore/              Store implementations
+│           ├─ embedding_model/          Embedding models
+│           ├─ loader/                   Document loaders
+│           └─ chunker/                  Text chunkers
+│
+├─ tools/                             ← Evaluation SDK, S3 utilities, observability
+│  └─ src/rakam_systems_tools/
+│     ├─ evaluation/                     DeepEvalClient, metrics, schemas
+│     └─ utils/
+│        ├─ s3/                          S3-compatible storage wrapper
+│        ├─ logging.py                   Logging utilities
+│        ├─ metrics.py                   Metrics collection
+│        └─ tracing.py                   Tracing utilities
+│
+└─ cli/                               ← Command-line interface for evaluations
+   └─ src/rakam_systems_cli/
+      ├─ cli.py                          CLI entry point (rakam eval ...)
+      ├─ decorators.py                   @eval_run decorator
+      └─ utils/                          CLI utilities
 ```
 
 ### Design Principles
 
-- **Modular Architecture**: Three independent packages that can be installed separately
-- **Clear Dependencies**: Agent and vectorstore packages depend on core
+- **Modular Architecture**: Five packages that can be installed separately
+- **Clear Dependencies**: Agent, vectorstore, tools, and CLI packages depend on core
 - **Component-Based**: All components extend `BaseComponent` with lifecycle management (`setup()`, `shutdown()`)
 - **Interface-Driven**: Abstract interfaces define contracts for extensibility
 - **Configuration-First**: YAML/JSON configuration support for all components
 - **Provider-Agnostic**: Support for multiple LLM providers, embedding models, and vector stores
 
----
 
-## Core Package (`rakam-systems-core`)
+## Core Package
 
 The core package provides foundational abstractions used throughout the system. This package must be installed before using agent or vectorstore packages.
 
@@ -104,7 +118,7 @@ class BaseComponent(ABC):
 
 ### Interfaces
 
-Located in `ai_core/interfaces/`, these define the contracts for various component types:
+Located in `rakam_systems_core/interfaces/`, these define the contracts for various component types:
 
 #### AgentComponent
 
@@ -285,9 +299,8 @@ registry = loader.get_tool_registry(config)
 is_valid, errors = loader.validate_config("config.yaml")
 ```
 
----
 
-## 🤖 Agent Package (`rakam-systems-agent`)
+## Agent Package
 
 The agent package provides AI agent implementations powered by Pydantic AI. Install with `pip install rakam-systems-agent[all]` (requires core).
 
@@ -530,9 +543,8 @@ history.clear_all()
 history.shutdown()
 ```
 
----
 
-## 🔍 Vectorstore Package (`rakam-systems-vectorstore`)
+## Vectorstore Package
 
 The vectorstore package provides vector database solutions and document processing. Install with `pip install rakam-systems-vectorstore[all]` (requires core).
 
@@ -805,7 +817,7 @@ loader = create_adaptive_loader(
 
 ### Specialized Loaders
 
-Located in `ai_vectorstore/components/loader/`:
+Located in `rakam_systems_vectorstore/components/loader/`:
 
 | Loader           | File Types              | Features                                                                           |
 | ---------------- | ----------------------- | ---------------------------------------------------------------------------------- |
@@ -967,7 +979,6 @@ More content...
 - Markdown heading markers support
 - Configurable token limits and merging behavior
 
----
 
 ### Logging Utilities
 
@@ -982,9 +993,8 @@ logger.debug("Detailed debug info")
 logger.error("An error occurred")
 ```
 
----
 
-## ⚙️ Configuration System
+## Configuration System
 
 **The Core Advantage: Configuration Without Code Changes**
 
@@ -1044,8 +1054,6 @@ agent = loader.create_agent("my_agent", config)
 # Staging: AGENT_CONFIG=config/agent_config_staging.yaml
 # Prod: AGENT_CONFIG=config/agent_config_prod.yaml
 ```
-
-## ⚙️ Configuration System Details
 
 ### VectorStoreConfig
 
@@ -1197,9 +1205,8 @@ tools:
     description: Perform calculations
 ```
 
----
 
-## 🚀 Quick Start Examples
+## Quick Start Examples
 
 ### Basic Agent
 
@@ -1341,7 +1348,6 @@ asyncio.run(main())
 store.shutdown()
 ```
 
----
 
 ## Environment Variables
 
@@ -1358,17 +1364,15 @@ The system supports the following environment variables:
 | `POSTGRES_USER`     | PostgreSQL user     | DatabaseConfig                        |
 | `POSTGRES_PASSWORD` | PostgreSQL password | DatabaseConfig                        |
 
----
 
-## ✅ Best Practices
+## Best Practices
 
-1. **Always use context managers** or explicit `setup()`/`shutdown()` for proper resource management
-2. **Use configuration files** for production deployments instead of hardcoded values
-3. **Enable tracking** during development for debugging and evaluation
-4. **Use model-specific tables** (default) to prevent mixing incompatible vector spaces
+1. **Use context managers** or explicit `setup()`/`shutdown()` for proper resource management
+2. **Prefer configuration files** over hardcoded values for production deployments
+3. **Enable tracking** during development to support debugging and evaluation
+4. **Keep model-specific tables** (the default) to prevent mixing incompatible vector spaces
 5. **Batch operations** when processing large document collections
-6. **Use async methods** (`arun`, `astream`) for agents as they are powered by Pydantic AI
-7. **Validate configurations** before deployment using `config.validate()` or `loader.validate_config()`
+6. **Prefer async methods** (`arun`, `astream`) for agents — they are powered by Pydantic AI
+7. **Validate configurations** before deployment with `config.validate()` or `loader.validate_config()`
 
----
 
