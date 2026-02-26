@@ -76,7 +76,7 @@ load_dotenv()
 
 ### Configure PostgreSQL
 
-PostgreSQL with pgvector is required if you use `ConfigurablePgVectorStore` or PostgreSQL-backed chat history. This guide assumes a PostgreSQL instance with pgvector is already available.
+PostgreSQL with pgvector is required if you use `ConfigurablePgVectorStore` or PostgreSQL-backed chat history. For setup instructions, see the [Vectorstore guide](ai-components/vectorstore/index.md#set-up-postgresql-with-pgvector).
 
 Configure the connection via environment variables:
 
@@ -777,15 +777,14 @@ pip install python-magic-bin
 #### PostgreSQL connection refused
 
 ```bash
-# Check if running
+# Check if the container is running
 docker ps | grep postgres
 
-# Start if not running
+# Start if stopped
 docker start postgres-vectorstore
-
-# Or start with docker compose
-docker compose up -d postgres
 ```
+
+If you don't have a PostgreSQL container yet, see the [Vectorstore guide](ai-components/vectorstore/index.md#set-up-postgresql-with-pgvector) for setup instructions.
 
 ### Verify your installation
 
