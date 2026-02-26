@@ -296,6 +296,41 @@ def show(
     )
 
 
+def parse_annotate_value(value: Optional[List[str]]) -> Dict[str, str]:
+    """
+    Parse a single --annotate value.
+    Supports JSON format: '{"key": "value"}' or key=value format: 'key=value'
+    """
+    if value is None or not value:
+        return {}
+    annotations = {}
+    if len(value) == 1 and value[0].strip().startswith("{"):
+        try:
+            annotations = json.loads(value[0])
+        except json.JSONDecodeError as e:
+            typer.echo(f"Invalid JSON for --annotate: {e}")
+            raise typer.Exit(1)
+    else:
+        for item in value:
+            if "=" not in item:
+                typer.echo(f"Invalid annotation format: {item}")
+                raise typer.Exit(1)
+
+            key, value = item.split("=", 1)
+            annotations[key.strip()] = value.strip()
+    return annotations
+
+
+def merge_annotations(
+    config: Any,
+    annotations: Dict[str, str],
+) -> None:
+    """Merge annotation dicts into config object."""
+    for key in ("scope", "reason", "risk_level"):
+        if key in annotations and annotations[key]:
+            setattr(config, key, annotations[key])
+
+
 def validate_eval_result(result: Any, fn_name: str) -> str:
     eval_config = getattr(result, "__eval_config__", None)
 
@@ -343,6 +378,14 @@ def run(
         "--output-dir",
         help="Directory where run results are saved",
     ),
+    annotate: Optional[List[str]] = typer.Option(
+        None,
+        "--annotate",
+        help=(
+            "Attach metadata to run. "
+            "Either key=value pairs or a JSON string."
+        ),
+    ),
 ) -> None:
     """
     Execute evaluations (functions decorated with @eval_run).
@@ -350,11 +393,9 @@ def run(
     files = directory.rglob("*.py") if recursive else directory.glob("*.py")
     TARGET_DECORATOR = eval_run.__name__
 
-    executed_any = False
-
     if save_runs and not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
-
+    annotations = parse_annotate_value(annotate) or {}
     for file in sorted(files):
         functions = find_decorated_functions(file, TARGET_DECORATOR)
         if not functions:
@@ -365,7 +406,7 @@ def run(
         try:
             module = load_module_from_path(file)
         except Exception as e:
-            typer.echo(f"  ❌ Failed to import module: {e}")
+            typer.echo(f"  Failed to import module: {e}")
             continue
 
         for fn_name in functions:
@@ -380,20 +421,19 @@ def run(
                     continue
 
                 if dry_run:
-                    typer.echo(f"    🧪 Dry-run OK → {eval_type}")
+                    typer.echo(f"    Dry-run OK → {eval_type}")
                     continue
 
-                # 🔥 Real execution (only if NOT dry-run)
                 client = DeepEvalClient()
-
+                # feed annotation to config
+                merge_annotations(result, annotations=annotations)
                 if eval_type == "text_eval":
                     resp = client.text_eval(config=result)
                 else:
                     resp = client.schema_eval(config=result)
 
                 typer.echo(f"{resp}")
-                executed_any = True
-                typer.echo(f"    ✅ Returned {type(result).__name__}")
+                typer.echo(f"    Returned {type(result).__name__}")
 
                 if save_runs:
                     run_id = (
@@ -419,10 +459,10 @@ def run(
                             ensure_ascii=False,
                         )
 
-                    typer.echo(f"    💾 Saved run → {output_path}")
+                    typer.echo(f"    Saved run → {output_path}")
 
             except Exception as e:
-                typer.echo(f"    ❌ Execution failed: {e}")
+                typer.echo(f"    Execution failed: {e}")
 
 
 def fetch_run(
