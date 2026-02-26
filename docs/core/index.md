@@ -9,8 +9,8 @@ The core package of Rakam Systems providing foundational interfaces, base compon
 - **Base Component**: Abstract base class with lifecycle management
 - **Interfaces**: Standard interfaces for agents, tools, vector stores, embeddings, and loaders
 - **Configuration System**: YAML/JSON configuration loading and validation
-- **Tracking System** *(experimental)*: Input/output tracking for debugging and evaluation
-- **Logging Utilities** *(experimental)*: Structured logging with color support
+- **Tracking System**: Input/output tracking for debugging and evaluation
+- **Logging Utilities**: Structured logging with color support
 
 This package is required by both `rakam-systems-agent` and `rakam-systems-vectorstore`.
 
