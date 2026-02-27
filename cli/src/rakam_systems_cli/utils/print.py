@@ -4,9 +4,10 @@ from pprint import pprint
 from typing import Any, Dict, List, Optional
 
 import typer
-from typer import secho
-
+from click import Context
 from rakam_systems_tools.evaluation.schema import MetricDiff
+from typer import secho
+from typer.core import TyperGroup
 
 
 def _print_and_save(
@@ -268,3 +269,65 @@ def git_diff(
         )
         for line in diff:
             typer.echo(line)
+
+
+class OrderedHelpGroup(TyperGroup):
+    def format_help(self, ctx: Context, formatter) -> None:
+        from click.core import Group
+        from click.formatting import HelpFormatter
+        from rich.console import Console
+        from typer import rich_utils
+
+        console = rich_utils._get_rich_console()
+        term_width = console.width
+
+        usage = ctx.command.get_usage(ctx)
+
+        from rich.panel import Panel
+        from rich.text import Text
+
+        sections = []
+
+        sections.append(Panel(
+            Text(usage, style="bold"),
+            title="Usage",
+            border_style="cyan",
+            width=term_width,
+        ))
+
+        cmd_formatter = HelpFormatter(width=term_width, max_width=term_width)
+        self.format_commands(ctx, cmd_formatter)
+        commands_output = cmd_formatter.getvalue().strip()
+
+        if commands_output:
+            lines = [l.strip() for l in commands_output.replace(
+                "Commands:", "").strip().split("\n") if l.strip()]
+            commands_output = "\n".join(lines)
+            sections.append(Panel(
+                Text(commands_output),
+                title="Commands",
+                border_style="green",
+                width=term_width,
+            ))
+
+        opt_formatter = HelpFormatter(width=term_width, max_width=term_width)
+        Group.format_options(self, ctx, opt_formatter)
+        options_output = opt_formatter.getvalue().strip()
+
+        if options_output:
+            lines = []
+            for line in options_output.replace("Options:", "").strip().split("\n"):
+                stripped = line.strip()
+                if stripped and (stripped.startswith("--") or stripped.startswith("-")):
+                    lines.append(stripped)
+            options_output = "\n".join(lines)
+            if options_output:
+                sections.append(Panel(
+                    Text(options_output),
+                    title="Options",
+                    border_style="yellow",
+                    width=term_width,
+                ))
+
+        for section in sections:
+            console.print(section)
