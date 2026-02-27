@@ -79,6 +79,32 @@ results, _ = store.search("my_collection", "AI programming", number=5)
 
 ### PostgreSQL Vector Store
 
+#### Set up PostgreSQL with pgvector
+
+`ConfigurablePgVectorStore` requires a PostgreSQL instance with the [pgvector](https://github.com/pgvector/pgvector) extension.
+
+Start a local instance with Docker:
+
+```bash
+docker run -d --name postgres-vectorstore \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=vectorstore_db \
+  -p 5432:5432 \
+  pgvector/pgvector:pg16
+```
+
+Then configure the connection via environment variables:
+
+```bash
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=vectorstore_db
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+```
+
+#### Connect and use
+
 ```python
 import os
 import django
