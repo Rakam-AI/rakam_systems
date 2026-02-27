@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-agent"
-version = "0.1.1rc13"
+version = "0.1.2"
 description = "AI Agents framework with Pydantic AI support and LLM Gateway integration"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "rakam-systems-core==0.1.1rc10",
+    "rakam-systems-core>=0.1.2",
     "pydantic>=2.11.5",
     "pydantic-ai>=1.11.0,<2.0.0",
     "pyyaml>=6.0",
