@@ -44,7 +44,7 @@ Every design decision prioritizes real-world deployment:
 - **Structured data exchange**: Components communicate via well-defined schemas, making integration predictable
 - **Scalable architecture**: Libraries chosen for efficiency (FAISS for vector operations, Django ORM for database access)
 - **Production templates included**: FastAPI service templates with Docker configurations for immediate deployment
-- **Observability built-in**: Evaluation framework for quality monitoring, metrics collection, and compliance tracking
+- **Observability built-in** *(experimental)*: Evaluation framework for quality monitoring, metrics collection, and compliance tracking — observability features are not yet fully validated or integrated into CI
 
 The framework emerged from actual production requirements—performance bottlenecks, debugging challenges, scaling issues—and addresses them systematically.
 
@@ -76,8 +76,3 @@ Managed separately with independent versioning:
 - **Evaluation Services** - Deployed as standalone services. Available as a public Docker image for external users.
 - **Templates** - Project templates (e.g., FastAPI microservice template) that provide starting points for new AI systems using Rakam Systems components.
 
----
-
-:::note
-Use the version dropdown (top-right) to switch between versions.
-:::

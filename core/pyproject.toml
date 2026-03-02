@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-core"
-version = "0.1.1rc10"
+version = "0.1.2"
 description = "A Package containing core logic and schema for rakam-systems"
 readme = "README.md"
 authors = [
