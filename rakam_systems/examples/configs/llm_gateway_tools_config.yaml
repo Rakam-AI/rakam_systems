@@ -1,0 +1,205 @@
+# LLM Gateway Tools Configuration
+# This file defines LLM gateway tools that can be loaded and registered
+# for use with agents in the rakam_systems framework.
+#
+# These tools enable agents to:
+# - Call LLM generation as a tool (meta-reasoning)
+# - Delegate to specialized models
+# - Perform multi-model comparisons
+# - Use LLM capabilities like summarization, entity extraction, etc.
+
+tools:
+  # === Core LLM Generation Tools ===
+  
+  - name: llm_generate
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_generate
+    description: Generate text using an LLM through the gateway. Enables multi-step reasoning and delegation to different models.
+    category: llm
+    tags: [generation, llm, delegation, meta-reasoning]
+    schema:
+      type: object
+      properties:
+        user_prompt:
+          type: string
+          description: The main prompt/question for the LLM
+        system_prompt:
+          type: string
+          description: Optional system prompt to set context/behavior
+        model:
+          type: string
+          description: "Optional model string (e.g., 'openai:gpt-4o', 'mistral:mistral-large-latest')"
+        temperature:
+          type: number
+          description: Optional temperature for generation (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+        max_tokens:
+          type: integer
+          description: Optional maximum tokens to generate
+          minimum: 1
+      required: [user_prompt]
+      additionalProperties: false
+  
+  - name: llm_generate_structured
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_generate_structured
+    description: Generate structured output using an LLM, ensuring responses conform to a specific schema.
+    category: llm
+    tags: [generation, structured, llm, schema]
+    schema:
+      type: object
+      properties:
+        user_prompt:
+          type: string
+          description: The main prompt/question for the LLM
+        schema:
+          type: object
+          description: JSON schema defining the expected output structure
+        system_prompt:
+          type: string
+          description: Optional system prompt to set context/behavior
+        model:
+          type: string
+          description: Optional model string
+        temperature:
+          type: number
+          description: Optional temperature for generation (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+        max_tokens:
+          type: integer
+          description: Optional maximum tokens to generate
+          minimum: 1
+      required: [user_prompt, schema]
+      additionalProperties: false
+  
+  - name: llm_count_tokens
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_count_tokens
+    description: Count tokens in text using the LLM gateway's tokenizer. Useful for checking prompt lengths and estimating costs.
+    category: llm
+    tags: [tokens, utility, llm, cost-estimation]
+    schema:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text to count tokens for
+        model:
+          type: string
+          description: Optional model string to use for tokenization
+      required: [text]
+      additionalProperties: false
+  
+  - name: llm_multi_model_generate
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_multi_model_generate
+    description: Generate responses from multiple models in parallel for comparison, consensus building, or ensemble approaches.
+    category: llm
+    tags: [generation, multi-model, ensemble, llm, comparison]
+    schema:
+      type: object
+      properties:
+        user_prompt:
+          type: string
+          description: The main prompt/question for the LLMs
+        models:
+          type: array
+          description: List of model strings to query
+          items:
+            type: string
+          minItems: 1
+        system_prompt:
+          type: string
+          description: Optional system prompt to set context/behavior
+        temperature:
+          type: number
+          description: Optional temperature for generation (0.0-1.0)
+          minimum: 0.0
+          maximum: 1.0
+        max_tokens:
+          type: integer
+          description: Optional maximum tokens to generate
+          minimum: 1
+      required: [user_prompt, models]
+      additionalProperties: false
+  
+  # === Specialized LLM Tools ===
+  
+  - name: llm_summarize
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_summarize
+    description: Summarize text using an LLM. Useful for condensing long documents or articles.
+    category: llm
+    tags: [summarization, nlp, llm]
+    schema:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text to summarize
+        model:
+          type: string
+          description: Optional model string
+        max_length:
+          type: integer
+          description: Optional maximum length for summary in words
+          minimum: 1
+      required: [text]
+      additionalProperties: false
+  
+  - name: llm_extract_entities
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_extract_entities
+    description: Extract named entities from text using an LLM. Can focus on specific entity types like people, organizations, locations.
+    category: llm
+    tags: [entities, nlp, extraction, llm]
+    schema:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text to extract entities from
+        entity_types:
+          type: array
+          description: Optional list of entity types to extract (e.g., ["person", "organization", "location"])
+          items:
+            type: string
+        model:
+          type: string
+          description: Optional model string
+      required: [text]
+      additionalProperties: false
+  
+  - name: llm_translate
+    type: direct
+    module: ai_agents.components.tools.llm_gateway_tools
+    function: llm_translate
+    description: Translate text using an LLM. Supports multiple languages with auto-detection of source language.
+    category: llm
+    tags: [translation, nlp, llm]
+    schema:
+      type: object
+      properties:
+        text:
+          type: string
+          description: Text to translate
+        target_language:
+          type: string
+          description: "Target language (e.g., 'Spanish', 'French', 'German')"
+        source_language:
+          type: string
+          description: Optional source language (auto-detected if not specified)
+        model:
+          type: string
+          description: Optional model string
+      required: [text, target_language]
+      additionalProperties: false
+
