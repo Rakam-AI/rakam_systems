@@ -1477,7 +1477,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-tools"
-version = "0.1.0rc1"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "boto3", version = "1.37.38", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
