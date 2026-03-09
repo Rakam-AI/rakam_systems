@@ -1,42 +1,18 @@
 ---
-title: Getting Started
+title: Getting Started Guide
 ---
 
-# Quick Start Guide
+# Getting Started Guide
 
-Welcome! This guide will help you set up and use the Rakam Systems tools for local development and evaluation.
+This guide walks you through a first end-to-end example: install Rakam Systems, create an agent, and run an evaluation. For detailed usage patterns, see the [User Guide](./user-guide/index.md).
 
----
+import Prerequisites from './_partials/_prerequisites.md';
 
-## Prerequisites
+<Prerequisites />
 
-Before you begin, make sure you have:
+## Set up the environment
 
-- [Docker](https://docs.docker.com/get-docker/) installed
-- Access credentials for the private container registry (for running evaluation)
-- Python 3.8 or newer (Python 3.10 or newer in case of using agent or vectorstore module)
-
----
-
-## 1. Start the Evaluation Service (required for evaluation)
-
-To launch all required backend services, run the following command (replace `YOUR_API` with your actual OpenAI API key):
-
-```bash
-docker run -d \
-  --name eval-framework \
-  -p 8080:8000 \
-  -e OPENAI_API_KEY=YOUR_API \
-  -e API_PREFIX="/eval-framework" \
-  -e APP_NAME="eval-framework" \
-  346k0827.c1.de1.container-registry.ovh.net/monitoring/evaluation-service:v0.2.4rc8
-```
-
----
-
-## 2. Set Up the Environment
-
-**a. Create and activate a Python virtual environment:**
+### Create a virtual environment
 
 ```bash
 python3 -m venv venv
@@ -44,33 +20,31 @@ source venv/bin/activate  # On macOS/Linux
 # On Windows: venv\Scripts\activate
 ```
 
-**b. Install Rakam Systems package:**
+### Install Rakam Systems
 
 ```bash
-pip install rakam-systems==0.2.5rc10
+pip install rakam-systems
 ```
 
-**c. Set API keys:**
+### Configure API keys
+
+Create a `.env` file in your project root with your OpenAI API key:
 
 ```bash
-# Option 1: Environment variable
-export OPENAI_API_KEY="sk-your-api-key"
-# These will come from Step 2
-# And Required to use Evaluation Service
-export EVALFRAMEWORK_URL="http://eval-service-url.com" # url of docker container
-export EVALFRAMEWORK_API_KEY="your-api-token" # can be generated from '/docs' swagger-ui
-
-# Option 2: .env file (recommended)
-# Create .env with: OPENAI_API_KEY=sk-your-api-key
-# ...
-# Then add to your code: from dotenv import load_dotenv; load_dotenv()
+# .env
+OPENAI_API_KEY=sk-your-api-key
 ```
 
----
+Then load it in your code:
 
-## 3. Your First Agent
+```python
+from dotenv import load_dotenv
+load_dotenv()
+```
 
-### Basic Agent
+## Create your first agent
+
+Create a file named `my_first_agent.py`:
 
 ```python
 import asyncio
@@ -91,26 +65,22 @@ async def main():
 asyncio.run(main())
 ```
 
-### With Streaming
+Run it with:
 
-```python
-async def main():
-    agent = BaseAgent(name="stream_agent", model="openai:gpt-4o")
-
-    print("Response: ", end="", flush=True)
-    async for chunk in agent.astream("Tell me a short story."):
-        print(chunk, end="", flush=True)
-    print()
-
-asyncio.run(main())
+```bash
+python my_first_agent.py
 ```
 
-## 4. Write Your First Evaluation Function
+## Write an evaluation function
+
+:::note
+The evaluation service connection is configured separately. Contact us for evaluation service setup details.
+:::
 
 1. Create an `eval/` directory in your project if it doesn't exist.
 2. Add your evaluation functions there. Each function must:
    - Be decorated with `@eval_run`
-   - Return an `EvalConfig` or `SchemaEvalConfig` object
+   - Return an `EvalConfig` object
 
 **Example:**
 
@@ -133,9 +103,9 @@ def test_simple_text_eval():
         data=[
             TextInputItem(
                 id="txt_001",
-                input="Hello world", # input from ai component e.g. system_prompt or user_prompt
-                output="Hello world", # output from ai component e.g. agent response
-                expected_output="Hello world", # excpected  results (optional, depends on metrics requested)
+                input="Hello world",
+                output="Hello world",
+                expected_output="Hello world",
                 metrics=[ClientSideMetricConfig(name="relevance", score=1)],
             )
         ],
@@ -143,24 +113,21 @@ def test_simple_text_eval():
     )
 ```
 
----
+## Run evaluations
 
-## 5. Run Your Evaluation
-
-From your project root to run evaluation functions, run:
+From your project root:
 
 ```bash
 rakam eval run
 ```
 
-To List runs:
+To list runs:
 
 ```bash
 rakam eval list runs
-
 ```
 
-To View latest results:
+To view latest results:
 
 ```bash
 rakam eval show
@@ -169,10 +136,5 @@ rakam eval show
 Compare two runs to see what changed:
 
 ```bash
-# Compare by IDs
 rakam eval compare --id 42 --id 45
-
-# Save comparison to file
-rakam eval compare  --id 42 --id 45 -o comparison.json
-
 ```

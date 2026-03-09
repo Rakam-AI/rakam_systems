@@ -58,6 +58,10 @@ With `rakam_systems`, you can build:
 
 ## Installation
 
+### Requirements
+
+- Python 3.10 or higher
+
 To install `rakam_systems`, clone the repository and install it in editable mode to include all dependencies:
 
 ```bash
