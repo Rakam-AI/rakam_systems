@@ -16,7 +16,7 @@ The vectorstore package of Rakam Systems providing vector database solutions and
 - **Chunking**: Intelligent text chunking with context preservation
 - **Configuration**: Comprehensive YAML/JSON configuration support
 
-### 🎯 Configuration Convenience
+### Configuration Convenience
 
 The vectorstore package's configurable design allows you to:
 
@@ -27,32 +27,37 @@ The vectorstore package's configurable design allows you to:
 - **Tune performance** (batch sizes, chunk sizes, connection pools)
 - **Swap backends** (FAISS ↔ PostgreSQL) by updating config
 
-**Example**: Test different embedding models to find the best accuracy/cost balance - just update your YAML config file, no code changes needed!
-
 ## Installation
 
 ```bash
-# Requires core package
-pip install -e ./rakam-systems-core
-
 # Install vectorstore package
-pip install -e ./rakam-systems-vectorstore
+pip install rakam-systems-vectorstore
 
 # With specific backends
-pip install -e "./rakam-systems-vectorstore[postgres]"
-pip install -e "./rakam-systems-vectorstore[faiss]"
-pip install -e "./rakam-systems-vectorstore[all]"
+pip install rakam-systems-vectorstore[postgres]
+pip install rakam-systems-vectorstore[faiss]
+pip install rakam-systems-vectorstore[all]
 ```
+
+Available extras:
+
+| Extra              | What it adds                                                                     |
+| ------------------ | -------------------------------------------------------------------------------- |
+| `postgres`         | `psycopg2-binary`, `pgvector`, `django`                                          |
+| `faiss`            | `faiss-cpu`                                                                      |
+| `local-embeddings` | `sentence-transformers`, `torch`                                                 |
+| `openai`           | `openai` (for OpenAI embeddings)                                                 |
+| `cohere`           | `cohere` (for Cohere embeddings)                                                 |
+| `loaders`          | `python-magic`, `beautifulsoup4`, `python-docx`, `pymupdf`, `docling`, `chonkie` |
+| `all`              | Everything above                                                                 |
 
 ## Quick Start
 
 ### FAISS Vector Store (In-Memory)
 
 ```python
-from rakam_systems_vectorstore.components.vectorstore.faiss_vector_store import FaissStore
-from rakam_systems_vectorstore.core import Node, NodeMetadata
+from rakam_systems_vectorstore import FaissStore, Node, NodeMetadata
 
-# Create store
 store = FaissStore(
     name="my_store",
     base_index_path="./indexes",
@@ -60,7 +65,6 @@ store = FaissStore(
     initialising=True
 )
 
-# Create nodes
 nodes = [
     Node(
         content="Python is great for AI",
@@ -68,12 +72,39 @@ nodes = [
     )
 ]
 
-# Add and search
 store.create_collection_from_nodes("my_collection", nodes)
-results, _ = store.search("my_collection", "AI programming", number=5)
+results, _ = store.search(collection_name="my_collection", query="AI programming", number=5)
+for _, (_, content, dist) in results.items():
+    print(f"[{dist:.4f}] {content}")
 ```
 
 ### PostgreSQL Vector Store
+
+#### Set up PostgreSQL with pgvector
+
+`ConfigurablePgVectorStore` requires a PostgreSQL instance with the [pgvector](https://github.com/pgvector/pgvector) extension.
+
+Start a local instance with Docker:
+
+```bash
+docker run -d --name postgres-vectorstore \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=vectorstore_db \
+  -p 5432:5432 \
+  pgvector/pgvector:pg16
+```
+
+Then configure the connection via environment variables:
+
+```bash
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=vectorstore_db
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+```
+
+#### Connect and use
 
 ```python
 import os
@@ -252,22 +283,6 @@ config = VectorStoreConfig.from_yaml("vectorstore_config.yaml")
 store = ConfigurablePgVectorStore(config=config)
 ```
 
-## Documentation
-
-Detailed documentation is available in the `src/rakam_systems_vectorstore/docs/` directory:
-
-- [Installation Guide](src/rakam_systems_vectorstore/docs/INSTALLATION.md)
-- [Quick Install](src/rakam_systems_vectorstore/docs/QUICK_INSTALL.md)
-- [Architecture](src/rakam_systems_vectorstore/docs/ARCHITECTURE.md)
-- [Package Structure](src/rakam_systems_vectorstore/docs/PACKAGE_STRUCTURE.md)
-
-Loader-specific documentation:
-
-- [PDF Loader](src/rakam_systems_vectorstore/components/loader/docs/PDF_LOADER_ARCHITECTURE.md)
-- [DOC Loader](src/rakam_systems_vectorstore/components/loader/docs/DOC_LOADER_README.md)
-- [Tabular Loader](src/rakam_systems_vectorstore/components/loader/docs/TABULAR_LOADER_README.md)
-- [EML Loader](src/rakam_systems_vectorstore/components/loader/docs/EML_LOADER_README.md)
-
 ## Examples
 
 See the `examples/ai_vectorstore_examples/` directory in the main repository for complete examples:
@@ -292,10 +307,3 @@ See the `examples/ai_vectorstore_examples/` directory in the main repository for
 ## License
 
 Apache 2.0
-
-## Links
-
-- [Main Repository](https://github.com/Rakam-AI/rakam-systems)
-- [Documentation](../docs/)
-- [Core Package](../rakam-systems-core/)
-- [Agent Package](../rakam-systems-agent/)
