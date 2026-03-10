@@ -1,156 +1,235 @@
-# DeepEvalClient
+# Rakam Eval CLI
 
-A lightweight Python client for interacting with the **Evaluation API**.
-It provides convenient wrappers for text and schema evaluation endpoints, with support for background jobs and probabilistic execution.
+A CLI for running LLM evaluations and tracking quality over time.
 
 ---
 
-## Features
+## Quick Start
 
-- 🔹 **Text Evaluation** – Run evaluations on plain text inputs.
-- 🔹 **Schema Evaluation** – Evaluate structured inputs against schema-based metrics.
-- 🔹 **Background Jobs** – Submit jobs asynchronously and process later.
-- 🔹 **Probabilistic Execution** – Run evaluations with a configurable chance (e.g., A/B testing scenarios).
-- 🔹 **Robust Error Handling** – Handles network errors and invalid JSON gracefully.
-- 🔹 **Configurable** – Configure via constructor args, environment variables, or external settings module.
+A typical workflow is:
+
+1. Write eval function
+
+```bash
+edit eval/my_eval.py 
+```
+
+2. Run evaluation
+
+```bash
+rakam eval run
+```
+
+3. View results
+
+```bash
+rakam eval show
+```
 
 ---
 
 ## Installation
 
 ```bash
-pip install rakam-eval-sdk
+pip install rakam-systems-cli
 ```
 
-Usage
+---
 
-1. Basic Setup
+## Writing Evaluations
+
+Create an `eval/` directory in your project. Each evaluation function must:
+
+- Be decorated with `@eval_run`
+- Return an `EvalConfig` object
 
 ```python
-from deepeval.client import DeepEvalClient
-from deepeval.schema import TextInputItem, MetricConfig
-
-client = DeepEvalClient(
-    base_url="http://localhost:8080",
-    api_token="your-api-key"
+# eval/examples.py
+from rakam_systems_cli.decorators import eval_run
+from rakam_systems_tools.evaluation.schema import (
+    EvalConfig,
+    TextInputItem,
+    ClientSideMetricConfig,
+    ToxicityConfig,
 )
 
-```
-
-2. Text Evaluation
-
-```python
-
-    client.maybe_text_eval_background(
-                component="ocr",
-                data=[
-                    TextInputItem(
-
-                        id="runtime evaluation", # identifiar (that can be unique). use same id in case you want to follow performance over time
-                        input="...", # input given to ai component
-                        output="...", # output of the ai component
-                        # optional args/ condtional based on metrics passed
-                        expected_output=["..."],
-                        retrieval_context=[
-                            ["..."]
-                        ]
-
-                    )
-                ],
-                metrics=[
-                    ToxicityConfig(
-                        # model="gpt-4.1",
-                        threshold=0.2,
-                        include_reason=False
-                    ),
-                    CorrectnessConfig(
-                        steps=[
-                            "You are evaluating text extracted from resumes and job descriptions using OCR.",
-                            "1. Verify that the extracted text is coherent and free of major corruption (e.g., broken words, random characters).",
-                            "2. Check whether key resume/job-related fields are preserved correctly (e.g., name, job title, skills, education, experience, company name, job requirements).",
-                            "3. Ensure that important details are not missing or replaced with irrelevant content.",
-                            "4. Ignore minor formatting issues (line breaks, spacing) as long as the information is readable and accurate.",
-                            "5. Consider the output correct if it faithfully represents the resume or job description’s main information."
-                        ],
-                        params=["actual_output"],
-
-                    )
-                ],
-                chance=.3
+@eval_run
+def test_simple_text_eval():
+    """A simple text evaluation showcasing a basic client-side metric."""
+    return EvalConfig(
+        component="text_component_1",
+        label="demo_simple_text",
+        data=[
+            TextInputItem(
+                id="txt_001",
+                input="Hello world",
+                output="Hello world",
+                expected_output="Hello world",
+                metrics=[ClientSideMetricConfig(name="relevance", score=1)],
             )
-
+        ],
+        metrics=[ToxicityConfig(name="toxicity_demo", include_reason=False)],
+    )
 ```
 
-3. Schema Evaluation
+---
 
-```python
+## User Guide
 
-    client.maybe_text_eval_background(
-                component="ocr",
-                data=[
-                    TextInputItem(
-
-                        id="runtime evaluation", # identifiar (that can be unique). use same id in case you want to follow performance over time
-                        input="...", # input given to ai component
-                        output="...", # output of the ai component
-                        # optional args/ condtional based on metrics passed
-                        expected_output=["..."],
-                        retrieval_context=[
-                            ["..."]
-                        ]
-
-                    )
-                ],
-                metrics=[
-                    ToxicityConfig(
-                        # model="gpt-4.1",
-                        threshold=0.2,
-                        include_reason=False
-                    ),
-                    CorrectnessConfig(
-                        steps=[
-                            "You are evaluating text extracted from resumes and job descriptions using OCR.",
-                            "1. Verify that the extracted text is coherent and free of major corruption (e.g., broken words, random characters).",
-                            "2. Check whether key resume/job-related fields are preserved correctly (e.g., name, job title, skills, education, experience, company name, job requirements).",
-                            "3. Ensure that important details are not missing or replaced with irrelevant content.",
-                            "4. Ignore minor formatting issues (line breaks, spacing) as long as the information is readable and accurate.",
-                            "5. Consider the output correct if it faithfully represents the resume or job description’s main information."
-                        ],
-                        params=["actual_output"],
-
-                    )
-                ],
-                chance=.3
-            )
-
-```
-
-## Configuration
-
-The client can be configured in multiple ways:
-
-### Directly via constructor arguments
-
-```python
-DeepEvalClient(base_url="http://api", api_token="123")
-```
-
-### Environment variables
+### Listing evaluations
 
 ```bash
-export EVALFRAMEWORK_URL=http://api
-export EVALFRAMWORK_API_KEY=123
+rakam eval list evals
 ```
 
-### Settings module
+This shows all functions decorated with `@eval_run` in the `eval/` directory.
 
-```python
-import settings # it can be django settings e.g.: from django.conf import settings
-client = DeepEvalClient(settings_module=settings)
+### Listing runs
+
+This shows all runs hosted on the evaluation server.
+
+```bash
+rakam eval list runs
 ```
 
-<!-- uv publish --index testpypi
-twine upload --repository testpypi dist/\*
-uv add twine build --dev
+### Comparing runs
 
-uv build -->
+Compare two runs to see what changed:
+
+```bash
+# Compare by IDs
+rakam eval compare --id 42 --id 45
+
+# Save comparison to file
+rakam eval compare --id 42 --id 45 -o comparison.json
+```
+
+---
+
+## Command Reference
+
+<details>
+<summary>Full command reference (click to expand)</summary>
+
+### `rakam eval list evals`
+
+```
+Usage: rakam eval list evals [OPTIONS] [DIRECTORY]
+
+ List evaluations (functions decorated with @eval_run).
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   directory      [DIRECTORY]  Directory to scan (default: ./eval)            │
+│                               [default: eval]                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --recursive  -r        Recursively search for Python files                   │
+│ --help                 Show this message and exit.                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval list runs`
+
+```
+Usage: rakam eval list runs [OPTIONS]
+
+ List runs (newest first).
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --limit   -l      INTEGER  Max number of runs [default: 20]                  │
+│ --offset          INTEGER  Pagination offset [default: 0]                    │
+│ --help                     Show this message and exit.                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval run`
+
+```
+Usage: rakam eval run [OPTIONS] [DIRECTORY]
+
+ Execute evaluations (functions decorated with @eval_run).
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   directory      [DIRECTORY]  Directory to scan (default: ./eval)            │
+│                               [default: eval]                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --recursive   -r            Recursively search for Python files              │
+│ --dry-run                   Only list functions without executing them       │
+│ --save-runs                 Save each run result to a JSON file              │
+│ --output-dir          PATH  Directory where run results are saved            │
+│                             [default: eval_runs]                             │
+│ --help                      Show this message and exit.                      │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval show`
+
+```
+Usage: rakam eval show [OPTIONS]
+
+ Show a run by ID or tag. Without arguments, shows the most recent run.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --id    -i      INTEGER  Run ID                                              │
+│ --tag   -t      TEXT     Run tag                                             │
+│ --raw                    Print raw JSON instead of formatted output          │
+│ --help                   Show this message and exit.                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval compare`
+
+```
+Usage: rakam eval compare [OPTIONS]
+
+ Compare two evaluation runs.
+
+ Default: unified git diff
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --tag           -t      TEXT     Run tag                                     │
+│ --id            -i      INTEGER  Run ID                                      │
+│ --summary                        Show summary diff only                      │
+│ --side-by-side                   Show side-by-side diff (git)                │
+│ --help                           Show this message and exit.                 │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval tag`
+
+```
+Usage: rakam eval tag [OPTIONS]
+
+ Assign a tag to a run or delete a tag.
+
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --id      -i      INTEGER  Run ID                                            │
+│ --tag     -t      TEXT     Tag to assign to the run                          │
+│ --delete          TEXT     Delete a tag                                      │
+│ --help                     Show this message and exit.                       │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+### `rakam eval metrics list`
+
+```
+Usage: rakam eval metrics list [OPTIONS] [DIRECTORY]
+
+ List all metric types used by loaded eval configs.
+
+╭─ Arguments ──────────────────────────────────────────────────────────────────╮
+│   directory      [DIRECTORY]  Directory to scan (default: ./eval)            │
+│                               [default: eval]                                │
+╰──────────────────────────────────────────────────────────────────────────────╯
+╭─ Options ────────────────────────────────────────────────────────────────────╮
+│ --recursive  -r        Recursively search for Python files                   │
+│ --help                 Show this message and exit.                           │
+╰──────────────────────────────────────────────────────────────────────────────╯
+```
+
+</details>
+
+## License
+
+See main project LICENSE file.
