@@ -39,7 +39,6 @@ list_app = typer.Typer(help="List evaluations or runs")
 metrics_app = typer.Typer(help="Metrics utilities")
 eval_app = typer.Typer(help="Evaluation utilities")
 
-# Sub-apps are registered at the end to control command order
 
 
 def extract_metric_names(config: Any) -> List[Tuple[str, Optional[str]]]:
@@ -383,7 +382,6 @@ def run(
                     typer.echo(f"    🧪 Dry-run OK → {eval_type}")
                     continue
 
-                # 🔥 Real execution (only if NOT dry-run)
                 client = DeepEvalClient()
 
                 if eval_type == "text_eval":
@@ -392,7 +390,6 @@ def run(
                     resp = client.schema_eval(config=result)
 
                 typer.echo(f"{resp}")
-                executed_any = True
                 typer.echo(f"    ✅ Returned {type(result).__name__}")
 
                 if save_runs:
@@ -691,7 +688,6 @@ def tag_command(
     Assign a tag to a run or delete a tag.
     """
 
-    # --- validation ---
     if delete:
         if run_id or tag:
             typer.echo("❌ --delete cannot be used with --id or --tag")
