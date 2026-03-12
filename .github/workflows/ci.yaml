@@ -57,7 +57,7 @@ jobs:
             - name: Run Core tests
               working-directory: core
               run: |
-                  uv run pytest -v --cov=rakam_systems_core --cov-report=term-missing || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Core tests collected"
                     exit 0
@@ -90,7 +90,7 @@ jobs:
             - name: Run Agents tests
               working-directory: ai-components/agents
               run: |
-                  uv run pytest -v --cov=rakam_systems_agent --cov-report=term-missing || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Agents tests collected"
                     exit 0
@@ -123,7 +123,7 @@ jobs:
             - name: Run VectorStore tests
               working-directory: ai-components/vector-store
               run: |
-                  uv run pytest -v --cov=rakam_systems_vectorstore --cov-report=term-missing || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No VectorStore tests collected"
                     exit 0
@@ -156,7 +156,7 @@ jobs:
             - name: Run Tools tests
               working-directory: tools
               run: |
-                  uv run pytest -v --cov=rakam_systems_tools --cov-report=term-missing || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Tools tests collected"
                     exit 0
@@ -189,7 +189,7 @@ jobs:
             - name: Run CLI tests
               working-directory: cli
               run: |
-                  uv run pytest -v --cov=rakam_systems_cli --cov-report=term-missing || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No CLI tests collected"
                     exit 0
