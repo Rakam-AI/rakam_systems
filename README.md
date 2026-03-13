@@ -57,7 +57,7 @@ pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]
 
 ### Requirements
 
-- Python 3.10 or higher (3.8+ for core, tools, and cli)
+- Python 3.10 or higher
 
 ## Use Cases
 
