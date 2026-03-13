@@ -1,15 +1,9 @@
 import functools
 import os
-import sys
 import time
-from typing import Callable, Dict, Optional, TypeVar, Union, overload
+from typing import Callable, Dict, Optional, ParamSpec, TypeVar, Union, overload
 
 import psutil
-
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
-else:
-    from typing import ParamSpec
 P = ParamSpec("P")
 R = TypeVar("R")
 
