@@ -1,14 +1,8 @@
 # Common base class for all metric configs
-import sys
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 # Base class (you can keep this abstract)
 from pydantic import BaseModel, Field
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
-else:
-    from typing import Annotated
 
 
 class MetricConfigBase(BaseModel):
