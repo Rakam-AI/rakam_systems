@@ -4,6 +4,7 @@ import time
 from typing import Callable, Dict, Optional, ParamSpec, TypeVar, Union, overload
 
 import psutil
+
 P = ParamSpec("P")
 R = TypeVar("R")
 
