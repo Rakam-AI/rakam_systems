@@ -27,10 +27,22 @@ Dataset
 -------
 12 questions across 6 categories, 3 difficulty levels.
 
+Sessions
+--------
+Each prompting variant runs in its own session (stored as a tags.session_id
+MLflow tag). tracker.get_session() / list_sessions() query by that tag.
+
+LLM Providers (priority order)
+--------------------------------
+  1. OpenAI   — set OPENAI_API_KEY  (model: gpt-4o-mini by default)
+  2. Anthropic — set ANTHROPIC_API_KEY  (model: claude-haiku-4-5, with autolog)
+  3. Mock     — set MOCK_LLM=1 or leave both keys unset
+
 Modes
 -----
-  Real   export ANTHROPIC_API_KEY=sk-ant-...  then  uv run mlflow_demo.py
-  Mock   unset key or set MOCK_LLM=1          (uses canned answers)
+  OpenAI    export OPENAI_API_KEY=sk-...       uv run mlflow_demo.py
+  Anthropic export ANTHROPIC_API_KEY=sk-ant-... uv run mlflow_demo.py
+  Mock      unset both keys or set MOCK_LLM=1  (uses canned answers)
 
 Setup
 -----
@@ -41,6 +53,7 @@ Setup
 
 import os
 import time
+from typing import Optional
 
 import mlflow
 import mlflow.anthropic
@@ -54,7 +67,8 @@ from rakam_systems_tools.evaluation.tracking import create_tracker
 
 TRACKING_URI = os.getenv("MLFLOW_TRACKING_URI", "http://localhost:5000")
 EXPERIMENT_NAME = "qa-variants-demo"
-MODEL = "claude-haiku-4-5-20251001"
+ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 # ---------------------------------------------------------------------------
 # Dataset – 12 questions, 6 categories, 3 difficulty levels
@@ -406,7 +420,11 @@ class MockAnthropicClient:
 # Traced Q&A pipeline  (uses @mlflow.trace — no tracker equivalent)
 # ---------------------------------------------------------------------------
 
-def build_qa_fn(client):
+def build_qa_fn(client, provider: str, model_name: str):
+    # session_id and user_id are kept in _ctx so they stay out of @mlflow.trace's
+    # auto-captured function inputs (any parameter becomes part of trace input).
+    _ctx: dict = {"session_id": "", "user_id": ""}
+
     @mlflow.trace(name="qa_pipeline", span_type="CHAIN")
     def qa_pipeline(
         question: str,
@@ -416,22 +434,43 @@ def build_qa_fn(client):
         difficulty: str,
         question_id: str,
     ) -> str:
-        mlflow.update_current_trace(tags={
-            "variant": variant,
-            "category": category,
-            "difficulty": difficulty,
-            "question_id": question_id,
-            "question": question[:120],
-            "prompt_length": str(len(system_prompt)),
-        })
-
-        response = client.messages.create(
-            model=MODEL,
-            max_tokens=256,
-            system=system_prompt,
-            messages=[{"role": "user", "content": question}],
+        # mlflow.trace.session and mlflow.trace.user are the native MLflow keys
+        # that power the Sessions / Users views in the UI.
+        mlflow.update_current_trace(
+            tags={
+                "variant": variant,
+                "category": category,
+                "difficulty": difficulty,
+                "question_id": question_id,
+                "question": question[:120],
+                "prompt_length": str(len(system_prompt)),
+                "provider": provider,
+                "model": model_name,
+            },
+            metadata={
+                "mlflow.trace.session": _ctx["session_id"],
+                "mlflow.trace.user": _ctx["user_id"],
+            },
         )
-        answer = response.content[0].text
+
+        if provider == "openai":
+            response = client.chat.completions.create(
+                model=model_name,
+                max_tokens=256,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": question},
+                ],
+            )
+            answer = response.choices[0].message.content or ""
+        else:  # anthropic or mock (mock client uses anthropic interface)
+            response = client.messages.create(
+                model=model_name,
+                max_tokens=256,
+                system=system_prompt,
+                messages=[{"role": "user", "content": question}],
+            )
+            answer = response.content[0].text
 
         mlflow.update_current_trace(tags={
             "response_length": str(len(answer)),
@@ -440,6 +479,7 @@ def build_qa_fn(client):
 
         return answer
 
+    qa_pipeline._ctx = _ctx
     return qa_pipeline
 
 
@@ -447,12 +487,22 @@ def build_qa_fn(client):
 # Phase 1 – Generate all traces
 # ---------------------------------------------------------------------------
 
-def run_all_variants(qa_fn, mlf_client: MlflowClient) -> dict[str, list[str]]:
+def run_all_variants(
+    qa_fn,
+    mlf_client: MlflowClient,
+    session_prefix: str = "demo",
+    user_id: Optional[str] = None,
+) -> dict[str, list[str]]:
     trace_ids: dict[str, list[str]] = {v: [] for v in VARIANTS}
+    # One session per variant; user_id is shared across all traces in this run.
+    session_ids = {v: f"{session_prefix}-{v}" for v in VARIANTS}
+    effective_user_id = user_id or session_prefix
     total = len(VARIANTS) * len(QA_DATASET)
     done = 0
 
     print(f"\n── Phase 1: Generating traces ({total} total) ──────────────────────")
+    print(f"  Sessions: {', '.join(session_ids.values())}")
+    print(f"  User ID : {effective_user_id}")
 
     for item in QA_DATASET:
         qid = item["id"]
@@ -464,6 +514,10 @@ def run_all_variants(qa_fn, mlf_client: MlflowClient) -> dict[str, list[str]]:
         print(f"\n  [{category}/{diff}] {question}")
 
         for variant_name, vcfg in VARIANTS.items():
+            # Set session/user context before the decorated call — kept in _ctx
+            # so they don't appear in @mlflow.trace's auto-captured inputs.
+            qa_fn._ctx["session_id"] = session_ids[variant_name]
+            qa_fn._ctx["user_id"] = effective_user_id
             answer = qa_fn(
                 question=question,
                 system_prompt=vcfg["system"],
@@ -515,10 +569,10 @@ def evaluate_traces(
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
 
-    if anthropic_key:
-        judge_model = f"anthropic:/{MODEL}"
-    elif openai_key:
-        judge_model = "openai:/gpt-4.1-mini"
+    if openai_key:
+        judge_model = f"openai:/{OPENAI_MODEL}"
+    elif anthropic_key:
+        judge_model = f"anthropic:/{ANTHROPIC_MODEL}"
     else:
         judge_model = None
 
@@ -654,6 +708,37 @@ def add_sample_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Phase 4b – Session inspection via tracker.get_session / list_sessions
+# ---------------------------------------------------------------------------
+
+def show_sessions(session_prefix: str, tracker) -> None:
+    print("\n── Phase 4b: Session inspection via tracker ────────────────────────")
+
+    # list_sessions — scans traces for distinct session_id tags
+    print("\n  [list_sessions] limit=10:")
+    try:
+        sessions = tracker.list_sessions(limit=10)
+        print(f"    → {len(sessions)} sessions found")
+        for s in sessions[:5]:
+            sid = s.get("session_id", "?") if isinstance(s, dict) else "?"
+            cnt = s.get("trace_count", "?") if isinstance(s, dict) else "?"
+            print(f"      {sid}  ({cnt} traces)")
+    except Exception as exc:
+        print(f"    → {exc}")
+
+    # get_session — fetch traces for one variant's session
+    for variant_name in list(VARIANTS.keys())[:2]:
+        sid = f"{session_prefix}-{variant_name}"
+        print(f"\n  [get_session] session_id={sid!r}:")
+        try:
+            session = tracker.get_session(sid)
+            traces = session.get("traces", []) if isinstance(session, dict) else []
+            print(f"    → {len(traces)} traces in session")
+        except Exception as exc:
+            print(f"    → {exc}")
+
+
+# ---------------------------------------------------------------------------
 # Phase 5 – Register custom scorer (MCP instructions only)
 # ---------------------------------------------------------------------------
 
@@ -676,14 +761,27 @@ def show_custom_scorer_instructions(experiment_id: str) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    use_mock = not os.getenv("ANTHROPIC_API_KEY") or os.getenv("MOCK_LLM") == "1"
+    # ── LLM provider detection (priority: OpenAI > Anthropic > Mock) ──────
+    openai_key = os.getenv("OPENAI_API_KEY")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    force_mock = os.getenv("MOCK_LLM") == "1"
+
+    if force_mock or (not openai_key and not anthropic_key):
+        provider, use_mock, model_name = "mock", True, ANTHROPIC_MODEL
+    elif openai_key:
+        provider, use_mock, model_name = "openai", False, OPENAI_MODEL
+    else:
+        provider, use_mock, model_name = "anthropic", False, ANTHROPIC_MODEL
+
+    # ── Session prefix and user — unique per run ───────────────────────────
+    session_prefix = f"mlflow-{int(time.time())}"
+    user_id: Optional[str] = os.getenv("MLFLOW_USER_ID") or session_prefix
 
     mlflow.set_tracking_uri(TRACKING_URI)
     experiment = mlflow.set_experiment(EXPERIMENT_NAME)
     experiment_id = experiment.experiment_id
     mlf_client = MlflowClient(tracking_uri=TRACKING_URI)
 
-    # Create tracker via the unified factory — backend is "mlflow"
     tracker = create_tracker(
         "mlflow",
         tracking_uri=TRACKING_URI,
@@ -704,28 +802,35 @@ def main() -> None:
     print(f"  Questions     : {len(QA_DATASET)}  ({', '.join(categories)})")
     print(f"  Difficulty    : {', '.join(f'{k}={v}' for k, v in difficulties.items())}")
     print(f"  Total traces  : {len(VARIANTS) * len(QA_DATASET)}")
-    print(f"  LLM mode      : {'MOCK — set ANTHROPIC_API_KEY for real calls' if use_mock else 'Anthropic API'}")
+    print(f"  LLM provider  : {provider}  (model: {model_name})")
+    print(f"  Session prefix: {session_prefix}")
+    print(f"  User ID       : {user_id}")
 
     if use_mock:
         client = MockAnthropicClient(MOCK_ANSWERS)
+    elif provider == "openai":
+        import openai as openai_sdk
+        client = openai_sdk.OpenAI(api_key=openai_key)
     else:
         import anthropic
-        client = anthropic.Anthropic()
+        client = anthropic.Anthropic(api_key=anthropic_key)
         mlflow.anthropic.autolog()
 
-    qa_fn = build_qa_fn(client)
+    qa_fn = build_qa_fn(client, provider=provider, model_name=model_name)
 
-    trace_ids = run_all_variants(qa_fn, mlf_client)
+    trace_ids = run_all_variants(qa_fn, mlf_client, session_prefix=session_prefix, user_id=user_id)
     evaluate_traces(trace_ids, experiment_id, tracker)
     search_examples(trace_ids, experiment_id, tracker, mlf_client)
     add_sample_feedback(trace_ids, tracker)
+    show_sessions(session_prefix, tracker)
     show_custom_scorer_instructions(experiment_id)
 
     all_ids = [tid for ids in trace_ids.values() for tid in ids]
     print("\n── Done ────────────────────────────────────────────────────────────")
     print(f"  Logged {len(all_ids)} traces across {len(VARIANTS)} variants × {len(QA_DATASET)} questions")
     for variant, ids in trace_ids.items():
-        print(f"    {variant:<22} {len(ids)} traces")
+        sid = f"{session_prefix}-{variant}"
+        print(f"    {variant:<22} {len(ids)} traces  session={sid}")
     print(f"\n  Explore: {TRACKING_URI}/#/experiments/{experiment_id}/traces")
     print()
 

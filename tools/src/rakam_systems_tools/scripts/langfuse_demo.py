@@ -10,13 +10,15 @@ LLM call is logged explicitly via tracker.log_trace().
 
 EvaluationTracker features demonstrated
 ----------------------------------------
-  tracker.log_trace()        log each Q&A call as a named trace
+  tracker.log_trace()        log each Q&A call (with session_id + user_id)
   tracker.log_score()        human feedback + automated code-side scores
+  tracker.get_session()      fetch all traces belonging to a session
+  tracker.list_sessions()    browse recent sessions
+  tracker.fetch_traces()     filter by name / tags / session_id / user_id
+  tracker.get_trace()        fetch individual trace by ID
   tracker.create_dataset()   create a reusable evaluation dataset
   tracker.add_dataset_item() populate the dataset with Q&A pairs
   tracker.get_dataset()      verify dataset contents
-  tracker.fetch_traces()     simple name / tag search
-  tracker.get_trace()        fetch individual trace by ID
   tracker.evaluate_traces()  raises NotImplementedError (Langfuse limitation)
 
 Dataset
@@ -24,10 +26,30 @@ Dataset
 12 questions across 6 categories (geography, science, history, literature,
 math, astronomy) and 3 difficulty levels (easy / medium / hard).
 
+Sessions
+--------
+Each prompting variant runs in its own Langfuse session so all traces for
+"direct", "chain_of_thought", and "expert" are grouped separately in the UI.
+
+Users
+-----
+Three simulated users are assigned by question category so the Langfuse
+Users view shows per-user activity:
+  user-alice   → geography, science
+  user-bob     → history, literature
+  user-charlie → math, astronomy
+
+LLM Providers (priority order)
+--------------------------------
+  1. OpenAI   — set OPENAI_API_KEY  (model: gpt-4o-mini by default)
+  2. Anthropic — set ANTHROPIC_API_KEY  (model: claude-haiku-4-5)
+  3. Mock     — set MOCK_LLM=1 or leave both keys unset
+
 Modes
 -----
-  Real   export ANTHROPIC_API_KEY=sk-ant-...  then  uv run langfuse_demo.py
-  Mock   unset key or set MOCK_LLM=1          (uses canned answers)
+  OpenAI    export OPENAI_API_KEY=sk-...       uv run langfuse_demo.py
+  Anthropic export ANTHROPIC_API_KEY=sk-ant-... uv run langfuse_demo.py
+  Mock      unset both keys or set MOCK_LLM=1  (uses canned answers)
 
 Setup
 -----
@@ -49,9 +71,23 @@ from rakam_systems_tools.evaluation.tracking import create_tracker
 LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", "pk-lf-ae842f9c-a24d-4957-9d6c-50c3a64af81a")
 LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", "sk-lf-1ab503e9-f196-4c01-81f6-7f9c8d490705")
 LANGFUSE_HOST = os.getenv("LANGFUSE_HOST") or os.getenv("LANGFUSE_BASE_URL", "http://localhost:3000")
-MODEL = "claude-haiku-4-5-20251001"
+
+ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
+OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+
 DATASET_NAME = "qa-variants-dataset"
 TRACE_NAME = "qa_pipeline"
+
+# Simulated users — assigned by category so the Langfuse Users view shows
+# meaningful per-user activity across the 12 questions.
+CATEGORY_TO_USER: dict[str, str] = {
+    "geography":  "user-alice",
+    "science":    "user-alice",
+    "history":    "user-bob",
+    "literature": "user-bob",
+    "math":       "user-charlie",
+    "astronomy":  "user-charlie",
+}
 
 # ---------------------------------------------------------------------------
 # Dataset – 12 questions, 6 categories, 3 difficulty levels
@@ -348,34 +384,58 @@ def mock_llm_call(question: str, system: str, variant_key: str) -> str:
     return answer
 
 
-def real_llm_call(client, question: str, system: str) -> str:
-    response = client.messages.create(
-        model=MODEL,
-        max_tokens=256,
-        system=system,
-        messages=[{"role": "user", "content": question}],
-    )
-    return response.content[0].text
+def real_llm_call(client, question: str, system: str, provider: str) -> str:
+    if provider == "openai":
+        response = client.chat.completions.create(
+            model=OPENAI_MODEL,
+            max_tokens=256,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": question},
+            ],
+        )
+        return response.choices[0].message.content or ""
+    else:  # anthropic
+        response = client.messages.create(
+            model=ANTHROPIC_MODEL,
+            max_tokens=256,
+            system=system,
+            messages=[{"role": "user", "content": question}],
+        )
+        return response.content[0].text
 
 
 # ---------------------------------------------------------------------------
 # Phase 1 – Generate and log all traces via tracker.log_trace
 # ---------------------------------------------------------------------------
 
-def run_all_variants(tracker, use_mock: bool, client=None) -> dict[str, list[str]]:
+def run_all_variants(
+    tracker,
+    use_mock: bool,
+    client=None,
+    provider: str = "mock",
+    session_prefix: str = "demo",
+    model_name: str = "mock",
+) -> dict[str, list[str]]:
     trace_ids: dict[str, list[str]] = {v: [] for v in VARIANTS}
+    # One session per variant — groups all questions for that strategy together
+    session_ids = {v: f"{session_prefix}-{v}" for v in VARIANTS}
     total = len(VARIANTS) * len(QA_DATASET)
     done = 0
 
+    unique_users = sorted(set(CATEGORY_TO_USER.values()))
     print(f"\n── Phase 1: Generating & logging traces ({total} total) ─────────────")
+    print(f"  Sessions: {', '.join(session_ids.values())}")
+    print(f"  Users   : {', '.join(unique_users)}  (assigned by category)")
 
     for item in QA_DATASET:
         qid = item["id"]
         question = item["question"]
         category = item["category"]
         diff = item["difficulty"]
+        user_id = CATEGORY_TO_USER[category]
 
-        print(f"\n  [{category}/{diff}] {question}")
+        print(f"\n  [{category}/{diff}] {question}  (user={user_id})")
 
         for variant_name, vcfg in VARIANTS.items():
             system = vcfg["system"]
@@ -384,17 +444,17 @@ def run_all_variants(tracker, use_mock: bool, client=None) -> dict[str, list[str
             if use_mock:
                 answer = mock_llm_call(question, system, variant_name)
             else:
-                answer = real_llm_call(client, question, system)
+                answer = real_llm_call(client, question, system, provider)
 
             elapsed_ms = int((time.time() - t0) * 1000)
 
-            # log_trace is the primary tracing call for Langfuse
             tid = tracker.log_trace(
                 name=TRACE_NAME,
                 input={"question": question, "system": system},
                 output={"answer": answer},
                 metadata={
-                    "model": MODEL,
+                    "model": model_name,
+                    "provider": provider,
                     "variant": variant_name,
                     "category": category,
                     "difficulty": diff,
@@ -405,6 +465,8 @@ def run_all_variants(tracker, use_mock: bool, client=None) -> dict[str, list[str
                     "elapsed_ms": elapsed_ms,
                 },
                 tags=[variant_name, category, diff],
+                session_id=session_ids[variant_name],
+                user_id=user_id,
             )
 
             trace_ids[variant_name].append(tid)
@@ -492,22 +554,22 @@ def add_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
         except Exception as exc:
             print(f"  {variant_name} human score error: {exc}")
 
-    # Code-side conciseness score for every trace (word_count-based)
+    # Code-side conciseness score — use MOCK_ANSWERS as reference word counts
+    # (works regardless of which LLM was used; just approximates expected verbosity)
     print("\n  Code-side conciseness scores (word_count <= 10 → 1.0, else scaled):")
-    all_ids = [tid for ids in trace_ids.values() for tid in ids]
     scored = 0
     for variant_name, ids in trace_ids.items():
         for i, tid in enumerate(ids[:3]):  # score first 3 per variant as sample
             item = QA_DATASET[i]
-            answer = MOCK_ANSWERS[variant_name].get(item["id"], "")
-            wc = len(answer.split())
+            ref_answer = MOCK_ANSWERS[variant_name].get(item["id"], "")
+            wc = len(ref_answer.split())
             conciseness = min(1.0, 10 / wc) if wc > 0 else 0.0
             try:
                 tracker.log_score(
                     trace_id=tid,
                     name="conciseness",
                     value=round(conciseness, 3),
-                    comment=f"word_count={wc}",
+                    comment=f"ref_word_count={wc}",
                     source_type="CODE",
                 )
                 scored += 1
@@ -520,7 +582,7 @@ def add_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
 # Phase 4 – Fetch traces via tracker.fetch_traces / tracker.get_trace
 # ---------------------------------------------------------------------------
 
-def search_examples(trace_ids: dict[str, list[str]], tracker) -> None:
+def search_examples(trace_ids: dict[str, list[str]], tracker, session_prefix: str) -> None:
     print("\n── Phase 4: Fetch examples via tracker ─────────────────────────────")
 
     # Name-based fetch
@@ -543,6 +605,34 @@ def search_examples(trace_ids: dict[str, list[str]], tracker) -> None:
         except Exception as exc:
             print(f"    → {exc}")
 
+    # Session-filtered fetch
+    direct_session = f"{session_prefix}-direct"
+    print(f"\n  [fetch_traces] session_id={direct_session!r}, limit=5:")
+    try:
+        results = tracker.fetch_traces(session_id=direct_session, limit=5)
+        print(f"    → {len(results)} traces")
+    except Exception as exc:
+        print(f"    → {exc}")
+
+    # User-filtered fetch — each simulated user covers 2 categories × 3 variants
+    for uid in sorted(set(CATEGORY_TO_USER.values())):
+        categories = [c for c, u in CATEGORY_TO_USER.items() if u == uid]
+        print(f"\n  [fetch_traces] user_id={uid!r}  (categories: {', '.join(categories)}), limit=10:")
+        try:
+            results = tracker.fetch_traces(user_id=uid, limit=10)
+            print(f"    → {len(results)} traces")
+        except Exception as exc:
+            print(f"    → {exc}")
+
+    # Combined session + user_id filter
+    alice_session = f"{session_prefix}-direct"
+    print(f"\n  [fetch_traces] session_id={alice_session!r} + user_id='user-alice', limit=5:")
+    try:
+        results = tracker.fetch_traces(session_id=alice_session, user_id="user-alice", limit=5)
+        print(f"    → {len(results)} traces")
+    except Exception as exc:
+        print(f"    → {exc}")
+
     # get_trace by ID
     sample_tid = trace_ids.get("direct", [""])[0]
     if sample_tid:
@@ -556,11 +646,81 @@ def search_examples(trace_ids: dict[str, list[str]], tracker) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 5 – evaluate_traces (NotImplementedError — by design)
+# Phase 5 – Session inspection via tracker.get_session / list_sessions
+# ---------------------------------------------------------------------------
+
+def show_sessions(session_prefix: str, tracker) -> None:
+    print("\n── Phase 5: Session inspection via tracker ─────────────────────────")
+
+    # list_sessions — browse recent sessions
+    print("\n  [list_sessions] limit=10:")
+    try:
+        sessions = tracker.list_sessions(limit=10)
+        print(f"    → {len(sessions)} sessions")
+        for s in sessions[:5]:
+            sid = s.get("id", "?") if isinstance(s, dict) else getattr(s, "id", "?")
+            print(f"      {sid}")
+    except Exception as exc:
+        print(f"    → {exc}")
+
+    # get_session — fetch all traces for one variant's session
+    for variant_name in list(VARIANTS.keys())[:2]:
+        sid = f"{session_prefix}-{variant_name}"
+        print(f"\n  [get_session] session_id={sid!r}:")
+        try:
+            session = tracker.get_session(sid)
+            traces = (
+                session.get("traces", []) if isinstance(session, dict)
+                else getattr(session, "traces", [])
+            )
+            print(f"    → {len(traces)} traces in session")
+        except Exception as exc:
+            print(f"    → {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 5b – User activity via tracker.fetch_traces(user_id=...)
+# ---------------------------------------------------------------------------
+
+def show_users(tracker) -> None:
+    print("\n── Phase 5b: User activity via tracker.fetch_traces(user_id=...) ───")
+    print(
+        "  Users are set on each trace via propagate_attributes(user_id=...).\n"
+        "  They appear in the Langfuse UI under the 'Users' tab.\n"
+        "  user-alice  → geography + science  (4 questions × 3 variants = 12 traces)\n"
+        "  user-bob    → history  + literature (4 questions × 3 variants = 12 traces)\n"
+        "  user-charlie→ math     + astronomy  (2 questions × 3 variants = 6 traces)"
+    )
+
+    for uid in sorted(set(CATEGORY_TO_USER.values())):
+        categories = [c for c, u in CATEGORY_TO_USER.items() if u == uid]
+        expected = sum(
+            1 for item in QA_DATASET if item["category"] in categories
+        ) * len(VARIANTS)
+        print(f"\n  [fetch_traces] user_id={uid!r}  (expect ~{expected} traces):")
+        try:
+            results = tracker.fetch_traces(user_id=uid, limit=50)
+            print(f"    → {len(results)} traces returned")
+            if results:
+                # Show one sample trace's metadata to confirm user_id is attached
+                sample = results[0]
+                sid = sample.get("id", "?") if isinstance(sample, dict) else getattr(sample, "id", "?")
+                user = (
+                    sample.get("userId") or sample.get("user_id", "?")
+                    if isinstance(sample, dict)
+                    else getattr(sample, "userId", getattr(sample, "user_id", "?"))
+                )
+                print(f"      sample trace: id={str(sid)[:8]}…  userId={user!r}")
+        except Exception as exc:
+            print(f"    → {exc}")
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 – evaluate_traces (NotImplementedError — by design)
 # ---------------------------------------------------------------------------
 
 def show_evaluate_limitation(tracker) -> None:
-    print("\n── Phase 5: evaluate_traces — Langfuse limitation ──────────────────")
+    print("\n── Phase 6: evaluate_traces — Langfuse limitation ──────────────────")
     try:
         tracker.evaluate_traces(["trace-1"], scorers=["correctness"])
     except NotImplementedError as exc:
@@ -579,7 +739,20 @@ def show_evaluate_limitation(tracker) -> None:
 # ---------------------------------------------------------------------------
 
 def main() -> None:
-    use_mock = not os.getenv("ANTHROPIC_API_KEY") or os.getenv("MOCK_LLM") == "1"
+    # ── LLM provider detection (priority: OpenAI > Anthropic > Mock) ──────
+    openai_key = os.getenv("OPENAI_API_KEY")
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    force_mock = os.getenv("MOCK_LLM") == "1"
+
+    if force_mock or (not openai_key and not anthropic_key):
+        provider, use_mock, model_name = "mock", True, "mock"
+    elif openai_key:
+        provider, use_mock, model_name = "openai", False, OPENAI_MODEL
+    else:
+        provider, use_mock, model_name = "anthropic", False, ANTHROPIC_MODEL
+
+    # ── Session prefix — unique per run ───────────────────────────────────
+    session_prefix = f"demo-{int(time.time())}"
 
     tracker = create_tracker(
         "langfuse",
@@ -601,17 +774,32 @@ def main() -> None:
     print(f"  Questions     : {len(QA_DATASET)}  ({', '.join(categories)})")
     print(f"  Difficulty    : {', '.join(f'{k}={v}' for k, v in difficulties.items())}")
     print(f"  Total traces  : {len(VARIANTS) * len(QA_DATASET)}")
-    print(f"  LLM mode      : {'MOCK — set ANTHROPIC_API_KEY for real calls' if use_mock else 'Anthropic API'}")
+    print(f"  LLM provider  : {provider}  (model: {model_name})")
+    print(f"  Session prefix: {session_prefix}")
+    print(f"  Users         : {', '.join(sorted(set(CATEGORY_TO_USER.values())))}")
 
     client = None
     if not use_mock:
-        import anthropic
-        client = anthropic.Anthropic()
+        if provider == "openai":
+            import openai as openai_sdk
+            client = openai_sdk.OpenAI(api_key=openai_key)
+        else:
+            import anthropic
+            client = anthropic.Anthropic(api_key=anthropic_key)
 
-    trace_ids = run_all_variants(tracker, use_mock=use_mock, client=client)
+    trace_ids = run_all_variants(
+        tracker,
+        use_mock=use_mock,
+        client=client,
+        provider=provider,
+        session_prefix=session_prefix,
+        model_name=model_name,
+    )
     create_eval_dataset(tracker)
     add_feedback(trace_ids, tracker)
-    search_examples(trace_ids, tracker)
+    search_examples(trace_ids, tracker, session_prefix)
+    show_sessions(session_prefix, tracker)
+    show_users(tracker)
     show_evaluate_limitation(tracker)
 
     # Flush any buffered Langfuse events
@@ -624,7 +812,8 @@ def main() -> None:
     print("\n── Done ────────────────────────────────────────────────────────────")
     print(f"  Logged {len(all_ids)} traces across {len(VARIANTS)} variants × {len(QA_DATASET)} questions")
     for variant, ids in trace_ids.items():
-        print(f"    {variant:<22} {len(ids)} traces")
+        sid = f"{session_prefix}-{variant}"
+        print(f"    {variant:<22} {len(ids)} traces  session={sid}")
     print(f"\n  Explore: {LANGFUSE_HOST}")
     print()
 
