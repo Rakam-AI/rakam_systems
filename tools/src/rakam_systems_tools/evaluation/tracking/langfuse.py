@@ -33,26 +33,23 @@ class LangfuseTracker(EvaluationTracker):
         output: Dict[str, Any],
         metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> str:
-        # v4: start_observation creates a new root span (and implicitly a new trace).
-        # set_trace_io promotes input/output to the trace level in the Langfuse UI.
-        span = self._client.start_observation(
-            name=name,
-            input=input,
-            output=output,
-            metadata=metadata,
-        )
-        trace_id = span.trace_id
-        span.set_trace_io(input=input, output=output)
+        from langfuse import propagate_attributes
 
-        if tags:
-            # _create_trace_tags_via_ingestion is the only way to attach string tags
-            # to a trace in v4 outside of the @observe decorator.
-            self._client._create_trace_tags_via_ingestion(
-                trace_id=trace_id, tags=tags
+        # propagate_attributes is a context manager that sets trace-level context
+        # (session_id, user_id, tags) on every observation created within the block.
+        with propagate_attributes(session_id=session_id, user_id=user_id, tags=tags):
+            span = self._client.start_observation(
+                name=name,
+                input=input,
+                output=output,
+                metadata=metadata,
             )
+            trace_id = span.trace_id
+            span.end()
 
-        span.end()
         return trace_id
 
     def fetch_traces(
@@ -60,9 +57,16 @@ class LangfuseTracker(EvaluationTracker):
         name: Optional[str] = None,
         tags: Optional[List[str]] = None,
         limit: int = 50,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        # api.trace.list accepts tags as a list[str] or a comma-separated string
-        response = self._client.api.trace.list(name=name, tags=tags, limit=limit)
+        response = self._client.api.trace.list(
+            name=name,
+            tags=tags,
+            limit=limit,
+            session_id=session_id,
+            user_id=user_id,
+        )
         items = getattr(response, "data", response)
         return [item.__dict__ if hasattr(item, "__dict__") else item for item in items]
 
@@ -78,13 +82,21 @@ class LangfuseTracker(EvaluationTracker):
         comment: Optional[str] = None,
         source_type: Literal["HUMAN", "LLM_JUDGE", "CODE"] = "CODE",
     ) -> None:
-        # v4: create_score replaces the old score() method
         self._client.create_score(
             trace_id=trace_id,
             name=name,
             value=value,
             comment=comment,
         )
+
+    def get_session(self, session_id: str) -> Dict[str, Any]:
+        session = self._client.api.sessions.get(session_id)
+        return session.__dict__ if hasattr(session, "__dict__") else session
+
+    def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
+        response = self._client.api.sessions.list(limit=limit)
+        items = getattr(response, "data", response)
+        return [item.__dict__ if hasattr(item, "__dict__") else item for item in items]
 
     def create_dataset(
         self,

@@ -5,7 +5,11 @@ from .base import EvaluationTracker
 
 
 class MLflowTracker(EvaluationTracker):
-    """Evaluation tracker backed by the MLflow SDK."""
+    """Evaluation tracker backed by the MLflow SDK.
+
+    Sessions are emulated via a 'session_id' tag on each trace (MLflow has no
+    native session concept). get_session() and list_sessions() search by that tag.
+    """
 
     def __init__(
         self,
@@ -33,18 +37,27 @@ class MLflowTracker(EvaluationTracker):
         output: Dict[str, Any],
         metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> str:
         tag_dict = {t: "" for t in tags} if tags else {}
-        if metadata:
-            tag_dict.update(metadata)
+
+        # Build trace metadata — mlflow.trace.session and mlflow.trace.user are
+        # the native MLflow keys that power the Sessions / Users views in the UI.
+        trace_metadata: Dict[str, Any] = dict(metadata) if metadata else {}
+        if session_id:
+            trace_metadata["mlflow.trace.session"] = session_id
+        if user_id:
+            trace_metadata["mlflow.trace.user"] = user_id
 
         with self._mlflow.start_trace(name=name) as trace:
             with self._mlflow.start_span(name="llm_call") as span:
                 span.set_inputs(input)
                 span.set_outputs(output)
-                if tag_dict:
-                    for k, v in tag_dict.items():
-                        self._mlflow.set_tag(k, v)
+            self._mlflow.update_current_trace(
+                tags=tag_dict if tag_dict else None,
+                metadata=trace_metadata if trace_metadata else None,
+            )
             return trace.info.request_id
 
     def fetch_traces(
@@ -52,11 +65,17 @@ class MLflowTracker(EvaluationTracker):
         name: Optional[str] = None,
         tags: Optional[List[str]] = None,
         limit: int = 50,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         experiment_ids = [self._experiment_id] if self._experiment_id else None
         filter_parts = []
         if name:
             filter_parts.append(f"name = '{name}'")
+        if session_id:
+            filter_parts.append(f"metadata.`mlflow.trace.session` = '{session_id}'")
+        if user_id:
+            filter_parts.append(f"metadata.`mlflow.trace.user` = '{user_id}'")
         filter_string = " AND ".join(filter_parts) if filter_parts else None
 
         traces = self._mlflow.search_traces(
@@ -85,6 +104,36 @@ class MLflowTracker(EvaluationTracker):
             rationale=comment,
             source=source_type.lower(),
         )
+
+    def get_session(self, session_id: str) -> Dict[str, Any]:
+        """Return all traces for this session (filtered by mlflow.trace.session metadata)."""
+        traces = self.fetch_traces(session_id=session_id, limit=1000)
+        return {"session_id": session_id, "traces": traces}
+
+    def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """Return distinct session IDs from recent traces (via mlflow.trace.session metadata)."""
+        experiment_ids = [self._experiment_id] if self._experiment_id else None
+        try:
+            traces = self._mlflow.search_traces(
+                experiment_ids=experiment_ids,
+                filter_string="metadata.`mlflow.trace.session` != ''",
+                max_results=limit * 10,
+            )
+            if hasattr(traces, "to_dict"):
+                rows = traces.to_dict(orient="records")
+            else:
+                rows = list(traces)
+
+            seen: dict[str, int] = {}
+            for row in rows:
+                meta = row.get("metadata", {}) if isinstance(row, dict) else {}
+                sid = meta.get("mlflow.trace.session") if isinstance(meta, dict) else None
+                if sid:
+                    seen[sid] = seen.get(sid, 0) + 1
+
+            return [{"session_id": sid, "trace_count": cnt} for sid, cnt in list(seen.items())[:limit]]
+        except Exception:
+            return []
 
     def create_dataset(
         self,

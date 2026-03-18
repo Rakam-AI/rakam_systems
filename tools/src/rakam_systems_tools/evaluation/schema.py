@@ -159,7 +159,15 @@ class TraceRecord(BaseModel):
     output: Dict[str, Any]
     metadata: Optional[Dict[str, Any]] = None
     tags: Optional[List[str]] = None
+    session_id: Optional[str] = None
     timestamp: Optional[datetime] = None
+
+
+class SessionRecord(BaseModel):
+    session_id: str
+    traces: Optional[List["TraceRecord"]] = None
+    metadata: Optional[Dict[str, Any]] = None
+    created_at: Optional[datetime] = None
 
 
 class ScoreRecord(BaseModel):

@@ -13,6 +13,8 @@ class EvaluationTracker(ABC):
         output: Dict[str, Any],
         metadata: Optional[Dict[str, Any]] = None,
         tags: Optional[List[str]] = None,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> str:
         """Log a trace and return its trace_id."""
 
@@ -22,8 +24,10 @@ class EvaluationTracker(ABC):
         name: Optional[str] = None,
         tags: Optional[List[str]] = None,
         limit: int = 50,
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Fetch traces filtered by name/tags."""
+        """Fetch traces filtered by name/tags/session."""
 
     @abstractmethod
     def get_trace(self, trace_id: str) -> Dict[str, Any]:
@@ -39,6 +43,14 @@ class EvaluationTracker(ABC):
         source_type: Literal["HUMAN", "LLM_JUDGE", "CODE"] = "CODE",
     ) -> None:
         """Log a score/feedback for a trace."""
+
+    @abstractmethod
+    def get_session(self, session_id: str) -> Dict[str, Any]:
+        """Fetch a session and its traces by session ID."""
+
+    @abstractmethod
+    def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
+        """List sessions."""
 
     @abstractmethod
     def create_dataset(

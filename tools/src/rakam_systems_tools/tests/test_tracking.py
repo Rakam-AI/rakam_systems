@@ -18,6 +18,14 @@ def _make_langfuse_module():
     lf_instance = MagicMock()
     lf_class = MagicMock(return_value=lf_instance)
     mod.Langfuse = lf_class
+
+    # propagate_attributes is a context manager — mock it so `with propagate_attributes(...)`
+    # works without hitting the real Langfuse OTel machinery.
+    ctx_mgr = MagicMock()
+    ctx_mgr.__enter__ = MagicMock(return_value=None)
+    ctx_mgr.__exit__ = MagicMock(return_value=False)
+    mod.propagate_attributes = MagicMock(return_value=ctx_mgr)
+
     sys.modules["langfuse"] = mod
     return mod, lf_instance
 
@@ -29,6 +37,7 @@ def _make_mlflow_module():
     mod.start_trace = MagicMock()
     mod.start_span = MagicMock()
     mod.set_tag = MagicMock()
+    mod.update_current_trace = MagicMock()
     mod.search_traces = MagicMock()
     mod.get_trace = MagicMock()
     mod.log_feedback = MagicMock()
@@ -71,9 +80,7 @@ class TestLangfuseTracker:
             output={"a": "world"},
             metadata=None,
         )
-        fake_span.set_trace_io.assert_called_once_with(
-            input={"q": "hello"}, output={"a": "world"}
-        )
+        # No trace-level attribute update needed when session_id/user_id/tags are None
         fake_span.end.assert_called_once()
 
     def test_fetch_traces(self):
@@ -85,7 +92,7 @@ class TestLangfuseTracker:
 
         results = self.tracker.fetch_traces(name="test", limit=10)
 
-        self.client.api.trace.list.assert_called_once_with(name="test", tags=None, limit=10)
+        self.client.api.trace.list.assert_called_once_with(name="test", tags=None, limit=10, session_id=None, user_id=None)
         assert len(results) == 1
 
     def test_get_trace(self):
@@ -148,6 +155,43 @@ class TestLangfuseTracker:
 
         results = self.tracker.list_datasets()
 
+        assert len(results) == 1
+
+    def test_log_trace_with_session_id(self):
+        fake_span = MagicMock()
+        fake_span.trace_id = "trace-sess"
+        self.client.start_observation.return_value = fake_span
+
+        result = self.tracker.log_trace(
+            name="test", input={}, output={}, session_id="session-1", user_id="user-42"
+        )
+
+        assert result == "trace-sess"
+        # _update_trace_attributes is called internally; just verify no exception
+        # and that span.end() was reached
+        fake_span.end.assert_called_once()
+
+    def test_get_session(self):
+        from types import SimpleNamespace
+
+        session = SimpleNamespace(session_id="s1", traces=[])
+        self.client.api.sessions.get.return_value = session
+
+        result = self.tracker.get_session("s1")
+
+        self.client.api.sessions.get.assert_called_once_with("s1")
+
+    def test_list_sessions(self):
+        from types import SimpleNamespace
+
+        item = SimpleNamespace(id="s1")
+        response = MagicMock()
+        response.data = [item]
+        self.client.api.sessions.list.return_value = response
+
+        results = self.tracker.list_sessions(limit=5)
+
+        self.client.api.sessions.list.assert_called_once_with(limit=5)
         assert len(results) == 1
 
     def test_evaluate_traces_raises(self):
@@ -230,6 +274,80 @@ class TestMLflowTracker:
             rationale="ok",
             source="llm_judge",
         )
+
+    def test_log_trace_with_session_id(self):
+        trace_ctx = MagicMock()
+        trace_ctx.info.request_id = "run-sess"
+        span_ctx = MagicMock()
+        span_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        span_ctx.__exit__ = MagicMock(return_value=False)
+        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
+        trace_ctx.__exit__ = MagicMock(return_value=False)
+        self.mlflow_mod.start_trace.return_value = trace_ctx
+        self.mlflow_mod.start_span.return_value = span_ctx
+
+        result = self.tracker.log_trace(
+            name="run1", input={}, output={}, session_id="session-1", user_id="user-42"
+        )
+
+        assert result == "run-sess"
+        # session_id and user_id must be set via metadata, not tags
+        call_kwargs = self.mlflow_mod.update_current_trace.call_args[1]
+        meta = call_kwargs.get("metadata", {})
+        assert meta.get("mlflow.trace.session") == "session-1"
+        assert meta.get("mlflow.trace.user") == "user-42"
+
+    def test_log_trace_with_user_id_only(self):
+        trace_ctx = MagicMock()
+        trace_ctx.info.request_id = "run-user"
+        span_ctx = MagicMock()
+        span_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        span_ctx.__exit__ = MagicMock(return_value=False)
+        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
+        trace_ctx.__exit__ = MagicMock(return_value=False)
+        self.mlflow_mod.start_trace.return_value = trace_ctx
+        self.mlflow_mod.start_span.return_value = span_ctx
+
+        self.tracker.log_trace(name="run1", input={}, output={}, user_id="user-99")
+
+        call_kwargs = self.mlflow_mod.update_current_trace.call_args[1]
+        meta = call_kwargs.get("metadata", {})
+        assert meta.get("mlflow.trace.user") == "user-99"
+        assert "mlflow.trace.session" not in meta
+
+    def test_fetch_traces_with_session_id(self):
+        fake_df = MagicMock()
+        fake_df.to_dict.return_value = []
+        self.mlflow_mod.search_traces.return_value = fake_df
+
+        self.tracker.fetch_traces(session_id="s1", limit=5)
+
+        call_kwargs = self.mlflow_mod.search_traces.call_args[1]
+        fstr = call_kwargs.get("filter_string") or ""
+        assert "mlflow.trace.session" in fstr
+        assert "s1" in fstr
+
+    def test_fetch_traces_with_user_id(self):
+        fake_df = MagicMock()
+        fake_df.to_dict.return_value = []
+        self.mlflow_mod.search_traces.return_value = fake_df
+
+        self.tracker.fetch_traces(user_id="user-42", limit=5)
+
+        call_kwargs = self.mlflow_mod.search_traces.call_args[1]
+        fstr = call_kwargs.get("filter_string") or ""
+        assert "mlflow.trace.user" in fstr
+        assert "user-42" in fstr
+
+    def test_get_session(self):
+        fake_df = MagicMock()
+        fake_df.to_dict.return_value = [{"request_id": "t1"}]
+        self.mlflow_mod.search_traces.return_value = fake_df
+
+        result = self.tracker.get_session("s1")
+
+        assert result["session_id"] == "s1"
+        assert "traces" in result
 
     def test_create_dataset_raises(self):
         with pytest.raises(NotImplementedError):
