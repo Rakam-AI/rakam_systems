@@ -35,17 +35,45 @@ class LangfuseTracker(EvaluationTracker):
         tags: Optional[List[str]] = None,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        usage: Optional[Dict[str, Any]] = None,
     ) -> str:
         from langfuse import propagate_attributes
 
-        # propagate_attributes is a context manager that sets trace-level context
-        # (session_id, user_id, tags) on every observation created within the block.
+        # Build Langfuse-native token/cost dicts from the backend-agnostic usage dict.
+        # as_type="generation" enables the token-count and cost UI in Langfuse.
+        model: Optional[str] = None
+        usage_details: Optional[Dict[str, int]] = None
+        cost_details: Optional[Dict[str, float]] = None
+
+        if usage:
+            model = usage.get("model")
+            inp = usage.get("input_tokens")
+            out = usage.get("output_tokens")
+            total = usage.get("total_tokens") or (
+                (inp or 0) + (out or 0) if (inp is not None or out is not None) else None
+            )
+            usage_details = {k: v for k, v in {"input": inp, "output": out, "total": total}.items() if v is not None}  # type: ignore[misc]
+            cost_inp = usage.get("input_cost")
+            cost_out = usage.get("output_cost")
+            cost_total = usage.get("total_cost") or (
+                (cost_inp or 0.0) + (cost_out or 0.0) if (cost_inp is not None or cost_out is not None) else None
+            )
+            cost_details = {k: v for k, v in {"input": cost_inp, "output": cost_out, "total": cost_total}.items() if v is not None}  # type: ignore[misc]
+            if not cost_details:
+                cost_details = None
+
+        # propagate_attributes sets trace-level context (session_id, user_id, tags).
         with propagate_attributes(session_id=session_id, user_id=user_id, tags=tags):
             span = self._client.start_observation(
                 name=name,
+                # "generation" enables the token-count and cost display in the Langfuse UI
+                as_type="generation" if usage else "span",
                 input=input,
                 output=output,
                 metadata=metadata,
+                model=model,
+                usage_details=usage_details or None,
+                cost_details=cost_details,
             )
             trace_id = span.trace_id
             span.end()

@@ -74,14 +74,37 @@ class TestLangfuseTracker:
         )
 
         assert result == "trace-123"
-        self.client.start_observation.assert_called_once_with(
-            name="test",
-            input={"q": "hello"},
-            output={"a": "world"},
-            metadata=None,
-        )
-        # No trace-level attribute update needed when session_id/user_id/tags are None
+        call_kwargs = self.client.start_observation.call_args[1]
+        assert call_kwargs["name"] == "test"
+        # No usage → as_type defaults to "span"
+        assert call_kwargs["as_type"] == "span"
+        assert call_kwargs["usage_details"] is None
         fake_span.end.assert_called_once()
+
+    def test_log_trace_with_usage(self):
+        fake_span = MagicMock()
+        fake_span.trace_id = "trace-usage"
+        self.client.start_observation.return_value = fake_span
+
+        self.tracker.log_trace(
+            name="test",
+            input={},
+            output={},
+            usage={
+                "model": "gpt-4o-mini",
+                "input_tokens": 100,
+                "output_tokens": 50,
+                "input_cost": 0.000015,
+                "output_cost": 0.00003,
+            },
+        )
+
+        call_kwargs = self.client.start_observation.call_args[1]
+        assert call_kwargs["as_type"] == "generation"
+        assert call_kwargs["model"] == "gpt-4o-mini"
+        assert call_kwargs["usage_details"] == {"input": 100, "output": 50, "total": 150}
+        assert call_kwargs["cost_details"]["input"] == pytest.approx(0.000015)
+        assert call_kwargs["cost_details"]["output"] == pytest.approx(0.00003)
 
     def test_fetch_traces(self):
         item = MagicMock()
@@ -274,6 +297,31 @@ class TestMLflowTracker:
             rationale="ok",
             source="llm_judge",
         )
+
+    def test_log_trace_with_usage(self):
+        trace_ctx = MagicMock()
+        trace_ctx.info.request_id = "run-usage"
+        span_mock = MagicMock()
+        span_ctx = MagicMock()
+        span_ctx.__enter__ = MagicMock(return_value=span_mock)
+        span_ctx.__exit__ = MagicMock(return_value=False)
+        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
+        trace_ctx.__exit__ = MagicMock(return_value=False)
+        self.mlflow_mod.start_trace.return_value = trace_ctx
+        self.mlflow_mod.start_span.return_value = span_ctx
+
+        self.tracker.log_trace(
+            name="run1", input={}, output={},
+            usage={"model": "gpt-4o", "input_tokens": 80, "output_tokens": 40, "input_cost": 0.001, "output_cost": 0.002},
+        )
+
+        # set_attribute (singular) called with correct keys
+        calls = {c.args[0]: c.args[1] for c in span_mock.set_attribute.call_args_list}
+        assert "mlflow.chat.tokenUsage" in calls
+        assert calls["mlflow.chat.tokenUsage"]["input_tokens"] == 80
+        assert calls["mlflow.chat.tokenUsage"]["output_tokens"] == 40
+        assert calls["mlflow.chat.tokenUsage"]["total_tokens"] == 120
+        assert calls.get("mlflow.llm.model") == "gpt-4o"
 
     def test_log_trace_with_session_id(self):
         trace_ctx = MagicMock()

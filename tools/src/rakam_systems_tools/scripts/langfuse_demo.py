@@ -371,8 +371,8 @@ MOCK_ANSWERS: dict[str, dict[str, str]] = {
 # ---------------------------------------------------------------------------
 
 
-def mock_llm_call(question: str, system: str, variant_key: str) -> str:
-    """Return a canned answer with a simulated latency."""
+def mock_llm_call(question: str, system: str, variant_key: str) -> tuple[str, dict]:
+    """Return a canned answer with simulated latency and estimated token usage."""
     qa_map = MOCK_ANSWERS.get(variant_key, {})
     answer = f"[mock] {question[:40]}"
     for item in QA_DATASET:
@@ -381,10 +381,19 @@ def mock_llm_call(question: str, system: str, variant_key: str) -> str:
             difficulty_delay = {"easy": 0.04, "medium": 0.07, "hard": 0.12}
             time.sleep(difficulty_delay.get(item.get("difficulty", "easy"), 0.05))
             break
-    return answer
+    input_tokens = len(system.split()) + len(question.split())
+    output_tokens = len(answer.split())
+    usage = {
+        "model": "mock",
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": input_tokens + output_tokens,
+    }
+    return answer, usage
 
 
-def real_llm_call(client, question: str, system: str, provider: str) -> str:
+def real_llm_call(client, question: str, system: str, provider: str) -> tuple[str, dict]:
+    """Return the LLM answer and a usage dict with token counts."""
     if provider == "openai":
         response = client.chat.completions.create(
             model=OPENAI_MODEL,
@@ -394,7 +403,14 @@ def real_llm_call(client, question: str, system: str, provider: str) -> str:
                 {"role": "user", "content": question},
             ],
         )
-        return response.choices[0].message.content or ""
+        answer = response.choices[0].message.content or ""
+        u = response.usage
+        usage = {
+            "model": OPENAI_MODEL,
+            "input_tokens": getattr(u, "prompt_tokens", None),
+            "output_tokens": getattr(u, "completion_tokens", None),
+            "total_tokens": getattr(u, "total_tokens", None),
+        }
     else:  # anthropic
         response = client.messages.create(
             model=ANTHROPIC_MODEL,
@@ -402,7 +418,17 @@ def real_llm_call(client, question: str, system: str, provider: str) -> str:
             system=system,
             messages=[{"role": "user", "content": question}],
         )
-        return response.content[0].text
+        answer = response.content[0].text
+        u = response.usage
+        inp = getattr(u, "input_tokens", None)
+        out = getattr(u, "output_tokens", None)
+        usage = {
+            "model": ANTHROPIC_MODEL,
+            "input_tokens": inp,
+            "output_tokens": out,
+            "total_tokens": (inp or 0) + (out or 0) if (inp is not None or out is not None) else None,
+        }
+    return answer, usage
 
 
 # ---------------------------------------------------------------------------
@@ -442,9 +468,9 @@ def run_all_variants(
             t0 = time.time()
 
             if use_mock:
-                answer = mock_llm_call(question, system, variant_name)
+                answer, usage = mock_llm_call(question, system, variant_name)
             else:
-                answer = real_llm_call(client, question, system, provider)
+                answer, usage = real_llm_call(client, question, system, provider)
 
             elapsed_ms = int((time.time() - t0) * 1000)
 
@@ -453,7 +479,6 @@ def run_all_variants(
                 input={"question": question, "system": system},
                 output={"answer": answer},
                 metadata={
-                    "model": model_name,
                     "provider": provider,
                     "variant": variant_name,
                     "category": category,
@@ -467,12 +492,14 @@ def run_all_variants(
                 tags=[variant_name, category, diff],
                 session_id=session_ids[variant_name],
                 user_id=user_id,
+                usage=usage,
             )
 
             trace_ids[variant_name].append(tid)
             done += 1
-            short = answer.replace("\n", " ")[:85]
-            print(f"    [{variant_name:>18}] {short}…  tid={tid[:8]}  ({done}/{total})")
+            short = answer.replace("\n", " ")[:75]
+            tok = usage.get("total_tokens", "?")
+            print(f"    [{variant_name:>18}] {short}…  tokens={tok}  tid={tid[:8]}  ({done}/{total})")
 
     return trace_ids
 

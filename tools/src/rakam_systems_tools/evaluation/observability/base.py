@@ -15,8 +15,19 @@ class EvaluationTracker(ABC):
         tags: Optional[List[str]] = None,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        usage: Optional[Dict[str, Any]] = None,
     ) -> str:
-        """Log a trace and return its trace_id."""
+        """Log a trace and return its trace_id.
+
+        ``usage`` is a backend-agnostic token/cost dict with optional keys:
+            model         str   — model name
+            input_tokens  int   — prompt / input token count
+            output_tokens int   — completion / output token count
+            total_tokens  int   — total token count (computed if omitted)
+            input_cost    float — cost of input tokens in USD
+            output_cost   float — cost of output tokens in USD
+            total_cost    float — total cost in USD
+        """
 
     @abstractmethod
     def fetch_traces(

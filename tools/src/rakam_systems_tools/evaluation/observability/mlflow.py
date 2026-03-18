@@ -39,6 +39,7 @@ class MLflowTracker(EvaluationTracker):
         tags: Optional[List[str]] = None,
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
+        usage: Optional[Dict[str, Any]] = None,
     ) -> str:
         tag_dict = {t: "" for t in tags} if tags else {}
 
@@ -51,9 +52,42 @@ class MLflowTracker(EvaluationTracker):
             trace_metadata["mlflow.trace.user"] = user_id
 
         with self._mlflow.start_trace(name=name) as trace:
-            with self._mlflow.start_span(name="llm_call") as span:
+            with self._mlflow.start_span(name="llm_call", span_type="LLM") as span:
                 span.set_inputs(input)
                 span.set_outputs(output)
+                if usage:
+                    # mlflow.chat.tokenUsage — powers the token-count display in the UI
+                    inp = usage.get("input_tokens")
+                    out = usage.get("output_tokens")
+                    total = usage.get("total_tokens") or (
+                        (inp or 0) + (out or 0) if (inp is not None or out is not None) else None
+                    )
+                    token_usage: Dict[str, int] = {
+                        k: int(v)
+                        for k, v in {"input_tokens": inp, "output_tokens": out, "total_tokens": total}.items()
+                        if v is not None
+                    }
+                    if token_usage:
+                        span.set_attribute("mlflow.chat.tokenUsage", token_usage)
+
+                    # mlflow.llm.cost — powers the cost display in the UI
+                    cost_inp = usage.get("input_cost")
+                    cost_out = usage.get("output_cost")
+                    total_cost = usage.get("total_cost") or (
+                        (cost_inp or 0.0) + (cost_out or 0.0)
+                        if (cost_inp is not None or cost_out is not None) else None
+                    )
+                    cost: Dict[str, float] = {
+                        k: float(v)
+                        for k, v in {"input_cost": cost_inp, "output_cost": cost_out, "total_cost": total_cost}.items()
+                        if v is not None
+                    }
+                    if cost:
+                        span.set_attribute("mlflow.llm.cost", cost)
+
+                    if usage.get("model"):
+                        span.set_attribute("mlflow.llm.model", usage["model"])
+
             self._mlflow.update_current_trace(
                 tags=tag_dict if tag_dict else None,
                 metadata=trace_metadata if trace_metadata else None,

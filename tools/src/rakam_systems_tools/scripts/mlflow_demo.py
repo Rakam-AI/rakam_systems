@@ -405,6 +405,15 @@ class MockAnthropicClient:
                     "model": model,
                     "usage": response.usage,
                 })
+                # Token usage and cost on the LLM span
+                inp_tok = response.usage.get("input_tokens", 0)
+                out_tok = response.usage.get("output_tokens", 0)
+                span.set_attribute("mlflow.chat.tokenUsage", {
+                    "input_tokens": inp_tok,
+                    "output_tokens": out_tok,
+                    "total_tokens": inp_tok + out_tok,
+                })
+                span.set_attribute("mlflow.llm.model", model)
 
             return response
 
@@ -463,6 +472,9 @@ def build_qa_fn(client, provider: str, model_name: str):
                 ],
             )
             answer = response.choices[0].message.content or ""
+            u = response.usage
+            inp_tok = getattr(u, "prompt_tokens", 0) or 0
+            out_tok = getattr(u, "completion_tokens", 0) or 0
         else:  # anthropic or mock (mock client uses anthropic interface)
             response = client.messages.create(
                 model=model_name,
@@ -471,10 +483,25 @@ def build_qa_fn(client, provider: str, model_name: str):
                 messages=[{"role": "user", "content": question}],
             )
             answer = response.content[0].text
+            u = response.usage
+            inp_tok = (u.get("input_tokens", 0) if isinstance(u, dict) else getattr(u, "input_tokens", 0)) or 0
+            out_tok = (u.get("output_tokens", 0) if isinstance(u, dict) else getattr(u, "output_tokens", 0)) or 0
+
+        # Attach token usage to the current (CHAIN) span so it appears in the trace
+        span = mlflow.get_current_active_span()
+        if span is not None:
+            span.set_attribute("mlflow.chat.tokenUsage", {
+                "input_tokens": inp_tok,
+                "output_tokens": out_tok,
+                "total_tokens": inp_tok + out_tok,
+            })
 
         mlflow.update_current_trace(tags={
             "response_length": str(len(answer)),
             "word_count": str(len(answer.split())),
+            "input_tokens": str(inp_tok),
+            "output_tokens": str(out_tok),
+            "total_tokens": str(inp_tok + out_tok),
         })
 
         return answer
