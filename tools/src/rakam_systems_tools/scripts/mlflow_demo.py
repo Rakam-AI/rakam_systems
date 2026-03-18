@@ -2,7 +2,7 @@
 MLflow Tracing & Evaluation Demo  (via EvaluationTracker)
 ==========================================================
 Same Q&A variant demo as before, now using the unified
-rakam_systems_tools.evaluation.tracking abstraction layer.
+rakam_systems_tools.evaluation.observability abstraction layer.
 
 What uses the tracker
 ---------------------
@@ -59,7 +59,7 @@ import mlflow
 import mlflow.anthropic
 from mlflow import MlflowClient
 
-from rakam_systems_tools.evaluation.tracking import create_tracker
+from rakam_systems_tools.evaluation.observability import create_tracker
 
 # ---------------------------------------------------------------------------
 # Config

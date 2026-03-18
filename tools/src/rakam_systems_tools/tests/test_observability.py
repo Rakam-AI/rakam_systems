@@ -55,7 +55,7 @@ class TestLangfuseTracker:
         # Ensure fresh mock for each test
         self.lf_mod, self.lf_instance = _make_langfuse_module()
         # Import after patching sys.modules
-        from rakam_systems_tools.evaluation.tracking.langfuse import LangfuseTracker
+        from rakam_systems_tools.evaluation.observability.langfuse import LangfuseTracker
         self.tracker = LangfuseTracker(
             public_key="pk-test", secret_key="sk-test", host="http://localhost"
         )
@@ -206,7 +206,7 @@ class TestLangfuseTracker:
 class TestMLflowTracker:
     def setup_method(self):
         self.mlflow_mod = _make_mlflow_module()
-        from rakam_systems_tools.evaluation.tracking.mlflow import MLflowTracker
+        from rakam_systems_tools.evaluation.observability.mlflow import MLflowTracker
         self.tracker = MLflowTracker(
             tracking_uri="http://localhost:5000", experiment_id="exp-1"
         )
@@ -385,22 +385,22 @@ class TestMLflowTracker:
 class TestCreateTracker:
     def test_create_langfuse_tracker(self):
         _make_langfuse_module()
-        from rakam_systems_tools.evaluation.tracking.factory import create_tracker
-        from rakam_systems_tools.evaluation.tracking.langfuse import LangfuseTracker
+        from rakam_systems_tools.evaluation.observability.factory import create_tracker
+        from rakam_systems_tools.evaluation.observability.langfuse import LangfuseTracker
 
         tracker = create_tracker("langfuse", public_key="pk", secret_key="sk")
         assert isinstance(tracker, LangfuseTracker)
 
     def test_create_mlflow_tracker(self):
         _make_mlflow_module()
-        from rakam_systems_tools.evaluation.tracking.factory import create_tracker
-        from rakam_systems_tools.evaluation.tracking.mlflow import MLflowTracker
+        from rakam_systems_tools.evaluation.observability.factory import create_tracker
+        from rakam_systems_tools.evaluation.observability.mlflow import MLflowTracker
 
         tracker = create_tracker("mlflow", experiment_id="exp-1")
         assert isinstance(tracker, MLflowTracker)
 
     def test_unknown_backend_raises(self):
-        from rakam_systems_tools.evaluation.tracking.factory import create_tracker
+        from rakam_systems_tools.evaluation.observability.factory import create_tracker
 
         with pytest.raises(ValueError, match="Unknown backend"):
             create_tracker("unknown")  # type: ignore
@@ -416,7 +416,7 @@ class TestCreateTracker:
             return real_import(name, *args, **kwargs)
 
         import importlib
-        import rakam_systems_tools.evaluation.tracking.langfuse as lf_mod
+        import rakam_systems_tools.evaluation.observability.langfuse as lf_mod
 
         with patch.object(builtins, "__import__", side_effect=mock_import):
             importlib.reload(lf_mod)

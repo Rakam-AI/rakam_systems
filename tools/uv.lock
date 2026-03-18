@@ -2561,7 +2561,7 @@ langfuse = [
 mlflow = [
     { name = "mlflow" },
 ]
-tracking = [
+observability = [
     { name = "langfuse" },
     { name = "mlflow" },
 ]
@@ -2579,14 +2579,14 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.26.0" },
     { name = "dotenv", specifier = ">=0.9.9" },
     { name = "langfuse", marker = "extra == 'langfuse'", specifier = ">=4.0.0" },
-    { name = "langfuse", marker = "extra == 'tracking'", specifier = ">=4.0.0" },
+    { name = "langfuse", marker = "extra == 'observability'", specifier = ">=4.0.0" },
     { name = "mlflow", marker = "extra == 'mlflow'", specifier = ">=2.16.0" },
-    { name = "mlflow", marker = "extra == 'tracking'", specifier = ">=2.16.0" },
+    { name = "mlflow", marker = "extra == 'observability'", specifier = ">=2.16.0" },
     { name = "psutil", specifier = ">=7.2.1" },
     { name = "pydantic", specifier = ">=2.10.6" },
     { name = "requests" },
 ]
-provides-extras = ["langfuse", "mlflow", "tracking"]
+provides-extras = ["langfuse", "mlflow", "observability"]
 
 [package.metadata.requires-dev]
 dev = [
