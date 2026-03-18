@@ -143,3 +143,42 @@ class TestCaseComparison(BaseModel):
     testcase_a_id: int
     testcase_b_id: int
     metrics: List[MetricDiff]
+
+
+# ---------------------------------------------------------------------------
+# Shared tracking models
+# ---------------------------------------------------------------------------
+
+from datetime import datetime  # noqa: E402
+
+
+class TraceRecord(BaseModel):
+    trace_id: str
+    name: str
+    input: Dict[str, Any]
+    output: Dict[str, Any]
+    metadata: Optional[Dict[str, Any]] = None
+    tags: Optional[List[str]] = None
+    timestamp: Optional[datetime] = None
+
+
+class ScoreRecord(BaseModel):
+    trace_id: str
+    name: str
+    value: float
+    comment: Optional[str] = None
+    source_type: Literal["HUMAN", "LLM_JUDGE", "CODE"] = "CODE"
+
+
+class DatasetItem(BaseModel):
+    item_id: Optional[str] = None
+    input: Dict[str, Any]
+    expected_output: Optional[Dict[str, Any]] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
+class EvalResult(BaseModel):
+    trace_id: str
+    scorer: str
+    value: float
+    rationale: Optional[str] = None
