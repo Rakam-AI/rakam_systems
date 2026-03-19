@@ -106,10 +106,12 @@ def main() -> None:
     tracker = create_tracker(
         "mlflow",
         tracking_uri=os.environ.get("MLFLOW_TRACKING_URI", "http://localhost:5000"),
+        experiment_name=EXPERIMENT_NAME,
     )
 
     print("=== MLflow nested tracing demo ===")
-    print(f"session_id: {SESSION_ID}\n")
+    print(f"experiment : {EXPERIMENT_NAME}  (id={tracker.experiment_id})")
+    print(f"session_id : {SESSION_ID}\n")
 
     for question in QUESTIONS:
         run(tracker, question)
