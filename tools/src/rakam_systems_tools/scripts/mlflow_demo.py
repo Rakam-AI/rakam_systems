@@ -9,22 +9,19 @@ What goes through the tracker
   tracker.start_trace()      → root CHAIN span per pipeline call
   trace.span()               → child LLM generation span
   trace.set_output()         → set root span output
-  trace.trace_id             → captured trace ID (replaces mlflow.get_last_active_trace_id)
-  tracker.log_score()        → human feedback
+  trace.trace_id             → captured trace ID
+  tracker.log_score()        → human feedback + expected-answer annotation
   tracker.evaluate_traces()  → LLM-judge evaluation
-  tracker.fetch_traces()     → simple name-based search
+  tracker.fetch_traces()     → name-based search
   tracker.get_session()      → session inspection
   tracker.list_sessions()    → browse sessions
   tracker.flush()            → wait for async export
+  tracker.experiment_id      → resolved experiment ID for UI links
 
 What stays as direct MLflow calls (no tracker equivalent)
 ----------------------------------------------------------
-  mlflow.anthropic.autolog()     zero-code auto-tracing for real Anthropic client
-  mlflow.update_current_trace()  key/value tag enrichment for rich filter queries
-  mlflow.entities.Expectation    ground-truth annotation (not in tracker API)
-  MlflowClient.log_expectation   ground-truth annotation
-  MlflowClient.set_trace_tag     fallback tag setting
-  MlflowClient.search_traces     rich filter-string search
+  mlflow.anthropic.autolog()         zero-code auto-tracing for real Anthropic client
+  mlflow.genai.scorers.*             LLM-judge scorer classes (MLflow-specific API)
 
 Dataset
 -------
@@ -50,10 +47,6 @@ Setup
 import os
 import time
 from typing import Optional
-
-import mlflow
-import mlflow.anthropic
-from mlflow import MlflowClient
 
 from rakam_systems_tools.evaluation.observability import create_tracker
 
@@ -213,7 +206,7 @@ class MockAnthropicClient:
 
 
 # ---------------------------------------------------------------------------
-# Q&A pipeline  (uses tracker.start_trace + trace.span — no @mlflow.trace)
+# Q&A pipeline  (uses tracker.start_trace + trace.span)
 # ---------------------------------------------------------------------------
 
 
@@ -224,7 +217,6 @@ def build_qa_fn(tracker, client, provider: str, model_name: str):
         variant: str,
         category: str,
         difficulty: str,
-        question_id: str,
         session_id: str = "",
         user_id: str = "",
     ) -> tuple[str, str]:
@@ -276,26 +268,6 @@ def build_qa_fn(tracker, client, provider: str, model_name: str):
                     },
                 )
 
-            # MLflow-specific key/value tags for rich filter-string queries in the UI.
-            # update_current_trace() is called while the root span context is active.
-            mlflow.update_current_trace(
-                tags={
-                    "variant": variant,
-                    "category": category,
-                    "difficulty": difficulty,
-                    "question_id": question_id,
-                    "question": question[:120],
-                    "prompt_length": str(len(system_prompt)),
-                    "provider": provider,
-                    "model": model_name,
-                    "response_length": str(len(answer)),
-                    "word_count": str(len(answer.split())),
-                    "input_tokens": str(inp_tok),
-                    "output_tokens": str(out_tok),
-                    "total_tokens": str(inp_tok + out_tok),
-                },
-            )
-
             trace.set_output({"answer": answer})
             tid = trace.trace_id
 
@@ -311,11 +283,13 @@ def build_qa_fn(tracker, client, provider: str, model_name: str):
 
 def run_all_variants(
     qa_fn,
-    mlf_client: MlflowClient,
+    tracker,
     session_prefix: str = "demo",
     user_id: Optional[str] = None,
-) -> dict[str, list[str]]:
+) -> tuple[dict[str, list[str]], dict[str, str]]:
+    """Returns (trace_ids_by_variant, expected_by_trace_id)."""
     trace_ids: dict[str, list[str]] = {v: [] for v in VARIANTS}
+    expected_by_trace_id: dict[str, str] = {}
     session_ids = {v: f"{session_prefix}-{v}" for v in VARIANTS}
     effective_user_id = user_id or session_prefix
     total = len(VARIANTS) * len(QA_DATASET)
@@ -326,7 +300,6 @@ def run_all_variants(
     print(f"  User ID : {effective_user_id}")
 
     for item in QA_DATASET:
-        qid = item["id"]
         question = item["question"]
         expected = item["expected"]
         category = item["category"]
@@ -341,7 +314,6 @@ def run_all_variants(
                 variant=variant_name,
                 category=category,
                 difficulty=diff,
-                question_id=qid,
                 session_id=session_ids[variant_name],
                 user_id=effective_user_id,
             )
@@ -351,23 +323,25 @@ def run_all_variants(
                 continue
 
             trace_ids[variant_name].append(tid)
+            expected_by_trace_id[tid] = expected
 
-            # log_expectation is not in the tracker API — use MlflowClient directly.
+            # Annotate with ground-truth expected answer via tracker.log_score().
             try:
-                mlf_client.log_expectation(
+                tracker.log_score(
                     trace_id=tid,
-                    expectation=mlflow.entities.Expectation(
-                        value={"expected_answer": expected}
-                    ),
+                    name="expected_answer",
+                    value=1.0,
+                    comment=expected,
+                    source_type="HUMAN",
                 )
             except Exception:
-                mlf_client.set_trace_tag(tid, "expected_answer", expected)
+                pass
 
             done += 1
             short = answer.replace("\n", " ")[:85]
             print(f"    [{variant_name:>18}] {short}…  ({done}/{total})")
 
-    return trace_ids
+    return trace_ids, expected_by_trace_id
 
 
 # ---------------------------------------------------------------------------
@@ -377,13 +351,11 @@ def run_all_variants(
 
 def evaluate_traces(
     trace_ids: dict[str, list[str]],
-    experiment_id: str,
+    expected_by_trace_id: dict[str, str],
     tracker,
 ) -> None:
     all_ids = [tid for ids in trace_ids.values() for tid in ids]
     print(f"\n── Phase 2: Evaluating {len(all_ids)} traces via tracker ──────────────────")
-
-    expected_by_qid = {item["id"]: item["expected"] for item in QA_DATASET}
 
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     openai_key = os.getenv("OPENAI_API_KEY")
@@ -397,6 +369,7 @@ def evaluate_traces(
 
     if judge_model is None:
         print("  Skipping LLM scorers — set ANTHROPIC_API_KEY or OPENAI_API_KEY to enable.")
+        experiment_id = getattr(tracker, "experiment_id", None) or ""
         print(f"\n  Or evaluate via MCP:")
         print(f"    experiment_id = {experiment_id!r}")
         print(f"    trace_ids     = {','.join(all_ids[:3])}…")
@@ -404,9 +377,8 @@ def evaluate_traces(
         return
 
     try:
+        # mlflow.genai.scorers are MLflow-specific — no tracker equivalent.
         from mlflow.genai.scorers import Correctness, RelevanceToQuery, Safety
-
-        mlflow.set_experiment(EXPERIMENT_NAME)
 
         scorers = [
             Correctness(model=judge_model),
@@ -416,19 +388,13 @@ def evaluate_traces(
         print(f"  Scorers: Correctness, RelevanceToQuery, Safety  (judge={judge_model})")
 
         print("  Fetching trace objects via tracker…")
-        data = []
-        for tid in all_ids:
-            trace = tracker.get_trace(tid)
-            tags = {}
-            if hasattr(trace, "info"):
-                tags = trace.info.tags or {}
-            elif isinstance(trace, dict):
-                tags = trace.get("info", {}).get("tags", {})
-            qid = tags.get("question_id", "")
-            data.append({
-                "trace": trace,
-                "expectations": {"expected_response": expected_by_qid.get(qid, "")},
-            })
+        data = [
+            {
+                "trace": tracker.get_trace(tid),
+                "expectations": {"expected_response": expected_by_trace_id.get(tid, "")},
+            }
+            for tid in all_ids
+        ]
 
         results = tracker.evaluate_traces(data, scorers=scorers)
 
@@ -438,6 +404,7 @@ def evaluate_traces(
             print(f"\n  Evaluation complete.")
 
     except Exception as exc:
+        experiment_id = getattr(tracker, "experiment_id", None) or ""
         print(f"  tracker.evaluate_traces() error: {exc}")
         print(f"\n  Run via MCP instead:")
         print(f"    experiment_id = {experiment_id!r}")
@@ -449,12 +416,7 @@ def evaluate_traces(
 # ---------------------------------------------------------------------------
 
 
-def search_examples(
-    trace_ids: dict[str, list[str]],
-    experiment_id: str,
-    tracker,
-    mlf_client: MlflowClient,
-) -> None:
+def search_examples(trace_ids: dict[str, list[str]], tracker) -> None:
     print("\n── Phase 3: Search examples ────────────────────────────────────────")
 
     print("\n  [tracker.fetch_traces] name='qa_pipeline', limit=5:")
@@ -464,31 +426,17 @@ def search_examples(
     except Exception as exc:
         print(f"    → {exc}")
 
-    # Rich tag-based searches need MlflowClient — tracker.fetch_traces() only supports
-    # name/session/user/tag-label filtering, not MLflow's arbitrary filter-string syntax.
-    rich_searches = [
+    # Rich tag/attribute filtering (difficulty, category, variant, execution time) requires
+    # MLflow's filter-string syntax — use mcp__mlflow-mcp__search_traces for those queries.
+    print("\n  [Rich tag queries: use mcp__mlflow-mcp__search_traces]")
+    rich_examples = [
         ("hard questions",           "tags.difficulty = 'hard'"),
         ("science category",         "tags.category = 'science'"),
         ("chain_of_thought variant", "tags.variant = 'chain_of_thought'"),
         ("fast responses (≤40ms)",   "execution_time_ms <= 40"),
     ]
-    print("\n  [mlf_client.search_traces] rich filter-string queries:")
-    for label, fstr in rich_searches:
-        try:
-            results = mlf_client.search_traces(
-                locations=[experiment_id],
-                filter_string=fstr,
-                max_results=5,
-            )
-            print(f"\n  {label!r}  →  {len(results)} traces")
-            for t in results[:3]:
-                tags = t.info.tags or {}
-                q = tags.get("question", "?")[:55]
-                wc = tags.get("word_count", "?")
-                dur = getattr(t.info, "execution_duration", "?")
-                print(f"    {t.info.trace_id}  wc={wc:<4} dur={dur}ms  '{q}'")
-        except Exception as exc:
-            print(f"  {label!r}: {exc}")
+    for label, fstr in rich_examples:
+        print(f"    {label!r}  →  filter_string={fstr!r}")
 
 
 # ---------------------------------------------------------------------------
@@ -558,7 +506,8 @@ def show_sessions(session_prefix: str, tracker) -> None:
 # ---------------------------------------------------------------------------
 
 
-def show_custom_scorer_instructions(experiment_id: str) -> None:
+def show_custom_scorer_instructions(tracker) -> None:
+    experiment_id = getattr(tracker, "experiment_id", None) or ""
     print("\n── Phase 5: Custom LLM judge (register via MCP) ────────────────────")
     print(
         f"\n  mcp__mlflow-mcp__register_llm_judge(\n"
@@ -592,17 +541,12 @@ def main() -> None:
     session_prefix = f"mlflow-{int(time.time())}"
     user_id: Optional[str] = os.getenv("MLFLOW_USER_ID") or session_prefix
 
-    # Set up experiment — needed for experiment_id (used by tracker + MlflowClient)
-    # and for mlflow.anthropic.autolog() to know the destination.
-    experiment = mlflow.set_experiment(EXPERIMENT_NAME)
-    experiment_id = experiment.experiment_id
-    mlf_client = MlflowClient(tracking_uri=TRACKING_URI)
-
     tracker = create_tracker(
         "mlflow",
         tracking_uri=TRACKING_URI,
-        experiment_id=experiment_id,
+        experiment_name=EXPERIMENT_NAME,
     )
+    experiment_id = tracker.experiment_id or ""
 
     categories = sorted({i["category"] for i in QA_DATASET})
     difficulties = {d: sum(1 for i in QA_DATASET if i["difficulty"] == d) for d in ["easy", "medium", "hard"]}
@@ -627,17 +571,21 @@ def main() -> None:
     else:
         import anthropic
         client = anthropic.Anthropic(api_key=anthropic_key)
-        mlflow.anthropic.autolog()  # no tracker equivalent — kept as direct call
+        # mlflow.anthropic.autolog() has no tracker equivalent — zero-code auto-tracing.
+        import mlflow.anthropic
+        mlflow.anthropic.autolog()
 
     qa_fn = build_qa_fn(tracker, client, provider=provider, model_name=model_name)
 
-    trace_ids = run_all_variants(qa_fn, mlf_client, session_prefix=session_prefix, user_id=user_id)
+    trace_ids, expected_by_trace_id = run_all_variants(
+        qa_fn, tracker, session_prefix=session_prefix, user_id=user_id
+    )
     tracker.flush()
-    evaluate_traces(trace_ids, experiment_id, tracker)
-    search_examples(trace_ids, experiment_id, tracker, mlf_client)
+    evaluate_traces(trace_ids, expected_by_trace_id, tracker)
+    search_examples(trace_ids, tracker)
     add_sample_feedback(trace_ids, tracker)
     show_sessions(session_prefix, tracker)
-    show_custom_scorer_instructions(experiment_id)
+    show_custom_scorer_instructions(tracker)
 
     all_ids = [tid for ids in trace_ids.values() for tid in ids]
     print("\n── Done ────────────────────────────────────────────────────────────")

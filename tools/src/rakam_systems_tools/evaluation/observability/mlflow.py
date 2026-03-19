@@ -114,6 +114,7 @@ class MLflowTracker(EvaluationTracker):
         self,
         tracking_uri: Optional[str] = None,
         experiment_id: Optional[str] = None,
+        experiment_name: Optional[str] = None,
     ) -> None:
         try:
             import mlflow
@@ -133,6 +134,13 @@ class MLflowTracker(EvaluationTracker):
             mlflow.set_tracking_uri(uri)
 
         self._experiment_id = experiment_id or os.environ.get("MLFLOW_EXPERIMENT_ID")
+        if experiment_name and not self._experiment_id:
+            exp = mlflow.set_experiment(experiment_name)
+            self._experiment_id = exp.experiment_id
+
+    @property
+    def experiment_id(self) -> Optional[str]:
+        return self._experiment_id
 
     def _trace_destination(self) -> Optional[Any]:
         """Return a MlflowExperimentLocation destination when experiment_id is configured."""
@@ -141,8 +149,16 @@ class MLflowTracker(EvaluationTracker):
         return None
 
     def flush(self) -> None:
-        """Flush all pending async trace exports to the tracking server."""
-        self._mlflow.flush_trace_async_logging(terminate=False)
+        """Flush all pending trace exports to the tracking server."""
+        # MLflow 3.x uses an OTel-based exporter; flush via the tracer provider.
+        # flush_trace_async_logging is a MLflow 2.x API that no longer works in 3.x.
+        try:
+            from opentelemetry import trace as otel_trace
+            provider = otel_trace.get_tracer_provider()
+            if hasattr(provider, "force_flush"):
+                provider.force_flush()
+        except Exception:
+            pass
 
     @contextmanager
     def start_trace(
