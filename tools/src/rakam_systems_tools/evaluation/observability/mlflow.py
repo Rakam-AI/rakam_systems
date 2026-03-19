@@ -1,7 +1,106 @@
 import os
-from typing import Any, Dict, List, Literal, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Literal, Optional
 
-from .base import EvaluationTracker
+from .base import EvaluationTracker, SpanHandle, TraceHandle
+
+
+# Map unified span_type strings to MLflow SpanType constants.
+_MLF_SPAN_TYPE: Dict[str, str] = {
+    "span": "UNKNOWN",
+    "chain": "CHAIN",
+    "retriever": "RETRIEVER",
+    "generation": "LLM",
+    "tool": "TOOL",
+    "agent": "AGENT",
+    "embedding": "EMBEDDING",
+    "evaluator": "EVALUATOR",
+    "guardrail": "GUARDRAIL",
+}
+
+
+class _MLflowSpanHandle(SpanHandle):
+    def __init__(self, mlflow: Any, span: Any) -> None:
+        self._mlflow = mlflow
+        self._span = span
+
+    def set_output(
+        self,
+        output: Dict[str, Any],
+        usage: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        self._span.set_outputs(output)
+        if usage:
+            inp = usage.get("input_tokens")
+            out = usage.get("output_tokens")
+            total = usage.get("total_tokens") or ((inp or 0) + (out or 0))
+            token_usage: Dict[str, int] = {
+                k: int(v)
+                for k, v in {"input_tokens": inp, "output_tokens": out, "total_tokens": total}.items()
+                if v is not None
+            }
+            if token_usage:
+                self._span.set_attribute("mlflow.chat.tokenUsage", token_usage)
+
+            cost_inp = usage.get("input_cost")
+            cost_out = usage.get("output_cost")
+            cost_total = usage.get("total_cost") or (
+                (cost_inp or 0.0) + (cost_out or 0.0)
+                if (cost_inp is not None or cost_out is not None) else None
+            )
+            cost: Dict[str, float] = {
+                k: float(v)
+                for k, v in {"input_cost": cost_inp, "output_cost": cost_out, "total_cost": cost_total}.items()
+                if v is not None
+            }
+            if cost:
+                self._span.set_attribute("mlflow.llm.cost", cost)
+
+            if usage.get("model"):
+                self._span.set_attribute("mlflow.llm.model", usage["model"])
+
+
+class _MLflowTraceHandle(TraceHandle):
+    """Uses the root LiveSpan directly — avoids the removed mlflow.start_trace() API."""
+
+    def __init__(self, mlflow: Any, root_span: Any, assessment_source: Any) -> None:
+        self._mlflow = mlflow
+        self._root_span = root_span  # LiveSpan — the root CHAIN span
+        self._AssessmentSource = assessment_source
+
+    @property
+    def trace_id(self) -> str:
+        return self._root_span.trace_id
+
+    def set_output(self, output: Dict[str, Any]) -> None:
+        self._root_span.set_outputs(output)
+
+    def add_score(
+        self,
+        name: str,
+        value: float,
+        comment: Optional[str] = None,
+        source_type: Literal["HUMAN", "LLM_JUDGE", "CODE"] = "CODE",
+    ) -> None:
+        self._mlflow.log_feedback(
+            trace_id=self._root_span.trace_id,
+            name=name,
+            value=value,
+            rationale=comment,
+            source=self._AssessmentSource(source_type=source_type),
+        )
+
+    @contextmanager
+    def span(
+        self,
+        name: str,
+        input: Dict[str, Any],
+        span_type: str = "span",
+    ) -> Iterator[_MLflowSpanHandle]:
+        mlf_type = _MLF_SPAN_TYPE.get(span_type, "UNKNOWN")
+        with self._mlflow.start_span(name=name, span_type=mlf_type) as s:
+            s.set_inputs(input)
+            yield _MLflowSpanHandle(self._mlflow, s)
 
 
 class MLflowTracker(EvaluationTracker):
@@ -23,12 +122,54 @@ class MLflowTracker(EvaluationTracker):
                 "mlflow is required. Install it with: pip install 'rakam-systems-tools[mlflow]'"
             ) from e
 
+        from mlflow.entities.assessment_source import AssessmentSource
+        from mlflow.entities.trace_location import MlflowExperimentLocation
+
         self._mlflow = mlflow
+        self._AssessmentSource = AssessmentSource
+        self._MlflowExperiment = MlflowExperimentLocation
         uri = tracking_uri or os.environ.get("MLFLOW_TRACKING_URI")
         if uri:
             mlflow.set_tracking_uri(uri)
 
         self._experiment_id = experiment_id or os.environ.get("MLFLOW_EXPERIMENT_ID")
+
+    def _trace_destination(self) -> Optional[Any]:
+        """Return a MlflowExperimentLocation destination when experiment_id is configured."""
+        if self._experiment_id:
+            return self._MlflowExperiment(experiment_id=self._experiment_id)
+        return None
+
+    def flush(self) -> None:
+        """Flush all pending async trace exports to the tracking server."""
+        self._mlflow.flush_trace_async_logging(terminate=False)
+
+    @contextmanager
+    def start_trace(
+        self,
+        name: str,
+        input: Dict[str, Any],
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Iterator[_MLflowTraceHandle]:
+        tag_dict = {t: "" for t in tags} if tags else {}
+        trace_metadata: Dict[str, Any] = {}
+        if session_id:
+            trace_metadata["mlflow.trace.session"] = session_id
+        if user_id:
+            trace_metadata["mlflow.trace.user"] = user_id
+
+        # mlflow.start_trace() was removed in MLflow 3.x.
+        # mlflow.start_span() with no active parent creates a root span (= new trace).
+        with self._mlflow.start_span(name=name, span_type="CHAIN",
+                                     trace_destination=self._trace_destination()) as root_span:
+            root_span.set_inputs(input)
+            yield _MLflowTraceHandle(self._mlflow, root_span, self._AssessmentSource)
+            self._mlflow.update_current_trace(
+                tags=tag_dict if tag_dict else None,
+                metadata=trace_metadata if trace_metadata else None,
+            )
 
     def log_trace(
         self,
@@ -51,7 +192,9 @@ class MLflowTracker(EvaluationTracker):
         if user_id:
             trace_metadata["mlflow.trace.user"] = user_id
 
-        with self._mlflow.start_trace(name=name) as trace:
+        # mlflow.start_span() with no active parent creates a root span (= new trace).
+        with self._mlflow.start_span(name=name, span_type="CHAIN",
+                                     trace_destination=self._trace_destination()) as root_span:
             with self._mlflow.start_span(name="llm_call", span_type="LLM") as span:
                 span.set_inputs(input)
                 span.set_outputs(output)
@@ -92,7 +235,7 @@ class MLflowTracker(EvaluationTracker):
                 tags=tag_dict if tag_dict else None,
                 metadata=trace_metadata if trace_metadata else None,
             )
-            return trace.info.request_id
+            return root_span.trace_id
 
     def fetch_traces(
         self,
@@ -102,7 +245,7 @@ class MLflowTracker(EvaluationTracker):
         session_id: Optional[str] = None,
         user_id: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        experiment_ids = [self._experiment_id] if self._experiment_id else None
+        locations = [self._experiment_id] if self._experiment_id else None
         filter_parts = []
         if name:
             filter_parts.append(f"name = '{name}'")
@@ -113,7 +256,7 @@ class MLflowTracker(EvaluationTracker):
         filter_string = " AND ".join(filter_parts) if filter_parts else None
 
         traces = self._mlflow.search_traces(
-            experiment_ids=experiment_ids,
+            locations=locations,
             filter_string=filter_string,
             max_results=limit,
         )
@@ -136,7 +279,7 @@ class MLflowTracker(EvaluationTracker):
             name=name,
             value=value,
             rationale=comment,
-            source=source_type.lower(),
+            source=self._AssessmentSource(source_type=source_type),
         )
 
     def get_session(self, session_id: str) -> Dict[str, Any]:
@@ -146,10 +289,10 @@ class MLflowTracker(EvaluationTracker):
 
     def list_sessions(self, limit: int = 50) -> List[Dict[str, Any]]:
         """Return distinct session IDs from recent traces (via mlflow.trace.session metadata)."""
-        experiment_ids = [self._experiment_id] if self._experiment_id else None
+        locations = [self._experiment_id] if self._experiment_id else None
         try:
             traces = self._mlflow.search_traces(
-                experiment_ids=experiment_ids,
+                locations=locations,
                 filter_string="metadata.`mlflow.trace.session` != ''",
                 max_results=limit * 10,
             )

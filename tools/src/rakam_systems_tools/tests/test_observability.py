@@ -34,7 +34,6 @@ def _make_mlflow_module():
     """Return a mock mlflow module."""
     mod = ModuleType("mlflow")
     mod.set_tracking_uri = MagicMock()
-    mod.start_trace = MagicMock()
     mod.start_span = MagicMock()
     mod.set_tag = MagicMock()
     mod.update_current_trace = MagicMock()
@@ -43,6 +42,22 @@ def _make_mlflow_module():
     mod.log_feedback = MagicMock()
     mod.genai = MagicMock()
     sys.modules["mlflow"] = mod
+
+    # AssessmentSource is imported at MLflowTracker init time — provide a real-ish stub.
+    assessment_source_mod = ModuleType("mlflow.entities.assessment_source")
+    assessment_source_mod.AssessmentSource = MagicMock(side_effect=lambda source_type: source_type)
+    entities_mod = ModuleType("mlflow.entities")
+    entities_mod.assessment_source = assessment_source_mod
+    mod.entities = entities_mod
+    sys.modules["mlflow.entities"] = entities_mod
+    sys.modules["mlflow.entities.assessment_source"] = assessment_source_mod
+
+    # MlflowExperimentLocation is imported at MLflowTracker init time.
+    trace_location_mod = ModuleType("mlflow.entities.trace_location")
+    trace_location_mod.MlflowExperimentLocation = MagicMock(side_effect=lambda experiment_id=None: experiment_id)
+    entities_mod.trace_location = trace_location_mod
+    sys.modules["mlflow.entities.trace_location"] = trace_location_mod
+
     return mod
 
 
@@ -235,14 +250,11 @@ class TestMLflowTracker:
         )
 
     def test_log_trace_returns_id(self):
-        trace_ctx = MagicMock()
-        trace_ctx.info.request_id = "run-abc"
+        root_span = MagicMock()
+        root_span.trace_id = "run-abc"
         span_ctx = MagicMock()
-        span_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        span_ctx.__enter__ = MagicMock(return_value=root_span)
         span_ctx.__exit__ = MagicMock(return_value=False)
-        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
-        trace_ctx.__exit__ = MagicMock(return_value=False)
-        self.mlflow_mod.start_trace.return_value = trace_ctx
         self.mlflow_mod.start_span.return_value = span_ctx
 
         result = self.tracker.log_trace(
@@ -259,7 +271,7 @@ class TestMLflowTracker:
         results = self.tracker.fetch_traces(name="run1", limit=5)
 
         self.mlflow_mod.search_traces.assert_called_once_with(
-            experiment_ids=["exp-1"],
+            locations=["exp-1"],
             filter_string="name = 'run1'",
             max_results=5,
         )
@@ -272,7 +284,7 @@ class TestMLflowTracker:
         self.tracker.fetch_traces(limit=10)
 
         self.mlflow_mod.search_traces.assert_called_once_with(
-            experiment_ids=["exp-1"],
+            locations=["exp-1"],
             filter_string=None,
             max_results=10,
         )
@@ -295,19 +307,15 @@ class TestMLflowTracker:
             name="quality",
             value=0.8,
             rationale="ok",
-            source="llm_judge",
+            source="LLM_JUDGE",
         )
 
     def test_log_trace_with_usage(self):
-        trace_ctx = MagicMock()
-        trace_ctx.info.request_id = "run-usage"
         span_mock = MagicMock()
+        span_mock.trace_id = "run-usage"
         span_ctx = MagicMock()
         span_ctx.__enter__ = MagicMock(return_value=span_mock)
         span_ctx.__exit__ = MagicMock(return_value=False)
-        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
-        trace_ctx.__exit__ = MagicMock(return_value=False)
-        self.mlflow_mod.start_trace.return_value = trace_ctx
         self.mlflow_mod.start_span.return_value = span_ctx
 
         self.tracker.log_trace(
@@ -324,14 +332,11 @@ class TestMLflowTracker:
         assert calls.get("mlflow.llm.model") == "gpt-4o"
 
     def test_log_trace_with_session_id(self):
-        trace_ctx = MagicMock()
-        trace_ctx.info.request_id = "run-sess"
+        root_span = MagicMock()
+        root_span.trace_id = "run-sess"
         span_ctx = MagicMock()
-        span_ctx.__enter__ = MagicMock(return_value=MagicMock())
+        span_ctx.__enter__ = MagicMock(return_value=root_span)
         span_ctx.__exit__ = MagicMock(return_value=False)
-        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
-        trace_ctx.__exit__ = MagicMock(return_value=False)
-        self.mlflow_mod.start_trace.return_value = trace_ctx
         self.mlflow_mod.start_span.return_value = span_ctx
 
         result = self.tracker.log_trace(
@@ -346,14 +351,9 @@ class TestMLflowTracker:
         assert meta.get("mlflow.trace.user") == "user-42"
 
     def test_log_trace_with_user_id_only(self):
-        trace_ctx = MagicMock()
-        trace_ctx.info.request_id = "run-user"
         span_ctx = MagicMock()
         span_ctx.__enter__ = MagicMock(return_value=MagicMock())
         span_ctx.__exit__ = MagicMock(return_value=False)
-        trace_ctx.__enter__ = MagicMock(return_value=trace_ctx)
-        trace_ctx.__exit__ = MagicMock(return_value=False)
-        self.mlflow_mod.start_trace.return_value = trace_ctx
         self.mlflow_mod.start_span.return_value = span_ctx
 
         self.tracker.log_trace(name="run1", input={}, output={}, user_id="user-99")

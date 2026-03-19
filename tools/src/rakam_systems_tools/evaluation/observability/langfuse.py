@@ -1,7 +1,91 @@
 import os
-from typing import Any, Dict, List, Literal, Optional
+from contextlib import contextmanager
+from typing import Any, Dict, Iterator, List, Literal, Optional
 
-from .base import EvaluationTracker
+from .base import EvaluationTracker, SpanHandle, TraceHandle
+
+
+# Langfuse span_type strings accepted by start_as_current_observation's as_type param.
+# generation / embedding are "generation" types; the rest are "span" subtypes.
+_LF_SPAN_TYPE: Dict[str, str] = {
+    "span": "span",
+    "chain": "chain",
+    "retriever": "retriever",
+    "generation": "generation",
+    "tool": "tool",
+    "agent": "agent",
+    "embedding": "embedding",
+    "evaluator": "evaluator",
+    "guardrail": "guardrail",
+}
+
+
+class _LangfuseSpanHandle(SpanHandle):
+    """Uses the span object directly — avoids relying on OTel 'current span' helpers."""
+
+    def __init__(self, span: Any) -> None:
+        self._span = span  # LangfuseObservationWrapper
+
+    def set_output(
+        self,
+        output: Dict[str, Any],
+        usage: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        if usage:
+            inp = usage.get("input_tokens")
+            out = usage.get("output_tokens")
+            total = usage.get("total_tokens") or ((inp or 0) + (out or 0))
+            cost_inp = usage.get("input_cost")
+            cost_out = usage.get("output_cost")
+            cost_total = usage.get("total_cost") or (
+                (cost_inp or 0.0) + (cost_out or 0.0)
+                if (cost_inp is not None or cost_out is not None) else None
+            )
+            usage_details = {k: v for k, v in {"input": inp, "output": out, "total": total}.items() if v is not None}
+            cost_details = {k: v for k, v in {"input": cost_inp, "output": cost_out, "total": cost_total}.items() if v is not None} or None
+            self._span.update(
+                output=output,
+                model=usage.get("model"),
+                usage_details=usage_details or None,
+                cost_details=cost_details or None,
+            )
+        else:
+            self._span.update(output=output)
+
+
+class _LangfuseTraceHandle(TraceHandle):
+    """Uses the root span object directly — avoids relying on OTel 'current span' helpers."""
+
+    def __init__(self, lf_client: Any, root_span: Any) -> None:
+        self._lf = lf_client
+        self._root_span = root_span  # LangfuseObservationWrapper for the root chain
+
+    @property
+    def trace_id(self) -> Optional[str]:
+        return self._root_span.trace_id
+
+    def set_output(self, output: Dict[str, Any]) -> None:
+        self._root_span.update(output=output)
+
+    def add_score(
+        self,
+        name: str,
+        value: float,
+        comment: Optional[str] = None,
+        source_type: Literal["HUMAN", "LLM_JUDGE", "CODE"] = "CODE",
+    ) -> None:
+        self._root_span.score_trace(name=name, value=value, comment=comment)
+
+    @contextmanager
+    def span(
+        self,
+        name: str,
+        input: Dict[str, Any],
+        span_type: str = "span",
+    ) -> Iterator[_LangfuseSpanHandle]:
+        as_type = _LF_SPAN_TYPE.get(span_type, "span")
+        with self._lf.start_as_current_observation(name=name, as_type=as_type, input=input) as child_span:
+            yield _LangfuseSpanHandle(child_span)
 
 
 class LangfuseTracker(EvaluationTracker):
@@ -25,6 +109,25 @@ class LangfuseTracker(EvaluationTracker):
             secret_key=secret_key or os.environ.get("LANGFUSE_SECRET_KEY"),
             host=host or os.environ.get("LANGFUSE_HOST"),
         )
+
+    @contextmanager
+    def start_trace(
+        self,
+        name: str,
+        input: Dict[str, Any],
+        session_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+        tags: Optional[List[str]] = None,
+    ) -> Iterator[_LangfuseTraceHandle]:
+        from langfuse import propagate_attributes
+
+        with propagate_attributes(session_id=session_id, user_id=user_id, tags=tags):
+            with self._client.start_as_current_observation(name=name, as_type="chain", input=input) as root_span:
+                yield _LangfuseTraceHandle(self._client, root_span)
+
+    def flush(self) -> None:
+        """Flush all pending trace exports to the Langfuse server."""
+        self._client.flush()
 
     def log_trace(
         self,
