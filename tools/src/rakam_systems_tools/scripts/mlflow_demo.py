@@ -1,27 +1,30 @@
 """
 MLflow Tracing & Evaluation Demo  (via EvaluationTracker)
 ==========================================================
-Same Q&A variant demo as before, now using the unified
-rakam_systems_tools.evaluation.observability abstraction layer.
+Same Q&A variant demo, now routing all tracing through the unified
+``rakam_systems_tools.evaluation.observability`` abstraction.
 
-What uses the tracker
----------------------
-  tracker.get_trace()        → fetch individual trace objects
-  tracker.log_score()        → human feedback (replaces mlflow.log_feedback)
-  tracker.evaluate_traces()  → LLM-judge evaluation (wraps mlflow.genai.evaluate)
+What goes through the tracker
+------------------------------
+  tracker.start_trace()      → root CHAIN span per pipeline call
+  trace.span()               → child LLM generation span
+  trace.set_output()         → set root span output
+  trace.trace_id             → captured trace ID (replaces mlflow.get_last_active_trace_id)
+  tracker.log_score()        → human feedback
+  tracker.evaluate_traces()  → LLM-judge evaluation
   tracker.fetch_traces()     → simple name-based search
+  tracker.get_session()      → session inspection
+  tracker.list_sessions()    → browse sessions
+  tracker.flush()            → wait for async export
 
-What stays as direct MLflow calls
-----------------------------------
-  mlflow.anthropic.autolog()      zero-code auto-tracing (no tracker equivalent)
-  @mlflow.trace / span_type=CHAIN custom parent span per call
-  mlflow.update_current_trace()   inline tag mutation during execution
-  mlflow.start_span()             manual LLM span in MockAnthropicClient
-  mlflow.get_last_active_trace_id() capture trace ID after each call
-  MlflowClient.log_expectation()  ground-truth annotation (not in tracker API)
-  MlflowClient.set_trace_tag()    fallback tag setting
-  MlflowClient.search_traces()    rich filter-string search (tracker.fetch_traces
-                                  only supports name= filtering on MLflow)
+What stays as direct MLflow calls (no tracker equivalent)
+----------------------------------------------------------
+  mlflow.anthropic.autolog()     zero-code auto-tracing for real Anthropic client
+  mlflow.update_current_trace()  key/value tag enrichment for rich filter queries
+  mlflow.entities.Expectation    ground-truth annotation (not in tracker API)
+  MlflowClient.log_expectation   ground-truth annotation
+  MlflowClient.set_trace_tag     fallback tag setting
+  MlflowClient.search_traces     rich filter-string search
 
 Dataset
 -------
@@ -29,20 +32,13 @@ Dataset
 
 Sessions
 --------
-Each prompting variant runs in its own session (stored as a tags.session_id
-MLflow tag). tracker.get_session() / list_sessions() query by that tag.
+Each prompting variant runs in its own session via tracker.start_trace(session_id=...).
 
 LLM Providers (priority order)
 --------------------------------
   1. OpenAI   — set OPENAI_API_KEY  (model: gpt-4o-mini by default)
   2. Anthropic — set ANTHROPIC_API_KEY  (model: claude-haiku-4-5, with autolog)
   3. Mock     — set MOCK_LLM=1 or leave both keys unset
-
-Modes
------
-  OpenAI    export OPENAI_API_KEY=sk-...       uv run mlflow_demo.py
-  Anthropic export ANTHROPIC_API_KEY=sk-ant-... uv run mlflow_demo.py
-  Mock      unset both keys or set MOCK_LLM=1  (uses canned answers)
 
 Setup
 -----
@@ -76,95 +72,23 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 QA_DATASET = [
     # ── Geography ────────────────────────────────────────────────────────
-    {
-        "id": "geo1",
-        "category": "geography",
-        "difficulty": "easy",
-        "question": "What is the capital of France?",
-        "expected": "Paris",
-    },
-    {
-        "id": "geo2",
-        "category": "geography",
-        "difficulty": "medium",
-        "question": "What is the longest river in the world?",
-        "expected": "The Nile River (approximately 6,650 km / 4,130 miles)",
-    },
+    {"id": "geo1",  "category": "geography",   "difficulty": "easy",   "question": "What is the capital of France?",                                  "expected": "Paris"},
+    {"id": "geo2",  "category": "geography",   "difficulty": "medium", "question": "What is the longest river in the world?",                         "expected": "The Nile River (approximately 6,650 km / 4,130 miles)"},
     # ── Science ──────────────────────────────────────────────────────────
-    {
-        "id": "sci1",
-        "category": "science",
-        "difficulty": "easy",
-        "question": "What is the boiling point of water in Celsius at sea level?",
-        "expected": "100 degrees Celsius",
-    },
-    {
-        "id": "sci2",
-        "category": "science",
-        "difficulty": "easy",
-        "question": "What is known as the powerhouse of the cell?",
-        "expected": "The mitochondria",
-    },
-    {
-        "id": "sci3",
-        "category": "science",
-        "difficulty": "medium",
-        "question": "What is the approximate speed of light in metres per second?",
-        "expected": "299,792,458 metres per second (approximately 3×10⁸ m/s)",
-    },
-    {
-        "id": "sci4",
-        "category": "science",
-        "difficulty": "hard",
-        "question": "What is the half-life of Carbon-14 used in radiocarbon dating?",
-        "expected": "Approximately 5,730 years",
-    },
+    {"id": "sci1",  "category": "science",     "difficulty": "easy",   "question": "What is the boiling point of water in Celsius at sea level?",     "expected": "100 degrees Celsius"},
+    {"id": "sci2",  "category": "science",     "difficulty": "easy",   "question": "What is known as the powerhouse of the cell?",                    "expected": "The mitochondria"},
+    {"id": "sci3",  "category": "science",     "difficulty": "medium", "question": "What is the approximate speed of light in metres per second?",    "expected": "299,792,458 metres per second (approximately 3×10⁸ m/s)"},
+    {"id": "sci4",  "category": "science",     "difficulty": "hard",   "question": "What is the half-life of Carbon-14 used in radiocarbon dating?",  "expected": "Approximately 5,730 years"},
     # ── History ──────────────────────────────────────────────────────────
-    {
-        "id": "hist1",
-        "category": "history",
-        "difficulty": "easy",
-        "question": "In what year did World War II end?",
-        "expected": "1945",
-    },
-    {
-        "id": "hist2",
-        "category": "history",
-        "difficulty": "medium",
-        "question": "Who was the first person to walk on the Moon?",
-        "expected": "Neil Armstrong (Apollo 11, July 20, 1969)",
-    },
+    {"id": "hist1", "category": "history",     "difficulty": "easy",   "question": "In what year did World War II end?",                              "expected": "1945"},
+    {"id": "hist2", "category": "history",     "difficulty": "medium", "question": "Who was the first person to walk on the Moon?",                   "expected": "Neil Armstrong (Apollo 11, July 20, 1969)"},
     # ── Literature ───────────────────────────────────────────────────────
-    {
-        "id": "lit1",
-        "category": "literature",
-        "difficulty": "easy",
-        "question": "Who wrote the play Hamlet?",
-        "expected": "William Shakespeare",
-    },
-    {
-        "id": "lit2",
-        "category": "literature",
-        "difficulty": "medium",
-        "question": "In George Orwell's 1984, what is the name of the ruling party?",
-        "expected": "The Party (INGSOC / English Socialism)",
-    },
+    {"id": "lit1",  "category": "literature",  "difficulty": "easy",   "question": "Who wrote the play Hamlet?",                                      "expected": "William Shakespeare"},
+    {"id": "lit2",  "category": "literature",  "difficulty": "medium", "question": "In George Orwell's 1984, what is the name of the ruling party?",  "expected": "The Party (INGSOC / English Socialism)"},
     # ── Math ─────────────────────────────────────────────────────────────
-    {
-        "id": "math1",
-        "category": "math",
-        "difficulty": "easy",
-        "question": "What is the square root of 144?",
-        "expected": "12",
-    },
+    {"id": "math1", "category": "math",        "difficulty": "easy",   "question": "What is the square root of 144?",                                 "expected": "12"},
     # ── Astronomy ────────────────────────────────────────────────────────
-    {
-        "id": "ast1",
-        "category": "astronomy",
-        "difficulty": "medium",
-        "question": "How far is the Moon from Earth on average in kilometres?",
-        "expected": "Approximately 384,400 kilometres (238,855 miles)",
-    },
+    {"id": "ast1",  "category": "astronomy",   "difficulty": "medium", "question": "How far is the Moon from Earth on average in kilometres?",         "expected": "Approximately 384,400 kilometres (238,855 miles)"},
 ]
 
 # ---------------------------------------------------------------------------
@@ -198,162 +122,51 @@ VARIANTS: dict[str, dict] = {
 
 MOCK_ANSWERS: dict[str, dict[str, str]] = {
     "direct": {
-        "geo1":  "Paris.",
-        "geo2":  "The Nile River, at approximately 6,650 km.",
-        "sci1":  "100°C.",
-        "sci2":  "The mitochondria.",
-        "sci3":  "Approximately 299,792,458 metres per second.",
-        "sci4":  "Approximately 5,730 years.",
-        "hist1": "1945.",
-        "hist2": "Neil Armstrong on July 20, 1969.",
-        "lit1":  "William Shakespeare.",
-        "lit2":  "The Party (INGSOC).",
-        "math1": "12.",
-        "ast1":  "Approximately 384,400 kilometres.",
+        "geo1": "Paris.", "geo2": "The Nile River, at approximately 6,650 km.",
+        "sci1": "100°C.", "sci2": "The mitochondria.",
+        "sci3": "Approximately 299,792,458 metres per second.", "sci4": "Approximately 5,730 years.",
+        "hist1": "1945.", "hist2": "Neil Armstrong on July 20, 1969.",
+        "lit1": "William Shakespeare.", "lit2": "The Party (INGSOC).",
+        "math1": "12.", "ast1": "Approximately 384,400 kilometres.",
     },
     "chain_of_thought": {
-        "geo1": (
-            "France is a country in Western Europe with a long-standing centralised "
-            "government. Its political, cultural, and administrative hub has historically "
-            "been in the north of the country. Therefore, the capital of France is Paris."
-        ),
-        "geo2": (
-            "River length is measured from source to mouth. The two main candidates are "
-            "the Nile in Africa (~6,650 km) and the Amazon in South America (~6,400 km). "
-            "Most traditional measurements place the Nile slightly longer, so the answer "
-            "is the Nile River."
-        ),
-        "sci1": (
-            "The boiling point depends on atmospheric pressure. At standard sea-level "
-            "pressure (1 atm / 101.325 kPa) the liquid-to-gas phase transition of water "
-            "occurs at exactly 100 degrees Celsius."
-        ),
-        "sci2": (
-            "Cells require energy in the form of ATP to carry out their functions. "
-            "ATP is produced through a process called cellular respiration. The organelle "
-            "responsible for generating most of a cell's ATP is the mitochondria, hence "
-            "it is called the powerhouse of the cell."
-        ),
-        "sci3": (
-            "Light travels through a vacuum at a fixed, universal constant. "
-            "This constant, denoted c, is defined as exactly 299,792,458 metres per second "
-            "(approximately 3×10⁸ m/s)."
-        ),
-        "sci4": (
-            "Radioactive decay follows an exponential law. Carbon-14 is a radioactive "
-            "isotope that decays to Nitrogen-14 by beta emission. Scientists have measured "
-            "that half of any given sample of C-14 decays in approximately 5,730 years, "
-            "which is its half-life."
-        ),
-        "hist1": (
-            "World War II involved fighting across multiple theatres. The war in Europe "
-            "ended with Germany's unconditional surrender on May 8, 1945 (V-E Day). "
-            "The war in the Pacific ended with Japan's surrender on September 2, 1945 "
-            "(V-J Day). Therefore, WWII fully ended in 1945."
-        ),
-        "hist2": (
-            "NASA's Apollo program aimed to land humans on the Moon. Apollo 11 was the "
-            "first crewed mission to achieve a lunar landing. Commander Neil Armstrong "
-            "stepped onto the Moon's surface on July 20, 1969, making him the first "
-            "person to walk on the Moon."
-        ),
-        "lit1": (
-            "Hamlet is one of the most celebrated tragedies in the English language. "
-            "It was written during the Elizabethan era, a golden age of English theatre. "
-            "The play was composed around 1600–1601 by William Shakespeare."
-        ),
-        "lit2": (
-            "George Orwell wrote the dystopian novel 1984 (published 1949). In the "
-            "book, Oceania is governed by a totalitarian government. The ruling party "
-            "calls itself 'The Party' and its ideology is called INGSOC (English "
-            "Socialism)."
-        ),
-        "math1": (
-            "We need a number n such that n × n = 144. Testing: 10² = 100, 11² = 121, "
-            "12² = 144. Since 12 × 12 = 144, the square root of 144 is 12."
-        ),
-        "ast1": (
-            "The Moon orbits Earth in an elliptical path, so the distance varies. "
-            "The average (mean) Earth-Moon distance, known as a lunar distance, is "
-            "approximately 384,400 kilometres (238,855 miles)."
-        ),
+        "geo1": "France is a country in Western Europe. Its political and cultural hub has historically been in the north. Therefore, the capital of France is Paris.",
+        "geo2": "River length is measured from source to mouth. The Nile (~6,650 km) and Amazon (~6,400 km) are the two main candidates. Most measurements place the Nile slightly longer.",
+        "sci1": "The boiling point depends on atmospheric pressure. At 1 atm the liquid-to-gas phase transition of water occurs at exactly 100 degrees Celsius.",
+        "sci2": "Cells require energy in the form of ATP. ATP is produced through cellular respiration. The organelle responsible is the mitochondria, hence 'powerhouse of the cell'.",
+        "sci3": "Light travels through a vacuum at a fixed universal constant c, defined as exactly 299,792,458 metres per second (approximately 3×10⁸ m/s).",
+        "sci4": "Radioactive decay follows an exponential law. Carbon-14 decays to Nitrogen-14 by beta emission. Half of any sample decays in approximately 5,730 years.",
+        "hist1": "The war in Europe ended May 8, 1945 (V-E Day). The war in the Pacific ended September 2, 1945 (V-J Day). Therefore, WWII fully ended in 1945.",
+        "hist2": "Apollo 11 was the first crewed lunar landing. Commander Neil Armstrong stepped onto the Moon on July 20, 1969, making him the first person to walk on the Moon.",
+        "lit1": "Hamlet is one of the most celebrated tragedies in English literature. It was written around 1600–1601 by William Shakespeare.",
+        "lit2": "In Orwell's 1984, Oceania is governed by a totalitarian party called 'The Party' whose ideology is INGSOC (English Socialism).",
+        "math1": "We need n such that n×n=144. Testing: 10²=100, 11²=121, 12²=144. The square root of 144 is 12.",
+        "ast1": "The Moon orbits Earth in an elliptical path. The average Earth-Moon distance is approximately 384,400 kilometres (238,855 miles).",
     },
     "expert": {
-        "geo1": (
-            "Paris is the capital and most populous city of France, located on the "
-            "Seine River in northern France. It has been the country's political and "
-            "cultural centre since the early medieval period."
-        ),
-        "geo2": (
-            "The Nile River in northeastern Africa is generally considered the world's "
-            "longest river at approximately 6,650 km (4,130 mi), flowing northward "
-            "through 11 countries before emptying into the Mediterranean Sea. Note: "
-            "some studies argue the Amazon may be longer depending on measurement method."
-        ),
-        "sci1": (
-            "At standard atmospheric pressure (101.325 kPa / 1 atm), water undergoes "
-            "its liquid-to-vapour phase transition at exactly 100 °C (212 °F / 373.15 K). "
-            "This value decreases at higher altitudes where ambient pressure is lower."
-        ),
-        "sci2": (
-            "Mitochondria are membrane-bound organelles found in the cytoplasm of "
-            "eukaryotic cells. They generate most of the cell's ATP through oxidative "
-            "phosphorylation, earning the nickname 'powerhouse of the cell'."
-        ),
-        "sci3": (
-            "The speed of light in a vacuum (c) is a fundamental physical constant "
-            "defined as exactly 299,792,458 metres per second (~3×10⁸ m/s). It is the "
-            "universal speed limit and underpins Einstein's theory of special relativity."
-        ),
-        "sci4": (
-            "Carbon-14 (¹⁴C) is a naturally occurring radioactive isotope with a "
-            "half-life of approximately 5,730 years (±40 years). This predictable decay "
-            "rate is the basis of radiocarbon dating, which can reliably date organic "
-            "material up to ~50,000 years old."
-        ),
-        "hist1": (
-            "World War II ended in 1945: Germany surrendered unconditionally on May 8 "
-            "(V-E Day), and Japan surrendered on September 2 (V-J Day) following the "
-            "atomic bombings of Hiroshima and Nagasaki. It remains the deadliest conflict "
-            "in human history, with an estimated 70–85 million casualties."
-        ),
-        "hist2": (
-            "Neil Armstrong, commander of NASA's Apollo 11 mission, became the first "
-            "human to walk on the Moon at 02:56 UTC on July 20, 1969. His first words "
-            "upon stepping onto the lunar surface were: 'That's one small step for "
-            "[a] man, one giant leap for mankind.'"
-        ),
-        "lit1": (
-            "Hamlet, Prince of Denmark was written by William Shakespeare circa "
-            "1599–1601 and is considered one of the greatest works in world literature. "
-            "It explores themes of revenge, mortality, and moral corruption through its "
-            "Danish prince protagonist."
-        ),
-        "lit2": (
-            "In Orwell's Nineteen Eighty-Four (1949), Oceania is ruled by 'The Party' "
-            "whose ideology is called INGSOC (English Socialism). The Party is led by "
-            "the figurehead Big Brother and enforces total control through the Thought "
-            "Police, Newspeak, and constant surveillance."
-        ),
-        "math1": (
-            "The square root of 144 is 12, since 12² = 144. Both +12 and −12 are "
-            "technically square roots; the principal (positive) square root is 12."
-        ),
-        "ast1": (
-            "The mean Earth-Moon distance is approximately 384,400 km (238,855 mi), "
-            "defined as one lunar distance (LD). Because the Moon's orbit is elliptical, "
-            "this ranges from ~356,500 km at perigee to ~406,700 km at apogee."
-        ),
+        "geo1": "Paris is the capital and most populous city of France, located on the Seine River. It has been the country's political and cultural centre since the early medieval period.",
+        "geo2": "The Nile River in northeastern Africa is generally considered the world's longest at ~6,650 km, flowing through 11 countries. Some studies argue the Amazon may be longer depending on measurement method.",
+        "sci1": "At standard atmospheric pressure (101.325 kPa), water undergoes its phase transition at exactly 100°C (212°F / 373.15 K). This value decreases at higher altitudes.",
+        "sci2": "Mitochondria are membrane-bound organelles in eukaryotic cells that generate most ATP through oxidative phosphorylation, earning the nickname 'powerhouse of the cell'.",
+        "sci3": "The speed of light in vacuum (c) is exactly 299,792,458 m/s (~3×10⁸ m/s). It is the universal speed limit and underpins Einstein's special relativity.",
+        "sci4": "Carbon-14 has a half-life of ~5,730 years (±40 yr). This predictable decay rate is the basis of radiocarbon dating, reliable for organic material up to ~50,000 years old.",
+        "hist1": "WWII ended in 1945: Germany surrendered May 8 (V-E Day), Japan surrendered September 2 (V-J Day) after the atomic bombings. An estimated 70–85 million casualties.",
+        "hist2": "Neil Armstrong, commander of Apollo 11, became the first human on the Moon at 02:56 UTC on July 20, 1969, saying 'That's one small step for [a] man, one giant leap for mankind.'",
+        "lit1": "Hamlet was written by William Shakespeare circa 1599–1601 and explores themes of revenge, mortality, and moral corruption through its Danish prince protagonist.",
+        "lit2": "In Orwell's Nineteen Eighty-Four (1949), 'The Party' rules Oceania via INGSOC ideology, enforcing control through the Thought Police, Newspeak, and constant surveillance.",
+        "math1": "The square root of 144 is 12, since 12²=144. Both +12 and −12 are technically square roots; the principal (positive) square root is 12.",
+        "ast1": "The mean Earth-Moon distance is ~384,400 km (one lunar distance). The orbit is elliptical, ranging from ~356,500 km at perigee to ~406,700 km at apogee.",
     },
 }
 
 # ---------------------------------------------------------------------------
-# Mock LLM client
+# Mock LLM client  (no direct MLflow calls)
 # ---------------------------------------------------------------------------
 
 
 class MockAnthropicClient:
-    """Mimics anthropic.Anthropic() with canned responses and manual MLflow spans."""
+    """Mimics anthropic.Anthropic() with canned responses. Span creation is handled
+    by the pipeline via tracker.start_trace() / trace.span()."""
 
     class _Content:
         def __init__(self, text: str):
@@ -372,7 +185,6 @@ class MockAnthropicClient:
 
         def create(self, model, max_tokens, system, messages, **_):
             question = messages[0]["content"] if messages else ""
-
             if "step by step" in system:
                 variant_key = "chain_of_thought"
             elif "world-class" in system:
@@ -390,32 +202,7 @@ class MockAnthropicClient:
             difficulty_delay = {"easy": 0.04, "medium": 0.07, "hard": 0.12}
             item_match = next((i for i in QA_DATASET if i["question"] == question), {})
             time.sleep(difficulty_delay.get(item_match.get("difficulty", "easy"), 0.05))
-
-            with mlflow.start_span(name="ChatAnthropic", span_type="LLM") as span:
-                span.set_inputs({
-                    "model": model,
-                    "system": system,
-                    "messages": messages,
-                    "max_tokens": max_tokens,
-                    "prompt_length": len(system),
-                })
-                response = MockAnthropicClient._Response(answer, model)
-                span.set_outputs({
-                    "content": answer,
-                    "model": model,
-                    "usage": response.usage,
-                })
-                # Token usage and cost on the LLM span
-                inp_tok = response.usage.get("input_tokens", 0)
-                out_tok = response.usage.get("output_tokens", 0)
-                span.set_attribute("mlflow.chat.tokenUsage", {
-                    "input_tokens": inp_tok,
-                    "output_tokens": out_tok,
-                    "total_tokens": inp_tok + out_tok,
-                })
-                span.set_attribute("mlflow.llm.model", model)
-
-            return response
+            return MockAnthropicClient._Response(answer, model)
 
     def __init__(self, mock_answers: dict):
         self._answers = mock_answers
@@ -426,15 +213,11 @@ class MockAnthropicClient:
 
 
 # ---------------------------------------------------------------------------
-# Traced Q&A pipeline  (uses @mlflow.trace — no tracker equivalent)
+# Q&A pipeline  (uses tracker.start_trace + trace.span — no @mlflow.trace)
 # ---------------------------------------------------------------------------
 
-def build_qa_fn(client, provider: str, model_name: str):
-    # session_id and user_id are kept in _ctx so they stay out of @mlflow.trace's
-    # auto-captured function inputs (any parameter becomes part of trace input).
-    _ctx: dict = {"session_id": "", "user_id": ""}
 
-    @mlflow.trace(name="qa_pipeline", span_type="CHAIN")
+def build_qa_fn(tracker, client, provider: str, model_name: str):
     def qa_pipeline(
         question: str,
         system_prompt: str,
@@ -442,77 +225,89 @@ def build_qa_fn(client, provider: str, model_name: str):
         category: str,
         difficulty: str,
         question_id: str,
-    ) -> str:
-        # mlflow.trace.session and mlflow.trace.user are the native MLflow keys
-        # that power the Sessions / Users views in the UI.
-        mlflow.update_current_trace(
-            tags={
-                "variant": variant,
-                "category": category,
-                "difficulty": difficulty,
-                "question_id": question_id,
-                "question": question[:120],
-                "prompt_length": str(len(system_prompt)),
-                "provider": provider,
-                "model": model_name,
-            },
-            metadata={
-                "mlflow.trace.session": _ctx["session_id"],
-                "mlflow.trace.user": _ctx["user_id"],
-            },
-        )
+        session_id: str = "",
+        user_id: str = "",
+    ) -> tuple[str, str]:
+        with tracker.start_trace(
+            name="qa_pipeline",
+            input={"question": question, "system_prompt": system_prompt},
+            session_id=session_id or None,
+            user_id=user_id or None,
+            tags=[variant, category, difficulty],
+        ) as trace:
 
-        if provider == "openai":
-            response = client.chat.completions.create(
-                model=model_name,
-                max_tokens=256,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": question},
-                ],
+            with trace.span(
+                "llm_call",
+                input={"question": question, "system_prompt": system_prompt},
+                span_type="generation",
+            ) as llm_span:
+                if provider == "openai":
+                    response = client.chat.completions.create(
+                        model=model_name,
+                        max_tokens=256,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": question},
+                        ],
+                    )
+                    answer = response.choices[0].message.content or ""
+                    u = response.usage
+                    inp_tok = getattr(u, "prompt_tokens", 0) or 0
+                    out_tok = getattr(u, "completion_tokens", 0) or 0
+                else:  # anthropic or mock
+                    response = client.messages.create(
+                        model=model_name,
+                        max_tokens=256,
+                        system=system_prompt,
+                        messages=[{"role": "user", "content": question}],
+                    )
+                    answer = response.content[0].text
+                    u = response.usage
+                    inp_tok = (u.get("input_tokens", 0) if isinstance(u, dict) else getattr(u, "input_tokens", 0)) or 0
+                    out_tok = (u.get("output_tokens", 0) if isinstance(u, dict) else getattr(u, "output_tokens", 0)) or 0
+
+                llm_span.set_output(
+                    {"answer": answer},
+                    usage={
+                        "model": model_name,
+                        "input_tokens": inp_tok,
+                        "output_tokens": out_tok,
+                        "total_tokens": inp_tok + out_tok,
+                    },
+                )
+
+            # MLflow-specific key/value tags for rich filter-string queries in the UI.
+            # update_current_trace() is called while the root span context is active.
+            mlflow.update_current_trace(
+                tags={
+                    "variant": variant,
+                    "category": category,
+                    "difficulty": difficulty,
+                    "question_id": question_id,
+                    "question": question[:120],
+                    "prompt_length": str(len(system_prompt)),
+                    "provider": provider,
+                    "model": model_name,
+                    "response_length": str(len(answer)),
+                    "word_count": str(len(answer.split())),
+                    "input_tokens": str(inp_tok),
+                    "output_tokens": str(out_tok),
+                    "total_tokens": str(inp_tok + out_tok),
+                },
             )
-            answer = response.choices[0].message.content or ""
-            u = response.usage
-            inp_tok = getattr(u, "prompt_tokens", 0) or 0
-            out_tok = getattr(u, "completion_tokens", 0) or 0
-        else:  # anthropic or mock (mock client uses anthropic interface)
-            response = client.messages.create(
-                model=model_name,
-                max_tokens=256,
-                system=system_prompt,
-                messages=[{"role": "user", "content": question}],
-            )
-            answer = response.content[0].text
-            u = response.usage
-            inp_tok = (u.get("input_tokens", 0) if isinstance(u, dict) else getattr(u, "input_tokens", 0)) or 0
-            out_tok = (u.get("output_tokens", 0) if isinstance(u, dict) else getattr(u, "output_tokens", 0)) or 0
 
-        # Attach token usage to the current (CHAIN) span so it appears in the trace
-        span = mlflow.get_current_active_span()
-        if span is not None:
-            span.set_attribute("mlflow.chat.tokenUsage", {
-                "input_tokens": inp_tok,
-                "output_tokens": out_tok,
-                "total_tokens": inp_tok + out_tok,
-            })
+            trace.set_output({"answer": answer})
+            tid = trace.trace_id
 
-        mlflow.update_current_trace(tags={
-            "response_length": str(len(answer)),
-            "word_count": str(len(answer.split())),
-            "input_tokens": str(inp_tok),
-            "output_tokens": str(out_tok),
-            "total_tokens": str(inp_tok + out_tok),
-        })
+        return answer, tid
 
-        return answer
-
-    qa_pipeline._ctx = _ctx
     return qa_pipeline
 
 
 # ---------------------------------------------------------------------------
 # Phase 1 – Generate all traces
 # ---------------------------------------------------------------------------
+
 
 def run_all_variants(
     qa_fn,
@@ -521,7 +316,6 @@ def run_all_variants(
     user_id: Optional[str] = None,
 ) -> dict[str, list[str]]:
     trace_ids: dict[str, list[str]] = {v: [] for v in VARIANTS}
-    # One session per variant; user_id is shared across all traces in this run.
     session_ids = {v: f"{session_prefix}-{v}" for v in VARIANTS}
     effective_user_id = user_id or session_prefix
     total = len(VARIANTS) * len(QA_DATASET)
@@ -541,27 +335,24 @@ def run_all_variants(
         print(f"\n  [{category}/{diff}] {question}")
 
         for variant_name, vcfg in VARIANTS.items():
-            # Set session/user context before the decorated call — kept in _ctx
-            # so they don't appear in @mlflow.trace's auto-captured inputs.
-            qa_fn._ctx["session_id"] = session_ids[variant_name]
-            qa_fn._ctx["user_id"] = effective_user_id
-            answer = qa_fn(
+            answer, tid = qa_fn(
                 question=question,
                 system_prompt=vcfg["system"],
                 variant=variant_name,
                 category=category,
                 difficulty=diff,
                 question_id=qid,
+                session_id=session_ids[variant_name],
+                user_id=effective_user_id,
             )
 
-            tid = mlflow.get_last_active_trace_id()
             if not tid:
                 print(f"    [{variant_name}] WARNING: no trace ID captured")
                 continue
 
             trace_ids[variant_name].append(tid)
 
-            # log_expectation is not part of the tracker API — use MlflowClient directly
+            # log_expectation is not in the tracker API — use MlflowClient directly.
             try:
                 mlf_client.log_expectation(
                     trace_id=tid,
@@ -582,6 +373,7 @@ def run_all_variants(
 # ---------------------------------------------------------------------------
 # Phase 2 – Evaluate  (via tracker.evaluate_traces)
 # ---------------------------------------------------------------------------
+
 
 def evaluate_traces(
     trace_ids: dict[str, list[str]],
@@ -623,8 +415,6 @@ def evaluate_traces(
         ]
         print(f"  Scorers: Correctness, RelevanceToQuery, Safety  (judge={judge_model})")
 
-        # Fetch trace objects — genai.evaluate() needs them, not raw ID strings.
-        # tracker.get_trace() replaces mlf_client.get_trace() here.
         print("  Fetching trace objects via tracker…")
         data = []
         for tid in all_ids:
@@ -640,7 +430,6 @@ def evaluate_traces(
                 "expectations": {"expected_response": expected_by_qid.get(qid, "")},
             })
 
-        # tracker.evaluate_traces wraps mlflow.genai.evaluate
         results = tracker.evaluate_traces(data, scorers=scorers)
 
         if results and isinstance(results[0], dict):
@@ -659,6 +448,7 @@ def evaluate_traces(
 # Phase 3 – Search examples
 # ---------------------------------------------------------------------------
 
+
 def search_examples(
     trace_ids: dict[str, list[str]],
     experiment_id: str,
@@ -667,7 +457,6 @@ def search_examples(
 ) -> None:
     print("\n── Phase 3: Search examples ────────────────────────────────────────")
 
-    # Simple name-based fetch via tracker
     print("\n  [tracker.fetch_traces] name='qa_pipeline', limit=5:")
     try:
         results = tracker.fetch_traces(name="qa_pipeline", limit=5)
@@ -675,8 +464,8 @@ def search_examples(
     except Exception as exc:
         print(f"    → {exc}")
 
-    # Rich tag-based searches require direct MlflowClient (tracker doesn't support
-    # MLflow's filter-string syntax for tags)
+    # Rich tag-based searches need MlflowClient — tracker.fetch_traces() only supports
+    # name/session/user/tag-label filtering, not MLflow's arbitrary filter-string syntax.
     rich_searches = [
         ("hard questions",           "tags.difficulty = 'hard'"),
         ("science category",         "tags.category = 'science'"),
@@ -706,10 +495,10 @@ def search_examples(
 # Phase 4 – Human feedback via tracker.log_score
 # ---------------------------------------------------------------------------
 
+
 def add_sample_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
     print("\n── Phase 4: Adding sample human feedback via tracker.log_score ─────")
 
-    # Numeric quality scores (0.0–1.0) aligned with ScoreRecord.value: float
     quality_scores = {
         "direct":           (1.0, "Correct and maximally concise."),
         "chain_of_thought": (0.6, "Correct but unnecessarily long for a simple factual question."),
@@ -719,7 +508,7 @@ def add_sample_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
     for variant_name, ids in trace_ids.items():
         if not ids:
             continue
-        tid = ids[0]  # first trace = geo1 (capital of France)
+        tid = ids[0]
         score, rationale = quality_scores[variant_name]
         try:
             tracker.log_score(
@@ -735,14 +524,14 @@ def add_sample_feedback(trace_ids: dict[str, list[str]], tracker) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 4b – Session inspection via tracker.get_session / list_sessions
+# Phase 4b – Session inspection via tracker
 # ---------------------------------------------------------------------------
+
 
 def show_sessions(session_prefix: str, tracker) -> None:
     print("\n── Phase 4b: Session inspection via tracker ────────────────────────")
 
-    # list_sessions — scans traces for distinct session_id tags
-    print("\n  [list_sessions] limit=10:")
+    print("\n  [tracker.list_sessions] limit=10:")
     try:
         sessions = tracker.list_sessions(limit=10)
         print(f"    → {len(sessions)} sessions found")
@@ -753,10 +542,9 @@ def show_sessions(session_prefix: str, tracker) -> None:
     except Exception as exc:
         print(f"    → {exc}")
 
-    # get_session — fetch traces for one variant's session
     for variant_name in list(VARIANTS.keys())[:2]:
         sid = f"{session_prefix}-{variant_name}"
-        print(f"\n  [get_session] session_id={sid!r}:")
+        print(f"\n  [tracker.get_session] session_id={sid!r}:")
         try:
             session = tracker.get_session(sid)
             traces = session.get("traces", []) if isinstance(session, dict) else []
@@ -766,8 +554,9 @@ def show_sessions(session_prefix: str, tracker) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Phase 5 – Register custom scorer (MCP instructions only)
+# Phase 5 – Custom scorer (MCP instructions only)
 # ---------------------------------------------------------------------------
+
 
 def show_custom_scorer_instructions(experiment_id: str) -> None:
     print("\n── Phase 5: Custom LLM judge (register via MCP) ────────────────────")
@@ -787,8 +576,8 @@ def show_custom_scorer_instructions(experiment_id: str) -> None:
 # Entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
-    # ── LLM provider detection (priority: OpenAI > Anthropic > Mock) ──────
     openai_key = os.getenv("OPENAI_API_KEY")
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     force_mock = os.getenv("MOCK_LLM") == "1"
@@ -800,11 +589,11 @@ def main() -> None:
     else:
         provider, use_mock, model_name = "anthropic", False, ANTHROPIC_MODEL
 
-    # ── Session prefix and user — unique per run ───────────────────────────
     session_prefix = f"mlflow-{int(time.time())}"
     user_id: Optional[str] = os.getenv("MLFLOW_USER_ID") or session_prefix
 
-    mlflow.set_tracking_uri(TRACKING_URI)
+    # Set up experiment — needed for experiment_id (used by tracker + MlflowClient)
+    # and for mlflow.anthropic.autolog() to know the destination.
     experiment = mlflow.set_experiment(EXPERIMENT_NAME)
     experiment_id = experiment.experiment_id
     mlf_client = MlflowClient(tracking_uri=TRACKING_URI)
@@ -816,10 +605,7 @@ def main() -> None:
     )
 
     categories = sorted({i["category"] for i in QA_DATASET})
-    difficulties = {
-        d: sum(1 for i in QA_DATASET if i["difficulty"] == d)
-        for d in ["easy", "medium", "hard"]
-    }
+    difficulties = {d: sum(1 for i in QA_DATASET if i["difficulty"] == d) for d in ["easy", "medium", "hard"]}
 
     print("MLflow Tracing & Evaluation Demo  (via EvaluationTracker)")
     print(f"  Tracking URI  : {TRACKING_URI}")
@@ -841,11 +627,12 @@ def main() -> None:
     else:
         import anthropic
         client = anthropic.Anthropic(api_key=anthropic_key)
-        mlflow.anthropic.autolog()
+        mlflow.anthropic.autolog()  # no tracker equivalent — kept as direct call
 
-    qa_fn = build_qa_fn(client, provider=provider, model_name=model_name)
+    qa_fn = build_qa_fn(tracker, client, provider=provider, model_name=model_name)
 
     trace_ids = run_all_variants(qa_fn, mlf_client, session_prefix=session_prefix, user_id=user_id)
+    tracker.flush()
     evaluate_traces(trace_ids, experiment_id, tracker)
     search_examples(trace_ids, experiment_id, tracker, mlf_client)
     add_sample_feedback(trace_ids, tracker)
