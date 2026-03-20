@@ -17,7 +17,7 @@ The agent package of Rakam Systems providing AI agent implementations powered by
 - **Chat History**: Multiple backends (JSON, SQLite, PostgreSQL)
 - **LLM Gateway**: Unified interface for OpenAI and Mistral AI
 
-### 🎯 Configuration Convenience
+### Configuration Convenience
 
 The agent package supports comprehensive YAML configuration, allowing you to:
 
@@ -28,16 +28,21 @@ The agent package supports comprehensive YAML configuration, allowing you to:
 - **Enable/disable tracking** via configuration
 - **Use different configs** for different environments
 
-**Example**: Switch from GPT-4o to GPT-4o-mini by changing one line in your YAML - no code changes, no redeployment needed!
-
 ## Installation
 
 ```bash
-# Requires core package
-pip install -e ./rakam-systems-core
+pip install rakam-systems-agent
+```
 
-# Install agent package
-pip install -e ./rakam-systems-agent
+Available extras:
+
+| Extra | What it adds |
+|-------|-------------|
+| `llm-providers` | `openai`, `mistralai`, `tiktoken` |
+| `all` | Everything above |
+
+```bash
+pip install rakam-systems-agent[all]
 ```
 
 ## Quick Start
@@ -47,8 +52,8 @@ pip install -e ./rakam-systems-agent
 ```python
 import asyncio
 from rakam_systems_agent import BaseAgent
-from rakam_systems_core.interfaces import ModelSettings
-from rakam_systems_core.interfaces.tool import ToolComponent as Tool
+from rakam_systems_core.ai_core.interfaces import ModelSettings
+from rakam_systems_core.ai_core.interfaces.tool import ToolComponent as Tool
 
 # Define a tool function
 async def get_weather(city: str) -> dict:
@@ -186,6 +191,37 @@ async for chunk in agent.astream("Tell me a story"):
     print(chunk, end='', flush=True)
 ```
 
+### Configure an agent with YAML
+
+Create agents from config files — no code changes needed to switch models or prompts:
+
+**`config/agent.yaml`:**
+
+```yaml
+version: "1.0"
+
+agents:
+  assistant:
+    name: "assistant"
+    llm_config:
+      model: "openai:gpt-4o"
+      temperature: 0.7
+    system_prompt: "You are a helpful assistant."
+```
+
+**Use in code:**
+
+```python
+import asyncio
+from rakam_systems_core.ai_core.config_loader import ConfigurationLoader
+
+loader = ConfigurationLoader()
+config = loader.load_from_yaml("config/agent.yaml")
+agent = loader.create_agent("assistant", config)
+
+asyncio.run(agent.arun("Hello!"))
+```
+
 ## API Reference
 
 ### AgentComponent
@@ -278,22 +314,6 @@ rakam-systems-agent/
 3. **Provide clear tool descriptions**: Better descriptions help the LLM use tools correctly
 4. **Use type hints**: JSON schemas should match your function signatures
 5. **Handle errors gracefully**: Tools should catch and return meaningful errors
-
-## Migration Guide
-
-### Using BaseAgent
-
-`BaseAgent` is the core Pydantic AI-powered agent implementation in this framework.
-
-```python
-from rakam_systems_agent import BaseAgent
-
-agent = BaseAgent(
-    name="agent",
-    model="openai:gpt-4o",
-    system_prompt="You are a helpful assistant."
-)
-```
 
 ## Troubleshooting
 
