@@ -180,6 +180,69 @@ asyncio.run(main())
 ```
 
 
+## Add chat history
+
+Enable multi-turn conversations by persisting message history between calls. The `message_history` parameter is available on `arun()`, `ainfer()`, and `astream()`.
+
+**Install the extra:**
+
+```bash
+pip install rakam-systems-agent[all]
+```
+
+**JSONChatHistory** stores history in a local file — the simplest option for development and single-instance deployments:
+
+```python
+import asyncio
+from dotenv import load_dotenv
+load_dotenv()
+
+from rakam_systems_agent import BaseAgent
+from rakam_systems_agent.components.chat_history import JSONChatHistory
+
+async def main():
+    agent = BaseAgent(
+        name="chat_assistant",
+        model="openai:gpt-4o",
+        system_prompt="You are a helpful assistant."
+    )
+
+    history = JSONChatHistory(config={"storage_path": "./chat_history.json"})
+    chat_id = "user-123"
+
+    # Turn 1
+    messages = history.get_message_history(chat_id)
+    result = await agent.arun("My name is Alice.", message_history=messages)
+    history.save_messages(chat_id, result.metadata["messages"])
+    print(result.output_text)
+
+    # Turn 2 — agent remembers previous context
+    messages = history.get_message_history(chat_id)
+    result = await agent.arun("What is my name?", message_history=messages)
+    history.save_messages(chat_id, result.metadata["messages"])
+    print(result.output_text)  # "Your name is Alice."
+
+asyncio.run(main())
+```
+
+The pattern is always: **get → run → save**.
+
+1. `history.get_message_history(chat_id)` — load prior messages (returns `None` for new sessions, which is fine)
+2. `agent.arun(..., message_history=messages)` — run with history
+3. `history.save_messages(chat_id, result.metadata["messages"])` — persist the full exchange
+
+**Variants:** For multi-instance or production deployments, swap `JSONChatHistory` for `SQLChatHistory` (SQLite) or `PostgresChatHistory` (PostgreSQL) — the `get_message_history` / `save_messages` API is identical across all three.
+
+```python
+from rakam_systems_agent.components.chat_history import SQLChatHistory, PostgresChatHistory
+
+# SQLite
+history = SQLChatHistory(config={"db_path": "./chat.db"})
+
+# PostgreSQL
+history = PostgresChatHistory(config={"connection_string": "postgresql://user:pass@host/db"})
+```
+
 ## Configure an agent with YAML
 
 Create agents from config files — no code changes needed to switch models or prompts:
