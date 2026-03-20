@@ -6,9 +6,6 @@ from rakam_systems_core.interfaces.agent import AgentInput, AgentOutput, ModelSe
 
 pytestmark = pytest.mark.asyncio  # Marks all async tests in this module
 
-# ----------------------------
-# Fixtures
-# ----------------------------
 
 
 @pytest.fixture
@@ -27,9 +24,6 @@ def agent_instance(mock_pydantic_agent):
     """Return BaseAgent instance with mocks."""
     return BaseAgent(name="test_agent")
 
-# ----------------------------
-# Tests
-# ----------------------------
 
 
 def test_init(agent_instance):
@@ -72,9 +66,6 @@ def test_normalize_input(agent_instance):
     ai2 = agent_instance._normalize_input(input_obj)
     assert ai2 is input_obj
 
-# ----------------------------
-# Async tests
-# ----------------------------
 
 
 async def test_arun_calls_ainfer(agent_instance, mock_pydantic_agent):
@@ -113,3 +104,72 @@ def test_run_raises_not_implemented(agent_instance):
     """Synchronous run should raise NotImplementedError."""
     with pytest.raises(NotImplementedError):
         agent_instance.run("x")
+
+
+
+
+async def test_ainfer_forwards_message_history(agent_instance, mock_pydantic_agent):
+    """ainfer passes message_history kwarg through to pydantic_agent.run."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
+
+    fake_history = [MagicMock()]
+    await agent_instance.ainfer(AgentInput("hi"), message_history=fake_history)
+
+    _, kwargs = mock_pydantic_agent.run.call_args
+    assert kwargs["message_history"] is fake_history
+
+
+async def test_arun_forwards_message_history(agent_instance, mock_pydantic_agent):
+    """arun forwards message_history through to pydantic_agent.run."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
+
+    fake_history = [MagicMock()]
+    await agent_instance.arun("hi", message_history=fake_history)
+
+    _, kwargs = mock_pydantic_agent.run.call_args
+    assert kwargs["message_history"] is fake_history
+
+
+async def test_arun_defaults_message_history_none(agent_instance, mock_pydantic_agent):
+    """arun passes message_history=None to pydantic_agent.run when not provided."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
+
+    await agent_instance.arun("hi")
+
+    _, kwargs = mock_pydantic_agent.run.call_args
+    assert kwargs["message_history"] is None
+
+
+async def test_astream_forwards_message_history(agent_instance, mock_pydantic_agent):
+    """astream passes message_history to pydantic_agent.run_stream."""
+    mock_stream_result = MagicMock()
+
+    async def empty_chunks():
+        return
+        yield  # make it an async generator
+
+    mock_stream_result.stream = empty_chunks
+
+    mock_ctx = MagicMock()
+    mock_ctx.__aenter__ = AsyncMock(return_value=mock_stream_result)
+    mock_ctx.__aexit__ = AsyncMock(return_value=False)
+    mock_pydantic_agent.run_stream = MagicMock(return_value=mock_ctx)
+
+    fake_history = [MagicMock()]
+    async for _ in agent_instance.astream("hi", message_history=fake_history):
+        pass
+
+    _, kwargs = mock_pydantic_agent.run_stream.call_args
+    assert kwargs["message_history"] is fake_history

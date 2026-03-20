@@ -5,6 +5,29 @@ import pytest
 from rakam_systems_agent.components.chat_history.json_chat_history import JSONChatHistory
 from rakam_systems_agent.components.chat_history.sql_chat_history import SQLChatHistory
 
+try:
+    from pydantic_ai.messages import (
+        ModelRequest,
+        ModelResponse,
+        UserPromptPart,
+        TextPart,
+    )
+    PYDANTIC_AI_AVAILABLE = True
+except ImportError:
+    PYDANTIC_AI_AVAILABLE = False
+
+pydantic_ai_required = pytest.mark.skipif(
+    not PYDANTIC_AI_AVAILABLE, reason="pydantic-ai not installed"
+)
+
+
+def make_pydantic_messages():
+    """Return a minimal user+assistant pydantic-ai message pair."""
+    return [
+        ModelRequest(parts=[UserPromptPart(content="Hello")]),
+        ModelResponse(parts=[TextPart(content="Hi there!")]),
+    ]
+
 
 def make_msg(role="user", content="Hello"):
     return {"role": role, "content": content}
@@ -237,3 +260,86 @@ def test_sql_config_db_path(tmp_path):
     db_path = str(tmp_path / "config_test.db")
     h = SQLChatHistory(config={"db_path": db_path})
     assert h.db_path == db_path
+
+
+
+@pydantic_ai_required
+def test_json_get_message_history_empty_returns_none(json_history):
+    """get_message_history returns None when no history exists for the chat."""
+    assert json_history.get_message_history("no-such-chat") is None
+
+
+@pydantic_ai_required
+def test_json_save_and_get_message_history_roundtrip(json_history):
+    """save_messages + get_message_history preserves message count and types."""
+    messages = make_pydantic_messages()
+    json_history.save_messages("chat1", messages)
+
+    result = json_history.get_message_history("chat1")
+
+    assert result is not None
+    assert len(result) == 2
+    assert isinstance(result[0], ModelRequest)
+    assert isinstance(result[1], ModelResponse)
+
+
+@pydantic_ai_required
+def test_json_save_messages_overwrites_previous(json_history):
+    """save_messages replaces any prior history for the same chat_id."""
+    json_history.save_messages("chat1", make_pydantic_messages())
+    json_history.save_messages("chat1", make_pydantic_messages()[:1])
+
+    result = json_history.get_message_history("chat1")
+    assert len(result) == 1
+
+
+@pydantic_ai_required
+def test_json_message_history_content_preserved(json_history):
+    """Roundtrip preserves user prompt content."""
+    messages = make_pydantic_messages()
+    json_history.save_messages("chat1", messages)
+
+    result = json_history.get_message_history("chat1")
+    assert result[0].parts[0].content == "Hello"
+    assert result[1].parts[0].content == "Hi there!"
+
+
+@pydantic_ai_required
+def test_sql_get_message_history_empty_returns_none(sql_history):
+    """get_message_history returns None when no history exists for the chat."""
+    assert sql_history.get_message_history("no-such-chat") is None
+
+
+@pydantic_ai_required
+def test_sql_save_and_get_message_history_roundtrip(sql_history):
+    """save_messages + get_message_history preserves message count and types."""
+    messages = make_pydantic_messages()
+    sql_history.save_messages("chat1", messages)
+
+    result = sql_history.get_message_history("chat1")
+
+    assert result is not None
+    assert len(result) == 2
+    assert isinstance(result[0], ModelRequest)
+    assert isinstance(result[1], ModelResponse)
+
+
+@pydantic_ai_required
+def test_sql_save_messages_overwrites_previous(sql_history):
+    """save_messages replaces any prior history for the same chat_id."""
+    sql_history.save_messages("chat1", make_pydantic_messages())
+    sql_history.save_messages("chat1", make_pydantic_messages()[:1])
+
+    result = sql_history.get_message_history("chat1")
+    assert len(result) == 1
+
+
+@pydantic_ai_required
+def test_sql_message_history_content_preserved(sql_history):
+    """Roundtrip preserves user prompt content."""
+    messages = make_pydantic_messages()
+    sql_history.save_messages("chat1", messages)
+
+    result = sql_history.get_message_history("chat1")
+    assert result[0].parts[0].content == "Hello"
+    assert result[1].parts[0].content == "Hi there!"
