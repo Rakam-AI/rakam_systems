@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-core"
-version = "0.1.1rc10"
+version = "0.1.2"
 description = "A Package containing core logic and schema for rakam-systems"
 readme = "README.md"
 authors = [
@@ -8,7 +8,7 @@ authors = [
     {name = "Peng Zheng", email = "pengzheng990630@outlook.com"},
     {name = "somebodyawesome-dev", email = "luckynoob2011830@gmail.com"}
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dependencies = [
     "pydantic",

@@ -4,10 +4,10 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-tools"
-version = "0.1.0rc4"
+version = "0.1.1"
 description = "Evaluation Framework Tools"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
     { name = "Mohamed Bachar Touil" }
