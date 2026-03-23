@@ -1,11 +1,9 @@
 # cli.py
-import io
 import json
 import os
 import sys
 import uuid
 from datetime import datetime
-from gettext import gettext as _
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -16,7 +14,6 @@ from rakam_systems_tools.evaluation.schema import TestCaseComparison
 from rich.console import Console
 from rich.panel import Panel
 from rich.pretty import Pretty
-from typer.rich_utils import *
 
 from rakam_systems_cli.decorators import eval_run
 from rakam_systems_cli.utils.decorator_utils import (

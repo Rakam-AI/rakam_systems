@@ -3,10 +3,12 @@ from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, List, Optional
 
-import typer
 from click import Context
+from click.formatting import HelpFormatter
 from rakam_systems_tools.evaluation.schema import MetricDiff
-from typer import secho
+from rich.panel import Panel
+from rich.text import Text
+from typer import rich_utils, secho, echo, style, Exit
 from typer.core import TyperGroup
 
 
@@ -17,25 +19,25 @@ def _print_and_save(
     overwrite: bool,
 ) -> None:
     if pretty:
-        typer.echo(typer.style("📊 Result:", bold=True))
+        echo(style("📊 Result:", bold=True))
         pprint(resp)
     else:
-        typer.echo(resp)
+        echo(resp)
 
     if out is None:
         return
 
     if out.exists() and not overwrite:
-        typer.echo(
+        echo(
             f"❌ File already exists: {out} (use --overwrite to replace)")
-        raise typer.Exit(code=1)
+        raise Exit(code=1)
 
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with out.open("w", encoding="utf-8") as f:
         json.dump(resp, f, indent=2, ensure_ascii=False)
 
-    typer.echo(f"💾 Result saved to {out}")
+    echo(f"💾 Result saved to {out}")
 
 
 def pct_change(a: Optional[float], b: Optional[float]) -> Optional[str]:
@@ -273,18 +275,11 @@ def git_diff(
 
 class OrderedHelpGroup(TyperGroup):
     def format_help(self, ctx: Context, formatter) -> None:
-        from click.core import Group
-        from click.formatting import HelpFormatter
-        from rich.console import Console
-        from typer import rich_utils
 
         console = rich_utils._get_rich_console()
         term_width = console.width
 
         usage = ctx.command.get_usage(ctx)
-
-        from rich.panel import Panel
-        from rich.text import Text
 
         sections = []
 
@@ -311,14 +306,21 @@ class OrderedHelpGroup(TyperGroup):
             ))
 
         opt_formatter = HelpFormatter(width=term_width, max_width=term_width)
-        Group.format_options(self, ctx, opt_formatter)
+        TyperGroup.format_options(self, ctx, opt_formatter)
         options_output = opt_formatter.getvalue().strip()
 
         if options_output:
             lines = []
+            inside_option = False
             for line in options_output.replace("Options:", "").strip().split("\n"):
                 stripped = line.strip()
-                if stripped and (stripped.startswith("--") or stripped.startswith("-")):
+                if not stripped:
+                    inside_option = False
+                    continue
+                if stripped.startswith("--") or stripped.startswith("-"):
+                    inside_option = True
+                    lines.append(stripped)
+                elif inside_option:
                     lines.append(stripped)
             options_output = "\n".join(lines)
             if options_output:
