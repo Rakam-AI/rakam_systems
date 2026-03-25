@@ -1,4 +1,5 @@
 import pytest
+
 from unittest.mock import MagicMock
 
 from rakam_systems_core.interfaces.tool_registry import ToolRegistry, ToolMetadata, ToolMode

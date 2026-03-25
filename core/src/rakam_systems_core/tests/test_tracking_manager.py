@@ -1,5 +1,4 @@
 import json
-import tempfile
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
@@ -97,8 +96,8 @@ def patch_schemas(monkeypatch):
 
 
 
-def test_start_and_end_session():
-    tm = TrackingManager(output_dir=tempfile.mkdtemp())
+def test_start_and_end_session(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
 
     session_id = tm.start_session("agent")
 
@@ -109,8 +108,8 @@ def test_start_and_end_session():
     assert tm.sessions[session_id].ended is True
 
 
-def test_record_call_and_session_link():
-    tm = TrackingManager(output_dir=tempfile.mkdtemp())
+def test_record_call_and_session_link(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
     session_id = tm.start_session("agent")
 
     inp = MockMethodInput()
@@ -122,17 +121,16 @@ def test_record_call_and_session_link():
     assert record in tm.sessions[session_id].calls
 
 
-def test_get_session():
-    tm = TrackingManager(output_dir=tempfile.mkdtemp())
+def test_get_session(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
     session_id = tm.start_session("agent")
 
     session = tm.get_session()
     assert session.session_id == session_id
 
 
-def test_export_to_csv():
-    tmpdir = tempfile.mkdtemp()
-    tm = TrackingManager(output_dir=tmpdir)
+def test_export_to_csv(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
 
     inp = MockMethodInput(kwargs={"model_settings": {"model": "gpt"}})
     out = MockMethodOutput()
@@ -147,9 +145,8 @@ def test_export_to_csv():
     assert "run" in content
 
 
-def test_export_to_json_all_records():
-    tmpdir = tempfile.mkdtemp()
-    tm = TrackingManager(output_dir=tmpdir)
+def test_export_to_json_all_records(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
 
     inp = MockMethodInput()
     out = MockMethodOutput()
@@ -162,8 +159,8 @@ def test_export_to_json_all_records():
     assert data["total_records"] == 1
 
 
-def test_get_statistics():
-    tm = TrackingManager(output_dir=tempfile.mkdtemp())
+def test_get_statistics(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
 
     inp = MockMethodInput()
     out1 = MockMethodOutput(success=True, duration_seconds=1.0)
@@ -183,8 +180,8 @@ def test_get_statistics():
     assert stats["max_duration_seconds"] == 2.0
 
 
-def test_get_statistics_empty():
-    tm = TrackingManager(output_dir=tempfile.mkdtemp())
+def test_get_statistics_empty(tmp_path):
+    tm = TrackingManager(output_dir=tmp_path)
 
     stats = tm.get_statistics()
     assert stats["total_calls"] == 0

@@ -4,7 +4,6 @@ from unittest.mock import AsyncMock, MagicMock
 from rakam_systems_agent.components.base_agent import BaseAgent
 from rakam_systems_core.interfaces.agent import AgentInput, AgentOutput, ModelSettings
 
-pytestmark = pytest.mark.asyncio  # Marks all async tests in this module
 
 
 
@@ -68,6 +67,7 @@ def test_normalize_input(agent_instance):
 
 
 
+@pytest.mark.asyncio
 async def test_arun_calls_ainfer(agent_instance, mock_pydantic_agent):
     """arun normalizes input and calls ainfer."""
     input_text = "test input"
@@ -77,6 +77,7 @@ async def test_arun_calls_ainfer(agent_instance, mock_pydantic_agent):
     assert output.output_text == "ok"
 
 
+@pytest.mark.asyncio
 async def test_ainfer_returns_agent_output(agent_instance, mock_pydantic_agent):
     """ainfer converts PydanticAgent output to AgentOutput."""
     # Correctly return a MagicMock when awaited
@@ -108,6 +109,7 @@ def test_run_raises_not_implemented(agent_instance):
 
 
 
+@pytest.mark.asyncio
 async def test_ainfer_forwards_message_history(agent_instance, mock_pydantic_agent):
     """ainfer passes message_history kwarg through to pydantic_agent.run."""
     mock_result = MagicMock()
@@ -123,6 +125,7 @@ async def test_ainfer_forwards_message_history(agent_instance, mock_pydantic_age
     assert kwargs["message_history"] is fake_history
 
 
+@pytest.mark.asyncio
 async def test_arun_forwards_message_history(agent_instance, mock_pydantic_agent):
     """arun forwards message_history through to pydantic_agent.run."""
     mock_result = MagicMock()
@@ -138,6 +141,7 @@ async def test_arun_forwards_message_history(agent_instance, mock_pydantic_agent
     assert kwargs["message_history"] is fake_history
 
 
+@pytest.mark.asyncio
 async def test_arun_defaults_message_history_none(agent_instance, mock_pydantic_agent):
     """arun passes message_history=None to pydantic_agent.run when not provided."""
     mock_result = MagicMock()
@@ -152,6 +156,7 @@ async def test_arun_defaults_message_history_none(agent_instance, mock_pydantic_
     assert kwargs["message_history"] is None
 
 
+@pytest.mark.asyncio
 async def test_astream_forwards_message_history(agent_instance, mock_pydantic_agent):
     """astream passes message_history to pydantic_agent.run_stream."""
     mock_stream_result = MagicMock()

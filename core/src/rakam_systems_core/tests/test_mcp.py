@@ -1,6 +1,7 @@
 import asyncio
 
 import pytest
+
 from rakam_systems_core.base import BaseComponent
 from rakam_systems_core.mcp.mcp_server import MCPServer
 
