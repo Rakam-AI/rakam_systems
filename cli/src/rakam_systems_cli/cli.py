@@ -335,7 +335,6 @@ def run(
     files = directory.rglob("*.py") if recursive else directory.glob("*.py")
     TARGET_DECORATOR = eval_run.__name__
 
-    executed_any = False
 
     if save_runs and not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
