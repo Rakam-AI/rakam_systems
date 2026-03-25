@@ -230,6 +230,10 @@ Usage: rakam eval metrics list [OPTIONS] [DIRECTORY]
 
 </details>
 
+## Documentation
+
+For the full user guide, see the [official documentation](https://rakam-ai.github.io/rakam-systems-docs/).
+
 ## License
 
 See main project LICENSE file.
