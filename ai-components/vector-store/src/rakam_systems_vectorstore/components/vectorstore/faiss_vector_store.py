@@ -362,8 +362,6 @@ class FaissStore(VectorStore):
         :return: Embedding vectors for the sentences.
         """
         logger.info(f"Generating embeddings for {len(sentences)} sentences.")
-        print(f"Generating embeddings for {len(sentences)} sentences.")
-        print("Generating embeddings...")
         start = time.time()
 
         if self.use_embedding_api:
