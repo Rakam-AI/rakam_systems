@@ -3,10 +3,13 @@ from pathlib import Path
 from pprint import pprint
 from typing import Any, Dict, List, Optional
 
-import typer
-from typer import secho
-
+from click import Context
+from click.formatting import HelpFormatter
 from rakam_systems_tools.evaluation.schema import MetricDiff
+from rich.panel import Panel
+from rich.text import Text
+from typer import rich_utils, secho, echo, style, Exit
+from typer.core import TyperGroup
 
 
 def _print_and_save(
@@ -16,25 +19,25 @@ def _print_and_save(
     overwrite: bool,
 ) -> None:
     if pretty:
-        typer.echo(typer.style("📊 Result:", bold=True))
+        echo(style("📊 Result:", bold=True))
         pprint(resp)
     else:
-        typer.echo(resp)
+        echo(resp)
 
     if out is None:
         return
 
     if out.exists() and not overwrite:
-        typer.echo(
+        echo(
             f"❌ File already exists: {out} (use --overwrite to replace)")
-        raise typer.Exit(code=1)
+        raise Exit(code=1)
 
     out.parent.mkdir(parents=True, exist_ok=True)
 
     with out.open("w", encoding="utf-8") as f:
         json.dump(resp, f, indent=2, ensure_ascii=False)
 
-    typer.echo(f"💾 Result saved to {out}")
+    echo(f"💾 Result saved to {out}")
 
 
 def pct_change(a: Optional[float], b: Optional[float]) -> Optional[str]:
@@ -268,3 +271,65 @@ def git_diff(
         )
         for line in diff:
             typer.echo(line)
+
+
+class OrderedHelpGroup(TyperGroup):
+    def format_help(self, ctx: Context, formatter) -> None:
+
+        console = rich_utils._get_rich_console()
+        term_width = console.width
+
+        usage = ctx.command.get_usage(ctx)
+
+        sections = []
+
+        sections.append(Panel(
+            Text(usage, style="bold"),
+            title="Usage",
+            border_style="cyan",
+            width=term_width,
+        ))
+
+        cmd_formatter = HelpFormatter(width=term_width, max_width=term_width)
+        self.format_commands(ctx, cmd_formatter)
+        commands_output = cmd_formatter.getvalue().strip()
+
+        if commands_output:
+            lines = [l.strip() for l in commands_output.replace(
+                "Commands:", "").strip().split("\n") if l.strip()]
+            commands_output = "\n".join(lines)
+            sections.append(Panel(
+                Text(commands_output),
+                title="Commands",
+                border_style="green",
+                width=term_width,
+            ))
+
+        opt_formatter = HelpFormatter(width=term_width, max_width=term_width)
+        TyperGroup.format_options(self, ctx, opt_formatter)
+        options_output = opt_formatter.getvalue().strip()
+
+        if options_output:
+            lines = []
+            inside_option = False
+            for line in options_output.replace("Options:", "").strip().split("\n"):
+                stripped = line.strip()
+                if not stripped:
+                    inside_option = False
+                    continue
+                if stripped.startswith("--") or stripped.startswith("-"):
+                    inside_option = True
+                    lines.append(stripped)
+                elif inside_option:
+                    lines.append(stripped)
+            options_output = "\n".join(lines)
+            if options_output:
+                sections.append(Panel(
+                    Text(options_output),
+                    title="Options",
+                    border_style="yellow",
+                    width=term_width,
+                ))
+
+        for section in sections:
+            console.print(section)

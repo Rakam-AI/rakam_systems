@@ -116,6 +116,10 @@ from rakam_systems_vectorstore import ConfigurablePgVectorStore
 store = ConfigurablePgVectorStore(config=config)
 ```
 
+## Documentation
+
+For full API reference and architecture details, see the [official documentation](https://rakam-ai.github.io/rakam-systems-docs/).
+
 ## Development
 
 This package contains only interfaces and utilities. To contribute:

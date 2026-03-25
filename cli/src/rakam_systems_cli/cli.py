@@ -20,43 +20,29 @@ from rakam_systems_cli.utils.decorator_utils import (
     find_decorated_functions,
     load_module_from_path,
 )
+from rakam_systems_cli.utils.metric import extract_metric_names
 from rakam_systems_cli.utils.print import (
+    OrderedHelpGroup,
     _print_and_save,
     git_diff,
     pretty_print_comparison,
     serialize_for_diff,
 )
 
-load_dotenv()
-app = typer.Typer(help="Rakam CLI tools")
 console = Console()
+
+
+load_dotenv()
+app = typer.Typer(help="Rakam CLI tools", cls=OrderedHelpGroup)
+
 
 # add root of the project to sys.path
 PROJECT_ROOT = os.path.abspath(".")
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
-list_app = typer.Typer(help="List evaluations or runs")
-metrics_app = typer.Typer(help="Metrics utilities")
-eval_app = typer.Typer(help="Evaluation utilities")
-
-
-
-def extract_metric_names(config: Any) -> List[Tuple[str, Optional[str]]]:
-    """
-    Returns [(type, name)] from EvalConfig / SchemaEvalConfig
-    """
-    if not hasattr(config, "metrics"):
-        return []
-
-    results: List[Tuple[str, Optional[str]]] = []
-
-    for metric in config.metrics or []:
-        metric_type = getattr(metric, "type", None)
-        metric_name = getattr(metric, "name", None)
-        if metric_type:
-            results.append((metric_type, metric_name))
-
-    return results
+list_app = typer.Typer(help="List evaluations or runs", cls=OrderedHelpGroup)
+metrics_app = typer.Typer(help="Metrics utilities", cls=OrderedHelpGroup)
+eval_app = typer.Typer(help="Evaluation utilities", cls=OrderedHelpGroup)
 
 
 @metrics_app.command("list")
