@@ -91,9 +91,9 @@ def test_json_correctness_requires_schema():
 
 
 def test_json_correctness_with_schema():
-    m = JsonCorrectnessConfig(excpected_schema={"name": "string"})
+    m = JsonCorrectnessConfig(expected_schema={"name": "string"})
     assert m.type == "json_correctness"
-    assert m.excpected_schema == {"name": "string"}
+    assert m.expected_schema == {"name": "string"}
 
 
 def test_fields_presence_requires_schema():
@@ -102,7 +102,7 @@ def test_fields_presence_requires_schema():
 
 
 def test_fields_presence_with_schema():
-    m = FieldsPresenceConfig(excpected_schema={"field1": "string"})
+    m = FieldsPresenceConfig(expected_schema={"field1": "string"})
     assert m.type == "fields_presence"
     assert m.strict_mode is True
 
@@ -169,7 +169,7 @@ def test_schema_eval_config():
     cfg = SchemaEvalConfig(
         component="extractor",
         data=[SchemaInputItem(input="doc", output='{"key": "value"}')],
-        metrics=[FieldsPresenceConfig(excpected_schema={"key": "string"})],
+        metrics=[FieldsPresenceConfig(expected_schema={"key": "string"})],
     )
     assert cfg.component == "extractor"
     assert len(cfg.metrics) == 1

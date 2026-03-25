@@ -65,12 +65,12 @@ class JsonCorrectnessConfig(MetricConfigBase):
     threshold: float = 0.5
     model: str = "gpt-4.1"
     include_reason: bool = True
-    excpected_schema: Dict[str, Any]
+    expected_schema: Dict[str, Any]
 
 
 class FieldsPresenceConfig(MetricConfigBase):
     type: Literal["fields_presence"] = "fields_presence"
-    excpected_schema: Dict[str, Any]
+    expected_schema: Dict[str, Any]
     threshold: float = 0.5
     include_reason: bool = True
     strict_mode: bool = True

@@ -80,13 +80,11 @@ def test_json_output():
         ],
         metrics=[
             JsonCorrectnessConfig(
-                excpected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}
+                expected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}
             )
         ],
     )
 ```
-
-> **Note:** The parameter name `excpected_schema` is misspelled in the SDK. Use it as shown above — this is a known upstream issue.
 
 Available schema metrics: `JsonCorrectnessConfig`, `FieldsPresenceConfig`.
 
