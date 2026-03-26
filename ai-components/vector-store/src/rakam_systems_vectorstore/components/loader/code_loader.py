@@ -184,6 +184,17 @@ class CodeLoader(Loader):
             tokenizer=self._tokenizer
         )
 
+        # Update self.config with fully resolved values (including defaults)
+        self.config.update({
+            'chunk_size': self._chunk_size,
+            'chunk_overlap': self._chunk_overlap,
+            'min_sentences_per_chunk': self._min_sentences_per_chunk,
+            'tokenizer': self._tokenizer,
+            'preserve_structure': self._preserve_structure,
+            'include_comments': self._include_comments,
+            'encoding': self._encoding,
+        })
+
         logger.info(
             f"Initialized CodeLoader with chunk_size={self._chunk_size}, chunk_overlap={self._chunk_overlap}")
 
@@ -232,7 +243,7 @@ class CodeLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is a code file
-        if not self._is_code_file(source):
+        if not self.is_code_file(source):
             raise ValueError(
                 f"File is not a supported code file: {source}. Extension: {Path(source).suffix}")
 
@@ -284,7 +295,7 @@ class CodeLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is a code file
-        if not self._is_code_file(source):
+        if not self.is_code_file(source):
             raise ValueError(
                 f"File is not a supported code file: {source}. Extension: {Path(source).suffix}")
 
@@ -297,7 +308,7 @@ class CodeLoader(Loader):
                 content = f.read()
 
             # Detect language
-            language = self._detect_language(source)
+            language = self.detect_language(source)
 
             # Process code with structure-aware chunking
             if self._preserve_structure:
@@ -345,7 +356,7 @@ class CodeLoader(Loader):
             source_id = source
 
         # Detect language for metadata
-        language = self._detect_language(source)
+        language = self.detect_language(source)
 
         # Create nodes with metadata
         nodes = []
@@ -391,7 +402,7 @@ class CodeLoader(Loader):
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if not self._is_code_file(file_path):
+        if not self.is_code_file(file_path):
             raise ValueError(f"File is not a supported code file: {file_path}")
 
         # Create VSFile
@@ -407,7 +418,7 @@ class CodeLoader(Loader):
             f"Created VSFile with {len(nodes)} nodes from: {file_path}")
         return vsfile
 
-    def _is_code_file(self, file_path: str) -> bool:
+    def is_code_file(self, file_path: str) -> bool:
         """
         Check if file is a supported code file based on extension.
 
@@ -420,7 +431,7 @@ class CodeLoader(Loader):
         path = Path(file_path)
         return path.suffix.lower() in self.SUPPORTED_EXTENSIONS
 
-    def _detect_language(self, file_path: str) -> str:
+    def detect_language(self, file_path: str) -> str:
         """
         Detect programming language based on file extension.
 

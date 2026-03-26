@@ -28,8 +28,7 @@ def agent_instance(mock_pydantic_agent):
 def test_init(agent_instance):
     """BaseAgent initializes properly with defaults."""
     assert agent_instance.name == "test_agent"
-    assert agent_instance._pydantic_agent is not None
-    assert isinstance(agent_instance._dynamic_system_prompts, list)
+    assert agent_instance.dynamic_system_prompts == []
 
 
 def test_dynamic_system_prompt_decorator(agent_instance):
@@ -42,7 +41,7 @@ def test_dynamic_system_prompt_decorator(agent_instance):
         return "hello"
 
     # Decorator should register function
-    assert sample_prompt in agent_instance._dynamic_system_prompts
+    assert sample_prompt in agent_instance.dynamic_system_prompts
 
 
 def test_dynamic_system_prompt_method(agent_instance):
@@ -52,18 +51,38 @@ def test_dynamic_system_prompt_method(agent_instance):
 
     returned = agent_instance.add_dynamic_system_prompt(sample_func)
     assert returned == sample_func
-    assert sample_func in agent_instance._dynamic_system_prompts
+    assert sample_func in agent_instance.dynamic_system_prompts
 
 
-def test_normalize_input(agent_instance):
-    """_normalize_input returns AgentInput for string or passes AgentInput through."""
-    ai = agent_instance._normalize_input("hello")
-    assert isinstance(ai, AgentInput)
-    assert ai.input_text == "hello"
+@pytest.mark.asyncio
+async def test_arun_accepts_string_input(agent_instance, mock_pydantic_agent):
+    """arun normalizes a plain string and passes the text to the underlying agent."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
+
+    result = await agent_instance.arun("hello")
+    assert isinstance(result, AgentOutput)
+    args, _ = mock_pydantic_agent.run.call_args
+    assert args[0] == "hello"
+
+
+@pytest.mark.asyncio
+async def test_arun_accepts_agent_input(agent_instance, mock_pydantic_agent):
+    """arun accepts an AgentInput object and passes its text to the underlying agent."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
 
     input_obj = AgentInput("world")
-    ai2 = agent_instance._normalize_input(input_obj)
-    assert ai2 is input_obj
+    result = await agent_instance.arun(input_obj)
+    assert isinstance(result, AgentOutput)
+    args, _ = mock_pydantic_agent.run.call_args
+    assert args[0] == "world"
 
 
 

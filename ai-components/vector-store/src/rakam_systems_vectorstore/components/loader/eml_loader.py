@@ -88,6 +88,14 @@ class EmlLoader(Loader):
             tokenizer=self._tokenizer
         )
 
+        # Update self.config with fully resolved values (including defaults)
+        self.config.update({
+            'chunk_size': self._chunk_size,
+            'chunk_overlap': self._chunk_overlap,
+            'include_headers': self._include_headers,
+            'extract_html': self._extract_html,
+        })
+
         logger.info(
             f"Initialized EmlLoader with chunk_size={self._chunk_size}, chunk_overlap={self._chunk_overlap}")
 
@@ -136,7 +144,7 @@ class EmlLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is an EML
-        if not self._is_eml_file(source):
+        if not self.is_eml_file(source):
             raise ValueError(
                 f"File is not an EML: {source}. Extension: {Path(source).suffix}")
 
@@ -187,7 +195,7 @@ class EmlLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is an EML
-        if not self._is_eml_file(source):
+        if not self.is_eml_file(source):
             raise ValueError(
                 f"File is not an EML: {source}. Extension: {Path(source).suffix}")
 
@@ -277,7 +285,7 @@ class EmlLoader(Loader):
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if not self._is_eml_file(file_path):
+        if not self.is_eml_file(file_path):
             raise ValueError(f"File is not an EML: {file_path}")
 
         # Create VSFile
@@ -293,7 +301,7 @@ class EmlLoader(Loader):
             f"Created VSFile with {len(nodes)} nodes from: {file_path}")
         return vsfile
 
-    def _is_eml_file(self, file_path: str) -> bool:
+    def is_eml_file(self, file_path: str) -> bool:
         """
         Check if file is an EML based on extension.
 

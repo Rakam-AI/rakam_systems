@@ -92,6 +92,16 @@ class TabularLoader(Loader):
         self._encoding = config.get('encoding', 'utf-8')
         self._has_header = config.get('has_header', True)
 
+        # Update self.config with fully resolved values (including defaults)
+        self.config.update({
+            'sheet_name': self._sheet_name,
+            'skip_empty_rows': self._skip_empty_rows,
+            'empty_value_text': self._empty_value_text,
+            'delimiter': self._delimiter,
+            'encoding': self._encoding,
+            'has_header': self._has_header,
+        })
+
         logger.info(
             f"Initialized TabularLoader with sheet_name={self._sheet_name}, skip_empty_rows={self._skip_empty_rows}")
 
@@ -140,7 +150,7 @@ class TabularLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file type
-        if not self._is_supported_file(source):
+        if not self.is_supported_file(source):
             raise ValueError(
                 f"File is not a supported tabular format: {source}")
 
@@ -194,7 +204,7 @@ class TabularLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file type
-        if not self._is_supported_file(source):
+        if not self.is_supported_file(source):
             raise ValueError(
                 f"File is not a supported tabular format: {source}")
 
@@ -214,7 +224,7 @@ class TabularLoader(Loader):
             logger.error(f"Error processing tabular file {source}: {e}")
             raise
 
-    def _get_file_type(self, source: str) -> str:
+    def get_file_type(self, source: str) -> str:
         """
         Determine the file type based on extension.
 
@@ -243,7 +253,7 @@ class TabularLoader(Loader):
         Returns:
             List of formatted row strings
         """
-        file_type = self._get_file_type(source)
+        file_type = self.get_file_type(source)
 
         if file_type == 'xlsx':
             return self._extract_rows_xlsx(source)
@@ -365,7 +375,7 @@ class TabularLoader(Loader):
                 continue
 
             # Format row
-            row_string = self._format_row(headers, row)
+            row_string = self.format_row(headers, row)
             row_strings.append(row_string)
 
         return row_strings
@@ -437,7 +447,7 @@ class TabularLoader(Loader):
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if not self._is_supported_file(file_path):
+        if not self.is_supported_file(file_path):
             raise ValueError(
                 f"File is not a supported tabular format: {file_path}")
 
@@ -454,7 +464,7 @@ class TabularLoader(Loader):
             f"Created VSFile with {len(nodes)} nodes from: {file_path}")
         return vsfile
 
-    def _is_supported_file(self, file_path: str) -> bool:
+    def is_supported_file(self, file_path: str) -> bool:
         """
         Check if file is a supported tabular format based on extension.
 
@@ -480,7 +490,7 @@ class TabularLoader(Loader):
         path = Path(file_path)
         return path.suffix.lower() in XLSX_EXTENSIONS
 
-    def _format_row(self, headers: List[str], row: tuple) -> str:
+    def format_row(self, headers: List[str], row: tuple) -> str:
         """
         Format a row with each field on its own line, separated by blank lines.
 

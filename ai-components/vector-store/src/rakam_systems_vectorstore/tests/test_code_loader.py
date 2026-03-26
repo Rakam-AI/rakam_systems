@@ -83,13 +83,13 @@ def loader() -> CodeLoader:
 class TestCodeLoaderInit:
     def test_defaults(self):
         loader = CodeLoader()
-        assert loader._chunk_size == 2000
-        assert loader._chunk_overlap == 200
-        assert loader._min_sentences_per_chunk == 3
-        assert loader._tokenizer == "character"
-        assert loader._preserve_structure is True
-        assert loader._include_comments is True
-        assert loader._encoding == "utf-8"
+        assert loader.config['chunk_size'] == 2000
+        assert loader.config['chunk_overlap'] == 200
+        assert loader.config['min_sentences_per_chunk'] == 3
+        assert loader.config['tokenizer'] == "character"
+        assert loader.config['preserve_structure'] is True
+        assert loader.config['include_comments'] is True
+        assert loader.config['encoding'] == "utf-8"
 
     def test_custom_config(self):
         loader = CodeLoader(
@@ -101,10 +101,10 @@ class TestCodeLoaderInit:
                 "encoding": "latin-1",
             }
         )
-        assert loader._chunk_size == 500
-        assert loader._preserve_structure is False
-        assert loader._include_comments is False
-        assert loader._encoding == "latin-1"
+        assert loader.config['chunk_size'] == 500
+        assert loader.config['preserve_structure'] is False
+        assert loader.config['include_comments'] is False
+        assert loader.config['encoding'] == "latin-1"
 
     def test_custom_name(self):
         loader = CodeLoader(name="my_code_loader")
@@ -118,47 +118,47 @@ class TestCodeLoaderInit:
 
 class TestIsCodeFile:
     def test_python(self, loader):
-        assert loader._is_code_file("script.py") is True
+        assert loader.is_code_file("script.py") is True
 
     def test_javascript(self, loader):
-        assert loader._is_code_file("app.js") is True
+        assert loader.is_code_file("app.js") is True
 
     def test_typescript(self, loader):
-        assert loader._is_code_file("app.ts") is True
+        assert loader.is_code_file("app.ts") is True
 
     def test_go(self, loader):
-        assert loader._is_code_file("main.go") is True
+        assert loader.is_code_file("main.go") is True
 
     def test_rust(self, loader):
-        assert loader._is_code_file("lib.rs") is True
+        assert loader.is_code_file("lib.rs") is True
 
     def test_java(self, loader):
-        assert loader._is_code_file("Main.java") is True
+        assert loader.is_code_file("Main.java") is True
 
     def test_yaml(self, loader):
-        assert loader._is_code_file("config.yaml") is True
-        assert loader._is_code_file("config.yml") is True
+        assert loader.is_code_file("config.yaml") is True
+        assert loader.is_code_file("config.yml") is True
 
     def test_json(self, loader):
-        assert loader._is_code_file("data.json") is True
+        assert loader.is_code_file("data.json") is True
 
     def test_sql(self, loader):
-        assert loader._is_code_file("query.sql") is True
+        assert loader.is_code_file("query.sql") is True
 
     def test_unsupported_pdf(self, loader):
-        assert loader._is_code_file("document.pdf") is False
+        assert loader.is_code_file("document.pdf") is False
 
     def test_unsupported_xlsx(self, loader):
-        assert loader._is_code_file("data.xlsx") is False
+        assert loader.is_code_file("data.xlsx") is False
 
     def test_unsupported_docx(self, loader):
-        assert loader._is_code_file("doc.docx") is False
+        assert loader.is_code_file("doc.docx") is False
 
     def test_case_insensitive_py(self, loader):
-        assert loader._is_code_file("script.PY") is True
+        assert loader.is_code_file("script.PY") is True
 
     def test_case_insensitive_js(self, loader):
-        assert loader._is_code_file("app.JS") is True
+        assert loader.is_code_file("app.JS") is True
 
 
 # ---------------------------------------------------------------------------
@@ -168,47 +168,47 @@ class TestIsCodeFile:
 
 class TestDetectLanguage:
     def test_python(self, loader):
-        assert loader._detect_language("script.py") == "python"
+        assert loader.detect_language("script.py") == "python"
 
     def test_javascript(self, loader):
-        assert loader._detect_language("app.js") == "javascript"
+        assert loader.detect_language("app.js") == "javascript"
 
     def test_typescript(self, loader):
-        assert loader._detect_language("app.ts") == "typescript"
+        assert loader.detect_language("app.ts") == "typescript"
 
     def test_tsx(self, loader):
-        assert loader._detect_language("comp.tsx") == "typescript"
+        assert loader.detect_language("comp.tsx") == "typescript"
 
     def test_jsx(self, loader):
-        assert loader._detect_language("comp.jsx") == "javascript"
+        assert loader.detect_language("comp.jsx") == "javascript"
 
     def test_go(self, loader):
-        assert loader._detect_language("main.go") == "go"
+        assert loader.detect_language("main.go") == "go"
 
     def test_rust(self, loader):
-        assert loader._detect_language("lib.rs") == "rust"
+        assert loader.detect_language("lib.rs") == "rust"
 
     def test_java(self, loader):
-        assert loader._detect_language("Main.java") == "java"
+        assert loader.detect_language("Main.java") == "java"
 
     def test_cpp(self, loader):
-        assert loader._detect_language("app.cpp") == "cpp"
-        assert loader._detect_language("app.cc") == "cpp"
+        assert loader.detect_language("app.cpp") == "cpp"
+        assert loader.detect_language("app.cc") == "cpp"
 
     def test_c(self, loader):
-        assert loader._detect_language("app.c") == "c"
+        assert loader.detect_language("app.c") == "c"
 
     def test_ruby(self, loader):
-        assert loader._detect_language("app.rb") == "ruby"
+        assert loader.detect_language("app.rb") == "ruby"
 
     def test_shell(self, loader):
-        assert loader._detect_language("script.sh") == "shell"
+        assert loader.detect_language("script.sh") == "shell"
 
     def test_unknown_extension(self, loader):
-        assert loader._detect_language("file.xyz") == "unknown"
+        assert loader.detect_language("file.xyz") == "unknown"
 
     def test_case_insensitive(self, loader):
-        assert loader._detect_language("script.PY") == "python"
+        assert loader.detect_language("script.PY") == "python"
 
 
 # ---------------------------------------------------------------------------
@@ -547,8 +547,8 @@ class TestCreateCodeLoader:
     def test_factory_defaults(self):
         loader = create_code_loader()
         assert isinstance(loader, CodeLoader)
-        assert loader._chunk_size == 2000
-        assert loader._preserve_structure is True
+        assert loader.config['chunk_size'] == 2000
+        assert loader.config['preserve_structure'] is True
 
     def test_factory_custom(self):
         loader = create_code_loader(
@@ -558,8 +558,8 @@ class TestCreateCodeLoader:
             include_comments=False,
             encoding="latin-1",
         )
-        assert loader._chunk_size == 500
-        assert loader._chunk_overlap == 50
-        assert loader._preserve_structure is False
-        assert loader._include_comments is False
-        assert loader._encoding == "latin-1"
+        assert loader.config['chunk_size'] == 500
+        assert loader.config['chunk_overlap'] == 50
+        assert loader.config['preserve_structure'] is False
+        assert loader.config['include_comments'] is False
+        assert loader.config['encoding'] == "latin-1"
