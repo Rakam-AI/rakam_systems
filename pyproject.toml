@@ -26,7 +26,7 @@ classifiers = [
 
 dependencies = [
     
-    "rakam-systems-tools==0.1.1",
+    "rakam-systems-tools>=0.2.0",
     "rakam-systems-agent[all]==0.1.2",
     "rakam-systems-vectorstore[all]==0.1.2",
     "rakam-systems-cli==0.2.5"
