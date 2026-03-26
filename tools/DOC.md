@@ -142,7 +142,7 @@ data = [
 
 metrics = [
     JsonCorrectnessConfig(
-        excpected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}
+        expected_schema={"type": "object", "properties": {"name": {"type": "string"}, "age": {"type": "number"}}}
     )
 ]
 

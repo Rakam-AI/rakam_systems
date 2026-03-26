@@ -335,7 +335,6 @@ def run(
     files = directory.rglob("*.py") if recursive else directory.glob("*.py")
     TARGET_DECORATOR = eval_run.__name__
 
-    executed_any = False
 
     if save_runs and not dry_run:
         output_dir.mkdir(parents=True, exist_ok=True)
@@ -368,7 +367,6 @@ def run(
                     typer.echo(f"    🧪 Dry-run OK → {eval_type}")
                     continue
 
-                # 🔥 Real execution (only if NOT dry-run)
                 client = DeepEvalClient()
 
                 if eval_type == "text_eval":
@@ -377,7 +375,6 @@ def run(
                     resp = client.schema_eval(config=result)
 
                 typer.echo(f"{resp}")
-                executed_any = True
                 typer.echo(f"    ✅ Returned {type(result).__name__}")
 
                 if save_runs:
@@ -676,7 +673,6 @@ def tag_command(
     Assign a tag to a run or delete a tag.
     """
 
-    # --- validation ---
     if delete:
         if run_id or tag:
             typer.echo("❌ --delete cannot be used with --id or --tag")
