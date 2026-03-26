@@ -854,7 +854,7 @@ class FaissStore(VectorStore):
         store = self.collections[collection_name]
         if len(store["nodes"]) == 0:
             logger.warning(
-                f"Cannot sve FAISS index for store {collection_name} because nodes are empty."
+                f"Cannot save FAISS index for store {collection_name} because nodes are empty."
             )
             return
         # Save category index mapping to file
