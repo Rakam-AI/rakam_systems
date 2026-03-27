@@ -255,7 +255,7 @@ class TestLoadAsChunks:
     def test_with_mocked_structure_chunker(self, loader, py_file: Path):
         # Mock at the structure-chunking level since small files don't hit the text chunker
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk1", "chunk2"]
+            loader, "chunk_code_with_structure", return_value=["chunk1", "chunk2"]
         ):
             chunks = loader.load_as_chunks(str(py_file))
         assert chunks == ["chunk1", "chunk2"]
@@ -272,7 +272,7 @@ class TestLoadAsChunks:
 
     def test_path_object_input(self, loader, py_file: Path):
         fake_chunks = make_chunk_result(["c"])
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(py_file)
         assert isinstance(chunks, list)
 
@@ -280,7 +280,7 @@ class TestLoadAsChunks:
         loader = CodeLoader(config={"preserve_structure": False})
         # When preserve_structure=False, _chunk_text is called which calls chunker
         fake_chunks = make_chunk_result(["text_chunk"])
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(str(py_file))
         # The result is extracted text strings (not chunk dicts)
         assert isinstance(chunks, list)
@@ -301,7 +301,7 @@ class TestLoadAsChunks:
 class TestLoadAsNodes:
     def test_node_count(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk_a", "chunk_b"]
+            loader, "chunk_code_with_structure", return_value=["chunk_a", "chunk_b"]
         ):
             nodes = loader.load_as_nodes(str(py_file))
         assert len(nodes) == 2
@@ -309,7 +309,7 @@ class TestLoadAsNodes:
 
     def test_node_positions(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["a", "b", "c"]
+            loader, "chunk_code_with_structure", return_value=["a", "b", "c"]
         ):
             nodes = loader.load_as_nodes(str(py_file))
         assert nodes[0].metadata.position == 0
@@ -318,7 +318,7 @@ class TestLoadAsNodes:
 
     def test_node_has_language_metadata(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk"]
+            loader, "chunk_code_with_structure", return_value=["chunk"]
         ):
             nodes = loader.load_as_nodes(str(py_file))
         assert nodes[0].metadata.custom["language"] == "python"
@@ -326,7 +326,7 @@ class TestLoadAsNodes:
 
     def test_custom_metadata_included(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk"]
+            loader, "chunk_code_with_structure", return_value=["chunk"]
         ):
             nodes = loader.load_as_nodes(
                 str(py_file), custom_metadata={"project": "myapp"}
@@ -335,21 +335,21 @@ class TestLoadAsNodes:
 
     def test_default_source_id(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk"]
+            loader, "chunk_code_with_structure", return_value=["chunk"]
         ):
             nodes = loader.load_as_nodes(str(py_file))
         assert nodes[0].metadata.source_file_uuid == str(py_file)
 
     def test_custom_source_id(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk"]
+            loader, "chunk_code_with_structure", return_value=["chunk"]
         ):
             nodes = loader.load_as_nodes(str(py_file), source_id="my_id")
         assert nodes[0].metadata.source_file_uuid == "my_id"
 
     def test_javascript_node_language(self, loader, js_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["chunk"]
+            loader, "chunk_code_with_structure", return_value=["chunk"]
         ):
             nodes = loader.load_as_nodes(str(js_file))
         assert nodes[0].metadata.custom["language"] == "javascript"
@@ -364,7 +364,7 @@ class TestLoadAsNodes:
 class TestLoadAsVsfile:
     def test_basic_vsfile(self, loader, py_file: Path):
         fake_chunks = make_chunk_result(["chunk1"])
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             vsfile = loader.load_as_vsfile(str(py_file))
         assert isinstance(vsfile, VSFile)
         assert vsfile.processed is True
@@ -372,7 +372,7 @@ class TestLoadAsVsfile:
 
     def test_vsfile_multiple_nodes(self, loader, py_file: Path):
         with patch.object(
-            loader, "_chunk_code_with_structure", return_value=["c1", "c2", "c3"]
+            loader, "chunk_code_with_structure", return_value=["c1", "c2", "c3"]
         ):
             vsfile = loader.load_as_vsfile(str(py_file))
         assert len(vsfile.nodes) == 3
@@ -396,22 +396,22 @@ class TestLoadAsVsfile:
 class TestSplitByBlankLines:
     def test_splits_on_blank_lines(self, loader):
         content = "block1 line1\nblock1 line2\n\nblock2 line1\n\nblock3"
-        blocks = loader._split_by_blank_lines(content)
+        blocks = loader.split_by_blank_lines(content)
         assert len(blocks) == 3
 
     def test_strips_blocks(self, loader):
         content = "  block1  \n\n  block2  "
-        blocks = loader._split_by_blank_lines(content)
+        blocks = loader.split_by_blank_lines(content)
         assert blocks[0] == "block1"
         assert blocks[1] == "block2"
 
     def test_empty_content(self, loader):
-        blocks = loader._split_by_blank_lines("")
+        blocks = loader.split_by_blank_lines("")
         assert blocks == []
 
     def test_single_block(self, loader):
         content = "only one block\nwith multiple lines"
-        blocks = loader._split_by_blank_lines(content)
+        blocks = loader.split_by_blank_lines(content)
         assert len(blocks) == 1
 
 
@@ -431,7 +431,7 @@ class TestSplitByStructure:
             "def bar():\n"
             "    pass\n"
         )
-        blocks = loader._split_by_structure(content, "python")
+        blocks = loader.split_by_structure(content, "python")
         # Should have at least the 2 function blocks
         assert len(blocks) >= 2
 
@@ -443,12 +443,12 @@ class TestSplitByStructure:
             "class Bar:\n"
             "    pass\n"
         )
-        blocks = loader._split_by_structure(content, "python")
+        blocks = loader.split_by_structure(content, "python")
         assert len(blocks) >= 2
 
     def test_unknown_language_falls_back_to_blank_lines(self, loader):
         content = "block1\n\nblock2"
-        blocks = loader._split_by_structure(content, "unknown_lang_xyz")
+        blocks = loader.split_by_structure(content, "unknown_lang_xyz")
         assert len(blocks) == 2
 
     def test_go_splits_on_func(self, loader):
@@ -461,7 +461,7 @@ class TestSplitByStructure:
             "func helper() {\n"
             "}\n"
         )
-        blocks = loader._split_by_structure(content, "go")
+        blocks = loader.split_by_structure(content, "go")
         assert len(blocks) >= 2
 
 
@@ -471,17 +471,17 @@ class TestSplitByStructure:
 
 
 def test_python_patterns_not_empty(loader):
-    patterns = loader._get_structure_patterns("python")
+    patterns = loader.get_structure_patterns("python")
     assert len(patterns) > 0
 
 
 def test_javascript_patterns_not_empty(loader):
-    patterns = loader._get_structure_patterns("javascript")
+    patterns = loader.get_structure_patterns("javascript")
     assert len(patterns) > 0
 
 
 def test_unknown_language_returns_empty(loader):
-    patterns = loader._get_structure_patterns("cobol")
+    patterns = loader.get_structure_patterns("cobol")
     assert patterns == []
 
 
@@ -492,22 +492,22 @@ def test_unknown_language_returns_empty(loader):
 
 class TestChunkCodeWithStructure:
     def test_empty_content_returns_empty_list(self, loader):
-        chunks = loader._chunk_code_with_structure("", "python")
+        chunks = loader.chunk_code_with_structure("", "python")
         assert chunks == []
 
     def test_whitespace_only_returns_empty(self, loader):
-        chunks = loader._chunk_code_with_structure("   \n  ", "python")
+        chunks = loader.chunk_code_with_structure("   \n  ", "python")
         assert chunks == []
 
     def test_returns_list(self, loader, py_file: Path):
         content = py_file.read_text()
-        chunks = loader._chunk_code_with_structure(content, "python")
+        chunks = loader.chunk_code_with_structure(content, "python")
         assert isinstance(chunks, list)
         assert len(chunks) >= 1
 
     def test_content_preserved_in_chunks(self, loader):
         content = "def hello():\n    return 'world'\n"
-        chunks = loader._chunk_code_with_structure(content, "python")
+        chunks = loader.chunk_code_with_structure(content, "python")
         combined = "\n\n".join(chunks)
         assert "hello" in combined
 
@@ -519,21 +519,21 @@ class TestChunkCodeWithStructure:
 
 def test_chunk_text_with_mocked_chunker(loader):
     fake_chunks = make_chunk_result(["part1", "part2"])
-    with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
-        result = loader._chunk_text("some text", "python")
+    with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
+        result = loader.chunk_text("some text", "python")
     assert result == ["part1", "part2"]
 
 
 def test_chunk_text_empty_returns_empty(loader):
-    result = loader._chunk_text("", "python")
+    result = loader.chunk_text("", "python")
     assert result == []
 
 
 def test_chunk_text_falls_back_on_exception(loader):
     with patch.object(
-        loader._chunker, "chunk_text", side_effect=RuntimeError("chunker error")
+        loader.chunker, "chunk_text", side_effect=RuntimeError("chunker error")
     ):
-        result = loader._chunk_text("some text", "python")
+        result = loader.chunk_text("some text", "python")
     # Falls back to returning whole text as single chunk
     assert result == ["some text"]
 

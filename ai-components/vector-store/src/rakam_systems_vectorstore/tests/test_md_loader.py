@@ -180,7 +180,7 @@ def test_frontmatter_to_text_empty(loader):
 
 
 def test_chunk_by_headers_empty(loader):
-    result = loader._chunk_by_headers("")
+    result = loader.chunk_by_headers("")
     assert result == []
 
 
@@ -192,7 +192,7 @@ def test_chunk_by_headers_with_headers(loader, tmp_path):
         l = MdLoader()
 
     content = "# Header One\n\nFirst section content.\n\n## Header Two\n\nSecond section content."
-    chunks = l._chunk_by_headers(content)
+    chunks = l.chunk_by_headers(content)
     assert len(chunks) >= 1
 
 

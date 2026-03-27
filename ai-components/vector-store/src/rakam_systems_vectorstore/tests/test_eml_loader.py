@@ -173,7 +173,7 @@ class TestLoadAsChunks:
         p = make_plain_text_eml(tmp_path, body="Short body")
         loader = EmlLoader()
         fake_chunks = [{"text": "chunk1", "token_count": 5, "start_index": 0, "end_index": 5}]
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(str(p))
         assert isinstance(chunks, list)
         assert chunks == ["chunk1"]
@@ -194,7 +194,7 @@ class TestLoadAsChunks:
         p = make_plain_text_eml(tmp_path)
         loader = EmlLoader()
         fake_chunks = [{"text": "c", "token_count": 1, "start_index": 0, "end_index": 1}]
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(p)
         assert isinstance(chunks, list)
 
