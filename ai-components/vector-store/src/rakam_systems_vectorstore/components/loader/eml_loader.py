@@ -207,7 +207,7 @@ class EmlLoader(Loader):
             full_text = self._extract_text_from_eml(source)
 
             # Chunk the text using TextChunker
-            text_chunks = self._chunk_text(full_text)
+            text_chunks = self.chunk_text(full_text)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -488,7 +488,7 @@ class EmlLoader(Loader):
             logger.warning(f"Failed to convert HTML to text: {e}")
             return html
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using TextChunker.
 

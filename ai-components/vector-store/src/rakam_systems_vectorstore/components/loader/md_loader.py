@@ -240,7 +240,7 @@ class MdLoader(Loader):
             if self._split_by_headers:
                 text_chunks = self.chunk_by_headers(content)
             else:
-                text_chunks = self._chunk_text(content)
+                text_chunks = self.chunk_text(content)
 
             # Optionally prepend frontmatter to first chunk
             if self._include_frontmatter_in_chunks and frontmatter and text_chunks:
@@ -520,18 +520,18 @@ class MdLoader(Loader):
         final_chunks = []
         for chunk in chunks:
             if len(chunk) > self._chunk_size * 4:  # Rough character estimate
-                sub_chunks = self._chunk_text(chunk)
+                sub_chunks = self.chunk_text(chunk)
                 final_chunks.extend(sub_chunks)
             else:
                 final_chunks.append(chunk)
 
         # If no chunks created, use standard chunking
         if not final_chunks:
-            return self._chunk_text(content)
+            return self.chunk_text(content)
 
         return final_chunks
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using AdvancedChunker's chunk_text method.
 

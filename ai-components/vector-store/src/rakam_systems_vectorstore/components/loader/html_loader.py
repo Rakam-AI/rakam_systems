@@ -218,7 +218,7 @@ class HtmlLoader(Loader):
             full_text = self._extract_text_from_html(html_content)
 
             # Chunk the text using TextChunker
-            text_chunks = self._chunk_text(full_text)
+            text_chunks = self.chunk_text(full_text)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -544,7 +544,7 @@ class HtmlLoader(Loader):
             logger.warning(f"Failed to extract HTML metadata: {e}")
             return {}
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using TextChunker.
 
