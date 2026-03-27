@@ -177,7 +177,7 @@ class CodeLoader(Loader):
         self._encoding = config.get('encoding', 'utf-8')
 
         # Initialize text chunker
-        self._chunker = TextChunker(
+        self.chunker = TextChunker(
             chunk_size=self._chunk_size,
             chunk_overlap=self._chunk_overlap,
             min_sentences_per_chunk=self._min_sentences_per_chunk,
@@ -312,10 +312,10 @@ class CodeLoader(Loader):
 
             # Process code with structure-aware chunking
             if self._preserve_structure:
-                text_chunks = self._chunk_code_with_structure(
+                text_chunks = self.chunk_code_with_structure(
                     content, language)
             else:
-                text_chunks = self._chunk_text(content, language)
+                text_chunks = self.chunk_text(content, language)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -445,7 +445,7 @@ class CodeLoader(Loader):
         suffix = path.suffix.lower()
         return self.EXTENSION_TO_LANGUAGE.get(suffix, 'unknown')
 
-    def _chunk_code_with_structure(self, content: str, language: str) -> List[str]:
+    def chunk_code_with_structure(self, content: str, language: str) -> List[str]:
         """
         Chunk code while preserving structural boundaries.
 
@@ -463,7 +463,7 @@ class CodeLoader(Loader):
             return []
 
         # Split by structural elements based on language
-        blocks = self._split_by_structure(content, language)
+        blocks = self.split_by_structure(content, language)
 
         # Chunk each block, combining small ones
         chunks = []
@@ -482,7 +482,7 @@ class CodeLoader(Loader):
                     current_size = 0
 
                 # Chunk the large block
-                sub_chunks = self._chunk_text(block, language)
+                sub_chunks = self.chunk_text(block, language)
                 chunks.extend(sub_chunks)
 
             # If adding this block would exceed limit, save current and start new
@@ -503,7 +503,7 @@ class CodeLoader(Loader):
 
         return chunks if chunks else [content]
 
-    def _split_by_structure(self, content: str, language: str) -> List[str]:
+    def split_by_structure(self, content: str, language: str) -> List[str]:
         """
         Split code by structural elements (functions, classes, etc).
 
@@ -515,11 +515,11 @@ class CodeLoader(Loader):
             List of code blocks
         """
         # Language-specific patterns for structural elements
-        patterns = self._get_structure_patterns(language)
+        patterns = self.get_structure_patterns(language)
 
         if not patterns:
             # Fall back to line-based splitting
-            return self._split_by_blank_lines(content)
+            return self.split_by_blank_lines(content)
 
         # Find all structural boundaries
         blocks = []
@@ -543,7 +543,7 @@ class CodeLoader(Loader):
 
         return blocks
 
-    def _get_structure_patterns(self, language: str) -> List[str]:
+    def get_structure_patterns(self, language: str) -> List[str]:
         """
         Get regex patterns for structural elements in a language.
 
@@ -615,7 +615,7 @@ class CodeLoader(Loader):
 
         return patterns.get(language, [])
 
-    def _split_by_blank_lines(self, content: str) -> List[str]:
+    def split_by_blank_lines(self, content: str) -> List[str]:
         """
         Split content by blank lines as fallback.
 
@@ -629,7 +629,7 @@ class CodeLoader(Loader):
         blocks = re.split(r'\n\s*\n', content)
         return [block.strip() for block in blocks if block.strip()]
 
-    def _chunk_text(self, text: str, language: str) -> List[str]:
+    def chunk_text(self, text: str, language: str) -> List[str]:
         """
         Chunk text using TextChunker.
 
@@ -645,7 +645,7 @@ class CodeLoader(Loader):
 
         try:
             # Use TextChunker's chunk_text method
-            chunk_dicts = self._chunker.chunk_text(
+            chunk_dicts = self.chunker.chunk_text(
                 text, context=f"code_{language}")
 
             # Extract just the text from the chunk dictionaries

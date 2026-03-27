@@ -93,7 +93,7 @@ class MdLoader(Loader):
         # Initialize advanced chunker
         embed_model_id = config.get(
             'embed_model_id', self.DEFAULT_EMBED_MODEL_ID)
-        self._chunker = AdvancedChunker(
+        self.chunker = AdvancedChunker(
             embed_model_id=embed_model_id,
             strategy="default"
         )
@@ -238,7 +238,7 @@ class MdLoader(Loader):
 
             # Chunk the content
             if self._split_by_headers:
-                text_chunks = self._chunk_by_headers(content)
+                text_chunks = self.chunk_by_headers(content)
             else:
                 text_chunks = self._chunk_text(content)
 
@@ -458,7 +458,7 @@ class MdLoader(Loader):
 
         return headers
 
-    def _chunk_by_headers(self, content: str) -> List[str]:
+    def chunk_by_headers(self, content: str) -> List[str]:
         """
         Split content by headers while preserving code blocks.
 
@@ -546,7 +546,7 @@ class MdLoader(Loader):
 
         try:
             # Use AdvancedChunker's chunk_text method for plain text
-            chunk_dicts = self._chunker.chunk_text(
+            chunk_dicts = self.chunker.chunk_text(
                 text=text,
                 chunk_size=self._chunk_size,
                 chunk_overlap=self._chunk_overlap,

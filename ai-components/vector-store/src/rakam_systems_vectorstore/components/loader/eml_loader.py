@@ -81,7 +81,7 @@ class EmlLoader(Loader):
         self._extract_html = config.get('extract_html', True)
 
         # Initialize text chunker
-        self._chunker = TextChunker(
+        self.chunker = TextChunker(
             chunk_size=self._chunk_size,
             chunk_overlap=self._chunk_overlap,
             min_sentences_per_chunk=self._min_sentences_per_chunk,
@@ -503,7 +503,7 @@ class EmlLoader(Loader):
 
         try:
             # Use TextChunker's chunk_text method
-            chunk_dicts = self._chunker.chunk_text(text, context="eml")
+            chunk_dicts = self.chunker.chunk_text(text, context="eml")
 
             # Extract just the text from the chunk dictionaries
             text_chunks = [chunk_dict['text'] for chunk_dict in chunk_dicts]
