@@ -21,13 +21,25 @@ def mock_pydantic_agent(monkeypatch):
 @pytest.fixture
 def agent_instance(mock_pydantic_agent):
     """Return BaseAgent instance with mocks."""
-    return BaseAgent(name="test_agent")
+    return BaseAgent(name="test_agent", model="test_model")
+
+
+@pytest.fixture
+def mock_agent_run(mock_pydantic_agent):
+    """Configure mock_pydantic_agent.run with a standard ok result and return the mock."""
+    mock_result = MagicMock()
+    mock_result.output = "ok"
+    mock_result.usage.return_value = {}
+    mock_result.all_messages.return_value = []
+    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
+    return mock_pydantic_agent
 
 
 
 def test_init(agent_instance):
     """BaseAgent initializes properly with defaults."""
     assert agent_instance.name == "test_agent"
+    assert agent_instance.model == "test_model"
     assert agent_instance.dynamic_system_prompts == []
 
 
@@ -55,33 +67,21 @@ def test_dynamic_system_prompt_method(agent_instance):
 
 
 @pytest.mark.asyncio
-async def test_arun_accepts_string_input(agent_instance, mock_pydantic_agent):
+async def test_arun_accepts_string_input(agent_instance, mock_agent_run):
     """arun normalizes a plain string and passes the text to the underlying agent."""
-    mock_result = MagicMock()
-    mock_result.output = "ok"
-    mock_result.usage.return_value = {}
-    mock_result.all_messages.return_value = []
-    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
-
     result = await agent_instance.arun("hello")
     assert isinstance(result, AgentOutput)
-    args, _ = mock_pydantic_agent.run.call_args
+    args, _ = mock_agent_run.run.call_args
     assert args[0] == "hello"
 
 
 @pytest.mark.asyncio
-async def test_arun_accepts_agent_input(agent_instance, mock_pydantic_agent):
+async def test_arun_accepts_agent_input(agent_instance, mock_agent_run):
     """arun accepts an AgentInput object and passes its text to the underlying agent."""
-    mock_result = MagicMock()
-    mock_result.output = "ok"
-    mock_result.usage.return_value = {}
-    mock_result.all_messages.return_value = []
-    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
-
     input_obj = AgentInput("world")
     result = await agent_instance.arun(input_obj)
     assert isinstance(result, AgentOutput)
-    args, _ = mock_pydantic_agent.run.call_args
+    args, _ = mock_agent_run.run.call_args
     assert args[0] == "world"
 
 
@@ -129,49 +129,31 @@ def test_run_raises_not_implemented(agent_instance):
 
 
 @pytest.mark.asyncio
-async def test_ainfer_forwards_message_history(agent_instance, mock_pydantic_agent):
+async def test_ainfer_forwards_message_history(agent_instance, mock_agent_run):
     """ainfer passes message_history kwarg through to pydantic_agent.run."""
-    mock_result = MagicMock()
-    mock_result.output = "ok"
-    mock_result.usage.return_value = {}
-    mock_result.all_messages.return_value = []
-    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
-
     fake_history = [MagicMock()]
     await agent_instance.ainfer(AgentInput("hi"), message_history=fake_history)
 
-    _, kwargs = mock_pydantic_agent.run.call_args
+    _, kwargs = mock_agent_run.run.call_args
     assert kwargs["message_history"] is fake_history
 
 
 @pytest.mark.asyncio
-async def test_arun_forwards_message_history(agent_instance, mock_pydantic_agent):
+async def test_arun_forwards_message_history(agent_instance, mock_agent_run):
     """arun forwards message_history through to pydantic_agent.run."""
-    mock_result = MagicMock()
-    mock_result.output = "ok"
-    mock_result.usage.return_value = {}
-    mock_result.all_messages.return_value = []
-    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
-
     fake_history = [MagicMock()]
     await agent_instance.arun("hi", message_history=fake_history)
 
-    _, kwargs = mock_pydantic_agent.run.call_args
+    _, kwargs = mock_agent_run.run.call_args
     assert kwargs["message_history"] is fake_history
 
 
 @pytest.mark.asyncio
-async def test_arun_defaults_message_history_none(agent_instance, mock_pydantic_agent):
+async def test_arun_defaults_message_history_none(agent_instance, mock_agent_run):
     """arun passes message_history=None to pydantic_agent.run when not provided."""
-    mock_result = MagicMock()
-    mock_result.output = "ok"
-    mock_result.usage.return_value = {}
-    mock_result.all_messages.return_value = []
-    mock_pydantic_agent.run = AsyncMock(return_value=mock_result)
-
     await agent_instance.arun("hi")
 
-    _, kwargs = mock_pydantic_agent.run.call_args
+    _, kwargs = mock_agent_run.run.call_args
     assert kwargs["message_history"] is None
 
 
