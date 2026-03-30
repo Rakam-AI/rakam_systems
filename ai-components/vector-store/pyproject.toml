@@ -107,3 +107,8 @@ include = ["rakam_systems_vectorstore*", "rakam_systems_core*"]
 [tool.setuptools.package-data]
 "rakam_systems_vectorstore" = ["**/*.yaml", "**/*.yml", "**/*.json", "**/*.md"]
 
+[[tool.uv.index]]
+name = "testpypi"
+url = "https://test.pypi.org/simple/"
+publish-url = "https://test.pypi.org/legacy/"
+explicit = true
