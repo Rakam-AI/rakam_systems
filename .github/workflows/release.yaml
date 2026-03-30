@@ -155,34 +155,16 @@ jobs:
                   git diff --cached --quiet && echo "No version changes to commit." && exit 0
                   git commit -m "chore: bump versions [${{ github.event.inputs.version_increment }}]"
 
-            - name: Tag — rakam-systems-core
-              if: ${{ github.event.inputs.release_core == 'true' }}
-              run: git tag "core-v${{ steps.core_version.outputs.VERSION }}"
-
-            - name: Tag — rakam-systems-tools
-              if: ${{ github.event.inputs.release_tools == 'true' }}
-              run: git tag "tools-v${{ steps.tools_version.outputs.VERSION }}"
-
-            - name: Tag — rakam-systems-agent
-              if: ${{ github.event.inputs.release_agent == 'true' }}
-              run: git tag "agent-v${{ steps.agent_version.outputs.VERSION }}"
-
-            - name: Tag — rakam-systems-vectorstore
-              if: ${{ github.event.inputs.release_vectorstore == 'true' }}
-              run: git tag "vectorstore-v${{ steps.vectorstore_version.outputs.VERSION }}"
-
-            - name: Tag — rakam-systems-cli
-              if: ${{ github.event.inputs.release_cli == 'true' }}
-              run: git tag "cli-v${{ steps.cli_version.outputs.VERSION }}"
-
-            - name: Tag — rakam-systems
-              if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
-              run: git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
 
             - name: Push commit and tags
               run: |
                   git push
+            - name: Tag — rakam-systems
+              if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
+              run: |
+                  git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
                   git push --tags
+
 
             # ── Build & Publish ────────────────────────────────────────────────────────
 
