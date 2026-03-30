@@ -62,36 +62,41 @@ jobs:
                   git push
                   git push --tags
 
-            # Publish in dependency order: core → tools → agents/vectorstore → cli
+            # Publish in dependency order: core → tools → agents/vectorstore → cli → rakam-systems
             - name: Build and publish rakam-systems-core
               working-directory: core
               run: |
                   uv build
-                  uv publish --token ${{ secrets.PYPI_TOKEN }}
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
 
             - name: Build and publish rakam-systems-tools
               working-directory: tools
               run: |
                   uv build
-                  uv publish --token ${{ secrets.PYPI_TOKEN }}
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
 
             - name: Build and publish rakam-systems-agent
               working-directory: ai-components/agents
               run: |
                   uv build
-                  uv publish --token ${{ secrets.PYPI_TOKEN }}
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
 
             - name: Build and publish rakam-systems-vectorstore
               working-directory: ai-components/vector-store
               run: |
                   uv build
-                  uv publish --token ${{ secrets.PYPI_TOKEN }}
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
 
             - name: Build and publish rakam-systems-cli
               working-directory: cli
               run: |
                   uv build
-                  uv publish --token ${{ secrets.PYPI_TOKEN }}
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
 
             - name: Create GitHub Release
               uses: softprops/action-gh-release@v1
