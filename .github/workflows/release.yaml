@@ -1,0 +1,106 @@
+name: Release
+
+on:
+    workflow_dispatch:
+        inputs:
+            version_increment:
+                description: "Version increment type"
+                required: true
+                default: "patch"
+                type: choice
+                options:
+                    - patch
+                    - minor
+                    - major
+
+jobs:
+    release:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
+
+            - name: Set up Python
+              uses: actions/setup-python@v5
+              with:
+                  python-version: "3.10"
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: "3.10"
+
+            - name: Install bump2version
+              run: pip install bump2version
+
+            - name: Configure Git
+              run: |
+                  git config --local user.email "github-actions[bot]@users.noreply.github.com"
+                  git config --local user.name "github-actions[bot]"
+
+            - name: Bump root version
+              run: bump2version ${{ github.event.inputs.version_increment }}
+
+            - name: Get new version
+              id: get_version
+              run: |
+                  echo "VERSION=$(grep -oP '(?<=current_version = )[^\s]+' .bumpversion.cfg)" >> $GITHUB_OUTPUT
+
+            - name: Commit and tag
+              run: |
+                  VERSION="${{ steps.get_version.outputs.VERSION }}"
+                  git add pyproject.toml .bumpversion.cfg
+                  git commit -m "chore: bump version to v$VERSION"
+                  git tag "v$VERSION"
+
+            - name: Push changes
+              run: |
+                  git push
+                  git push --tags
+
+            # Publish in dependency order: core → tools → agents/vectorstore → cli → rakam-systems
+            - name: Build and publish rakam-systems-core
+              working-directory: core
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems-tools
+              working-directory: tools
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems-agent
+              working-directory: ai-components/agents
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems-vectorstore
+              working-directory: ai-components/vector-store
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems-cli
+              working-directory: cli
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Build and publish rakam-systems
+              run: |
+                  uv build
+                  uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+
+            - name: Create GitHub Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  tag_name: v${{ steps.get_version.outputs.VERSION }}
+                  name: Release v${{ steps.get_version.outputs.VERSION }}
+                  generate_release_notes: true
