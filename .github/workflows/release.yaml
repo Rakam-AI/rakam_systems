@@ -171,41 +171,41 @@ jobs:
         working-directory: core
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       - name: Build and publish rakam-systems-tools
         if: ${{ github.event.inputs.release_tools == 'true' }}
         working-directory: tools
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       - name: Build and publish rakam-systems-agent
         if: ${{ github.event.inputs.release_agent == 'true' }}
         working-directory: ai-components/agents
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       - name: Build and publish rakam-systems-vectorstore
         if: ${{ github.event.inputs.release_vectorstore == 'true' }}
         working-directory: ai-components/vector-store
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       - name: Build and publish rakam-systems-cli
         if: ${{ github.event.inputs.release_cli == 'true' }}
         working-directory: cli
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       - name: Build and publish rakam-systems
         if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
         run: |
           uv build
-          uv publish --index testpypi --token ${{ secrets.PYPI_TOKEN }}
+          uv publish  --token ${{ secrets.PYPI_TOKEN }}
 
       # ── GitHub Releases ────────────────────────────────────────────────────────
 
