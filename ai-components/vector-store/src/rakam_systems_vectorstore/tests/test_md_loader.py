@@ -36,16 +36,16 @@ def test_loader_init():
     with patch("rakam_systems_vectorstore.components.loader.md_loader.AdvancedChunker"):
         loader = MdLoader()
     assert loader.name == "md_loader"
-    assert loader._split_by_headers is True
-    assert loader._preserve_code_blocks is True
-    assert loader._extract_frontmatter is True
+    assert loader.config['split_by_headers'] is True
+    assert loader.config['preserve_code_blocks'] is True
+    assert loader.config['extract_frontmatter'] is True
 
 
 def test_create_md_loader_factory():
     with patch("rakam_systems_vectorstore.components.loader.md_loader.AdvancedChunker"):
         loader = create_md_loader(chunk_size=512, split_by_headers=False)
-    assert loader._chunk_size == 512
-    assert loader._split_by_headers is False
+    assert loader.config['chunk_size'] == 512
+    assert loader.config['split_by_headers'] is False
 
 
 def test_load_as_text(loader, md_file):
@@ -143,18 +143,18 @@ def test_run_delegates_to_load_as_chunks(loader, md_file):
 
 
 def test_is_md_file_extensions(loader):
-    assert loader._is_md_file("doc.md") is True
-    assert loader._is_md_file("doc.markdown") is True
-    assert loader._is_md_file("doc.mdown") is True
-    assert loader._is_md_file("doc.mkd") is True
-    assert loader._is_md_file("doc.mkdn") is True
-    assert loader._is_md_file("doc.txt") is False
-    assert loader._is_md_file("doc.pdf") is False
+    assert loader.is_md_file("doc.md") is True
+    assert loader.is_md_file("doc.markdown") is True
+    assert loader.is_md_file("doc.mdown") is True
+    assert loader.is_md_file("doc.mkd") is True
+    assert loader.is_md_file("doc.mkdn") is True
+    assert loader.is_md_file("doc.txt") is False
+    assert loader.is_md_file("doc.pdf") is False
 
 
 def test_extract_headers(loader):
     content = "# Header 1\n\nText\n\n## Header 2\n\nMore text\n\n### Sub\n"
-    headers = loader._extract_headers(content)
+    headers = loader.extract_headers(content)
     assert len(headers) == 3
     assert headers[0]["level"] == 1
     assert headers[0]["text"] == "Header 1"
@@ -163,24 +163,24 @@ def test_extract_headers(loader):
 
 
 def test_extract_headers_empty(loader):
-    headers = loader._extract_headers("No headers here.")
+    headers = loader.extract_headers("No headers here.")
     assert headers == []
 
 
 def test_frontmatter_to_text(loader):
     fm = {"title": "My Doc", "tags": ["a", "b"]}
-    text = loader._frontmatter_to_text(fm)
+    text = loader.frontmatter_to_text(fm)
     assert "title: My Doc" in text
     assert "tags: a, b" in text
 
 
 def test_frontmatter_to_text_empty(loader):
-    assert loader._frontmatter_to_text({}) == ""
-    assert loader._frontmatter_to_text(None) == ""
+    assert loader.frontmatter_to_text({}) == ""
+    assert loader.frontmatter_to_text(None) == ""
 
 
 def test_chunk_by_headers_empty(loader):
-    result = loader._chunk_by_headers("")
+    result = loader.chunk_by_headers("")
     assert result == []
 
 
@@ -192,7 +192,7 @@ def test_chunk_by_headers_with_headers(loader, tmp_path):
         l = MdLoader()
 
     content = "# Header One\n\nFirst section content.\n\n## Header Two\n\nSecond section content."
-    chunks = l._chunk_by_headers(content)
+    chunks = l.chunk_by_headers(content)
     assert len(chunks) >= 1
 
 

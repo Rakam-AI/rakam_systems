@@ -67,10 +67,10 @@ def make_multipart_eml(tmp_path: Path, body: str = "Plain body") -> Path:
 class TestEmlLoaderInit:
     def test_defaults(self):
         loader = EmlLoader()
-        assert loader._chunk_size == 3000
-        assert loader._chunk_overlap == 200
-        assert loader._include_headers is True
-        assert loader._extract_html is True
+        assert loader.config['chunk_size'] == 3000
+        assert loader.config['chunk_overlap'] == 200
+        assert loader.config['include_headers'] is True
+        assert loader.config['extract_html'] is True
 
     def test_custom_config(self):
         loader = EmlLoader(
@@ -81,10 +81,10 @@ class TestEmlLoaderInit:
                 "extract_html": False,
             }
         )
-        assert loader._chunk_size == 1000
-        assert loader._chunk_overlap == 50
-        assert loader._include_headers is False
-        assert loader._extract_html is False
+        assert loader.config['chunk_size'] == 1000
+        assert loader.config['chunk_overlap'] == 50
+        assert loader.config['include_headers'] is False
+        assert loader.config['extract_html'] is False
 
     def test_custom_name(self):
         loader = EmlLoader(name="my_eml_loader")
@@ -99,17 +99,17 @@ class TestEmlLoaderInit:
 class TestIsEmlFile:
     def test_eml_extension(self):
         loader = EmlLoader()
-        assert loader._is_eml_file("test.eml") is True
+        assert loader.is_eml_file("test.eml") is True
 
     def test_eml_uppercase(self):
         loader = EmlLoader()
-        assert loader._is_eml_file("test.EML") is True
+        assert loader.is_eml_file("test.EML") is True
 
     def test_non_eml_extensions(self):
         loader = EmlLoader()
-        assert loader._is_eml_file("test.txt") is False
-        assert loader._is_eml_file("test.msg") is False
-        assert loader._is_eml_file("test.pdf") is False
+        assert loader.is_eml_file("test.txt") is False
+        assert loader.is_eml_file("test.msg") is False
+        assert loader.is_eml_file("test.pdf") is False
 
 
 # ---------------------------------------------------------------------------
@@ -173,7 +173,7 @@ class TestLoadAsChunks:
         p = make_plain_text_eml(tmp_path, body="Short body")
         loader = EmlLoader()
         fake_chunks = [{"text": "chunk1", "token_count": 5, "start_index": 0, "end_index": 5}]
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(str(p))
         assert isinstance(chunks, list)
         assert chunks == ["chunk1"]
@@ -194,7 +194,7 @@ class TestLoadAsChunks:
         p = make_plain_text_eml(tmp_path)
         loader = EmlLoader()
         fake_chunks = [{"text": "c", "token_count": 1, "start_index": 0, "end_index": 1}]
-        with patch.object(loader._chunker, "chunk_text", return_value=fake_chunks):
+        with patch.object(loader.chunker, "chunk_text", return_value=fake_chunks):
             chunks = loader.load_as_chunks(p)
         assert isinstance(chunks, list)
 
@@ -337,8 +337,8 @@ class TestCreateEmlLoader:
     def test_factory_defaults(self):
         loader = create_eml_loader()
         assert isinstance(loader, EmlLoader)
-        assert loader._chunk_size == 3000
-        assert loader._include_headers is True
+        assert loader.config['chunk_size'] == 3000
+        assert loader.config['include_headers'] is True
 
     def test_factory_custom(self):
         loader = create_eml_loader(
@@ -346,6 +346,6 @@ class TestCreateEmlLoader:
             include_headers=False,
             extract_html=False,
         )
-        assert loader._chunk_size == 1000
-        assert loader._include_headers is False
-        assert loader._extract_html is False
+        assert loader.config['chunk_size'] == 1000
+        assert loader.config['include_headers'] is False
+        assert loader.config['extract_html'] is False

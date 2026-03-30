@@ -105,6 +105,11 @@ class BaseAgent(TrackingMixin, AgentComponent):
         # Store registered dynamic system prompt functions
         self._dynamic_system_prompts: List[DynamicSystemPromptFunc] = []
 
+    @property
+    def dynamic_system_prompts(self) -> List[DynamicSystemPromptFunc]:
+        """Return a read-only view of the registered dynamic system prompt functions."""
+        return list(self._dynamic_system_prompts)
+
     def dynamic_system_prompt(
         self,
         func: Optional[DynamicSystemPromptFunc] = None

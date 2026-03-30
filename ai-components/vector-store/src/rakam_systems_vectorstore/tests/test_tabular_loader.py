@@ -82,12 +82,12 @@ def single_row_csv(tmp_path: Path) -> Path:
 class TestTabularLoaderInit:
     def test_defaults(self):
         loader = TabularLoader()
-        assert loader._sheet_name == 0
-        assert loader._skip_empty_rows is True
-        assert loader._empty_value_text == ""
-        assert loader._delimiter is None
-        assert loader._encoding == "utf-8"
-        assert loader._has_header is True
+        assert loader.config['sheet_name'] == 0
+        assert loader.config['skip_empty_rows'] is True
+        assert loader.config['empty_value_text'] == ""
+        assert loader.config['delimiter'] is None
+        assert loader.config['encoding'] == "utf-8"
+        assert loader.config['has_header'] is True
 
     def test_custom_config(self):
         loader = TabularLoader(
@@ -99,11 +99,11 @@ class TestTabularLoaderInit:
                 "has_header": False,
             }
         )
-        assert loader._sheet_name == "Sheet2"
-        assert loader._skip_empty_rows is False
-        assert loader._empty_value_text == "<empty>"
-        assert loader._delimiter == "|"
-        assert loader._has_header is False
+        assert loader.config['sheet_name'] == "Sheet2"
+        assert loader.config['skip_empty_rows'] is False
+        assert loader.config['empty_value_text'] == "<empty>"
+        assert loader.config['delimiter'] == "|"
+        assert loader.config['has_header'] is False
 
 
 # ---------------------------------------------------------------------------
@@ -308,33 +308,33 @@ class TestLoadAsVsfile:
 class TestFormatRow:
     def test_basic_format(self):
         loader = TabularLoader()
-        result = loader._format_row(["name", "age"], ("Alice", "30"))
+        result = loader.format_row(["name", "age"], ("Alice", "30"))
         assert "name: Alice" in result
         assert "age: 30" in result
 
     def test_fields_separated_by_double_newline(self):
         loader = TabularLoader()
-        result = loader._format_row(["a", "b"], ("x", "y"))
+        result = loader.format_row(["a", "b"], ("x", "y"))
         assert "\n\n" in result
 
     def test_none_value_shows_empty(self):
         loader = TabularLoader()
-        result = loader._format_row(["col"], (None,))
+        result = loader.format_row(["col"], (None,))
         assert "col: " in result
 
     def test_empty_string_value_shows_empty(self):
         loader = TabularLoader()
-        result = loader._format_row(["col"], ("",))
+        result = loader.format_row(["col"], ("",))
         assert "col: " in result
 
     def test_custom_empty_value_text(self):
         loader = TabularLoader(config={"empty_value_text": "<empty>"})
-        result = loader._format_row(["col1", "col2"], ("value", None))
+        result = loader.format_row(["col1", "col2"], ("value", None))
         assert "col2: <empty>" in result
 
     def test_numeric_value_converted_to_string(self):
         loader = TabularLoader()
-        result = loader._format_row(["score"], (99.5,))
+        result = loader.format_row(["score"], (99.5,))
         assert "score: 99.5" in result
 
 
@@ -346,19 +346,19 @@ class TestFormatRow:
 class TestGetFileType:
     def test_csv(self):
         loader = TabularLoader()
-        assert loader._get_file_type("data.csv") == "csv"
+        assert loader.get_file_type("data.csv") == "csv"
 
     def test_tsv(self):
         loader = TabularLoader()
-        assert loader._get_file_type("data.tsv") == "tsv"
+        assert loader.get_file_type("data.tsv") == "tsv"
 
     def test_xlsx(self):
         loader = TabularLoader()
-        assert loader._get_file_type("data.xlsx") == "xlsx"
+        assert loader.get_file_type("data.xlsx") == "xlsx"
 
     def test_unknown(self):
         loader = TabularLoader()
-        assert loader._get_file_type("data.pdf") == "unknown"
+        assert loader.get_file_type("data.pdf") == "unknown"
 
 
 # ---------------------------------------------------------------------------
@@ -368,23 +368,23 @@ class TestGetFileType:
 
 def test_is_supported_file_csv():
     loader = TabularLoader()
-    assert loader._is_supported_file("data.csv") is True
+    assert loader.is_supported_file("data.csv") is True
 
 
 def test_is_supported_file_tsv():
     loader = TabularLoader()
-    assert loader._is_supported_file("data.tsv") is True
+    assert loader.is_supported_file("data.tsv") is True
 
 
 def test_is_supported_file_xlsx():
     loader = TabularLoader()
-    assert loader._is_supported_file("data.xlsx") is True
+    assert loader.is_supported_file("data.xlsx") is True
 
 
 def test_is_not_supported_file():
     loader = TabularLoader()
-    assert loader._is_supported_file("data.pdf") is False
-    assert loader._is_supported_file("data.docx") is False
+    assert loader.is_supported_file("data.pdf") is False
+    assert loader.is_supported_file("data.docx") is False
 
 
 # ---------------------------------------------------------------------------
@@ -396,7 +396,7 @@ class TestCreateTabularLoader:
     def test_factory_defaults(self):
         loader = create_tabular_loader()
         assert isinstance(loader, TabularLoader)
-        assert loader._has_header is True
+        assert loader.config['has_header'] is True
 
     def test_factory_custom(self):
         loader = create_tabular_loader(
@@ -406,11 +406,11 @@ class TestCreateTabularLoader:
             delimiter="|",
             has_header=False,
         )
-        assert loader._sheet_name == "Sheet1"
-        assert loader._skip_empty_rows is False
-        assert loader._empty_value_text == "N/A"
-        assert loader._delimiter == "|"
-        assert loader._has_header is False
+        assert loader.config['sheet_name'] == "Sheet1"
+        assert loader.config['skip_empty_rows'] is False
+        assert loader.config['empty_value_text'] == "N/A"
+        assert loader.config['delimiter'] == "|"
+        assert loader.config['has_header'] is False
 
 
 # ---------------------------------------------------------------------------
