@@ -10,17 +10,12 @@ Provides flexible agent implementations with support for:
 """
 
 from .components import (
-    BaseAgent,
-    LLMGateway,
-    LLMRequest,
-    LLMResponse,
-    OpenAIGateway,
-    MistralGateway,
-    LLMGatewayFactory,
-    get_llm_gateway,
+    BaseAgent, JSONChatHistory, LLMGateway,
+    LLMGatewayFactory, LLMRequest, LLMResponse,
+    MistralGateway, OpenAIGateway, PostgresChatHistory,
+    SQLChatHistory, get_llm_gateway
 )
 
-# __version__ = "0.1.0"
 
 __all__ = [
     "BaseAgent",
@@ -31,5 +26,7 @@ __all__ = [
     "MistralGateway",
     "LLMGatewayFactory",
     "get_llm_gateway",
+    "JSONChatHistory",
+    "SQLChatHistory",
+    "PostgresChatHistory"
 ]
-

@@ -93,7 +93,7 @@ class MdLoader(Loader):
         # Initialize advanced chunker
         embed_model_id = config.get(
             'embed_model_id', self.DEFAULT_EMBED_MODEL_ID)
-        self._chunker = AdvancedChunker(
+        self.chunker = AdvancedChunker(
             embed_model_id=embed_model_id,
             strategy="default"
         )
@@ -101,6 +101,16 @@ class MdLoader(Loader):
         # Store last extraction info
         self._last_frontmatter = None
         self._last_headers = []
+
+        # Update self.config with fully resolved values (including defaults)
+        self.config.update({
+            'split_by_headers': self._split_by_headers,
+            'preserve_code_blocks': self._preserve_code_blocks,
+            'extract_frontmatter': self._extract_frontmatter,
+            'chunk_size': self._chunk_size,
+            'chunk_overlap': self._chunk_overlap,
+            'encoding': self._encoding,
+        })
 
         logger.info(
             f"Initialized MdLoader with chunk_size={self._chunk_size}, chunk_overlap={self._chunk_overlap}")
@@ -150,7 +160,7 @@ class MdLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is a Markdown file
-        if not self._is_md_file(source):
+        if not self.is_md_file(source):
             raise ValueError(f"File is not a Markdown file: {source}")
 
         logger.info(f"Loading Markdown as text: {source}")
@@ -166,7 +176,7 @@ class MdLoader(Loader):
             self._last_frontmatter = frontmatter
 
             # Extract headers for metadata
-            self._last_headers = self._extract_headers(content)
+            self._last_headers = self.extract_headers(content)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -208,7 +218,7 @@ class MdLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is a Markdown file
-        if not self._is_md_file(source):
+        if not self.is_md_file(source):
             raise ValueError(f"File is not a Markdown file: {source}")
 
         logger.info(f"Loading Markdown file: {source}")
@@ -224,17 +234,17 @@ class MdLoader(Loader):
             self._last_frontmatter = frontmatter
 
             # Extract headers for metadata
-            self._last_headers = self._extract_headers(content)
+            self._last_headers = self.extract_headers(content)
 
             # Chunk the content
             if self._split_by_headers:
-                text_chunks = self._chunk_by_headers(content)
+                text_chunks = self.chunk_by_headers(content)
             else:
-                text_chunks = self._chunk_text(content)
+                text_chunks = self.chunk_text(content)
 
             # Optionally prepend frontmatter to first chunk
             if self._include_frontmatter_in_chunks and frontmatter and text_chunks:
-                frontmatter_text = self._frontmatter_to_text(frontmatter)
+                frontmatter_text = self.frontmatter_to_text(frontmatter)
                 text_chunks[0] = frontmatter_text + "\n\n" + text_chunks[0]
 
             elapsed = time.time() - start_time
@@ -321,7 +331,7 @@ class MdLoader(Loader):
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if not self._is_md_file(file_path):
+        if not self.is_md_file(file_path):
             raise ValueError(f"File is not a Markdown file: {file_path}")
 
         # Create VSFile
@@ -355,7 +365,7 @@ class MdLoader(Loader):
         """
         return self._last_headers
 
-    def _is_md_file(self, file_path: str) -> bool:
+    def is_md_file(self, file_path: str) -> bool:
         """
         Check if file is a Markdown file based on extension.
 
@@ -405,7 +415,7 @@ class MdLoader(Loader):
             logger.warning(f"Failed to parse frontmatter: {e}")
             return content, None
 
-    def _frontmatter_to_text(self, frontmatter: Dict[str, Any]) -> str:
+    def frontmatter_to_text(self, frontmatter: Dict[str, Any]) -> str:
         """
         Convert frontmatter dictionary to readable text.
 
@@ -427,7 +437,7 @@ class MdLoader(Loader):
 
         return "\n".join(lines)
 
-    def _extract_headers(self, content: str) -> List[Dict[str, Any]]:
+    def extract_headers(self, content: str) -> List[Dict[str, Any]]:
         """
         Extract all headers from markdown content.
 
@@ -448,7 +458,7 @@ class MdLoader(Loader):
 
         return headers
 
-    def _chunk_by_headers(self, content: str) -> List[str]:
+    def chunk_by_headers(self, content: str) -> List[str]:
         """
         Split content by headers while preserving code blocks.
 
@@ -510,18 +520,18 @@ class MdLoader(Loader):
         final_chunks = []
         for chunk in chunks:
             if len(chunk) > self._chunk_size * 4:  # Rough character estimate
-                sub_chunks = self._chunk_text(chunk)
+                sub_chunks = self.chunk_text(chunk)
                 final_chunks.extend(sub_chunks)
             else:
                 final_chunks.append(chunk)
 
         # If no chunks created, use standard chunking
         if not final_chunks:
-            return self._chunk_text(content)
+            return self.chunk_text(content)
 
         return final_chunks
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using AdvancedChunker's chunk_text method.
 
@@ -536,7 +546,7 @@ class MdLoader(Loader):
 
         try:
             # Use AdvancedChunker's chunk_text method for plain text
-            chunk_dicts = self._chunker.chunk_text(
+            chunk_dicts = self.chunker.chunk_text(
                 text=text,
                 chunk_size=self._chunk_size,
                 chunk_overlap=self._chunk_overlap,
