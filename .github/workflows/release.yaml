@@ -155,13 +155,13 @@ jobs:
           git diff --cached --quiet && echo "No version changes to commit." && exit 0
           git commit -m "chore: bump versions [${{ github.event.inputs.version_increment }}]"
 
-      - name: Push commit and tags
+      - name: Push commit 
         run: |
           git push
       - name: Tag — rakam-systems
         if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
         run: |
-          git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
+          git tag "${{ steps.rakam_systems_version.outputs.VERSION }}"
           git push --tags
 
       # ── Build & Publish ────────────────────────────────────────────────────────
