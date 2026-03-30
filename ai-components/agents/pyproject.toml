@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rakam-systems-agent"
-version = "0.1.2"
+version = "0.1.3"
 description = "AI Agents framework with Pydantic AI support and LLM Gateway integration"
 readme = "README.md"
 requires-python = ">=3.10"
