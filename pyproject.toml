@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
-build-backend = "setuptools.build_meta"
+requires = ["uv_build >= 0.7.19, <0.9.0"]
+build-backend = "uv_build"
 
 [project]
 name = "rakam-systems"
@@ -31,6 +31,10 @@ dependencies = [
     "rakam-systems-vectorstore[all]==0.1.2",
     "rakam-systems-cli==0.2.5"
 ]
+[tool.uv.build-backend]
+module-root = "src"
+exclude = ["**/tests/**"]
+
 [[tool.uv.index]]
 name = "testpypi"
 url = "https://test.pypi.org/simple/"
