@@ -70,8 +70,3 @@ Repository = "https://github.com/Rakam-AI/rakam_systems-inhouse"
 module-root = "src"
 exclude = ["**/tests/**"]
 
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true
