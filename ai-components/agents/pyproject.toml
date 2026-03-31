@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-agent"
-version = "0.1.2"
+version = "0.1.4"
 description = "AI Agents framework with Pydantic AI support and LLM Gateway integration"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -22,12 +22,11 @@ classifiers = [
 ]
 dependencies = [
     "rakam-systems-core>=0.1.2",
-    "rakam-systems-tools>=0.2.0",
-    "pydantic>=2.11.5",
+    "rakam-systems-tools>=0.2.1",
+    "pydantic>=2.11.5,<3.0.0",
     "pydantic-ai>=1.11.0,<2.0.0",
-    "pyyaml>=6.0",
-    "python-dotenv>=1.0.0",
-    "psycopg2-binary"
+    "pyyaml>=6.0,<7.0",
+    "python-dotenv>=1.0.0,<2.0.0",
 ]
 
 [dependency-groups]
@@ -45,13 +44,18 @@ dev = [
 llm-providers = [
     "openai>=1.37.0,<3.0.0",
     "mistralai>=1.9.0,<2.0.0",
-    "tiktoken",
+    "tiktoken>=0.7.0,<1.0.0",
 ]
 
+# PostgreSQL chat history backend
+postgres = [
+    "psycopg2-binary>=2.9.9,<3.0.0",
+]
 
 # All optional dependencies
 all = [
     "rakam-systems-agent[llm-providers]",
+    "rakam-systems-agent[postgres]",
 ]
 
 
