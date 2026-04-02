@@ -3075,10 +3075,9 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-agent"
-version = "0.1.2"
+version = "0.1.4"
 source = { editable = "." }
 dependencies = [
-    { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
     { name = "python-dotenv" },
@@ -3091,12 +3090,16 @@ dependencies = [
 all = [
     { name = "mistralai" },
     { name = "openai" },
+    { name = "psycopg2-binary" },
     { name = "tiktoken" },
 ]
 llm-providers = [
     { name = "mistralai" },
     { name = "openai" },
     { name = "tiktoken" },
+]
+postgres = [
+    { name = "psycopg2-binary" },
 ]
 
 [package.dev-dependencies]
@@ -3112,17 +3115,18 @@ dev = [
 requires-dist = [
     { name = "mistralai", marker = "extra == 'llm-providers'", specifier = ">=1.9.0,<2.0.0" },
     { name = "openai", marker = "extra == 'llm-providers'", specifier = ">=1.37.0,<3.0.0" },
-    { name = "psycopg2-binary" },
-    { name = "pydantic", specifier = ">=2.11.5" },
+    { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = ">=2.9.9,<3.0.0" },
+    { name = "pydantic", specifier = ">=2.11.5,<3.0.0" },
     { name = "pydantic-ai", specifier = ">=1.11.0,<2.0.0" },
-    { name = "python-dotenv", specifier = ">=1.0.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
+    { name = "pyyaml", specifier = ">=6.0,<7.0" },
     { name = "rakam-systems-agent", extras = ["llm-providers"], marker = "extra == 'all'" },
+    { name = "rakam-systems-agent", extras = ["postgres"], marker = "extra == 'all'" },
     { name = "rakam-systems-core", specifier = ">=0.1.2" },
-    { name = "rakam-systems-tools", specifier = ">=0.2.0" },
-    { name = "tiktoken", marker = "extra == 'llm-providers'" },
+    { name = "rakam-systems-tools", specifier = ">=0.2.1" },
+    { name = "tiktoken", marker = "extra == 'llm-providers'", specifier = ">=0.7.0,<1.0.0" },
 ]
-provides-extras = ["llm-providers", "all"]
+provides-extras = ["llm-providers", "postgres", "all"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -3148,7 +3152,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-tools"
-version = "0.2.0"
+version = "0.2.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -3157,9 +3161,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/d1/74/f536267336e136c1db53061fdff750be604ab4186957533908387919cb17/rakam_systems_tools-0.2.0.tar.gz", hash = "sha256:32719a8ed9d446c901ade3f4ffe7b52a4a96f3df9e5b35fe07b8733967da1ec0", size = 14731, upload-time = "2026-03-26T10:30:10.626Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/34/89/f8f23833ad44009bafca436a4f503e62ba5565c7dcb1decc976d0af4db25/rakam_systems_tools-0.2.1.tar.gz", hash = "sha256:d07594582aa80db1e7b224b42c5dfacff66ae8f81e8182b757a330b401aceb4c", size = 14746, upload-time = "2026-03-31T14:27:59.94Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/68/e9/4e64ec2008f70d1e9034fe09499434e4c12745c045662c8d267cbbcaf880/rakam_systems_tools-0.2.0-py3-none-any.whl", hash = "sha256:b2aabfac796bf6d49c06c696bf084ea613f573f635d944ec1610c45e1c993642", size = 20175, upload-time = "2026-03-26T10:30:09.286Z" },
+    { url = "https://files.pythonhosted.org/packages/41/44/86002b9eb067261153f579a148ab58bca5be5e26f28a9646fe175cb372b7/rakam_systems_tools-0.2.1-py3-none-any.whl", hash = "sha256:8f7aed98adb0008f833cbfca0b247540f267d1202d0c9603ab6e9b7126f46e00", size = 20287, upload-time = "2026-03-31T14:27:58.823Z" },
 ]
 
 [[package]]

@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-tools"
-version = "0.2.0"
+version = "0.2.1"
 description = "Evaluation Framework Tools"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -36,16 +36,10 @@ line_length = 88
 line-length = 88
 target-version = ["py311"]
 
-[[tool.uv.index]]
-name = "testpypi"
-url = "https://test.pypi.org/simple/"
-publish-url = "https://test.pypi.org/legacy/"
-explicit = true
-[tool.setuptools]
-package-dir = {"" = "src"}
 
-[tool.setuptools.packages.find]
-where = ["src"]
+[tool.uv.build-backend]
+module-root = "src"
+exclude = ["**/tests/**"]
 
 
 [tool.pytest.ini_options]
