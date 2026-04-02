@@ -97,7 +97,6 @@ jobs:
           print(v, end="")
           PYEOF
 
-      # ── Version Bumps ──────────────────────────────────────────────────────────
 
       - name: Bump version — rakam-systems-core
         if: ${{ github.event.inputs.release_core == 'true' }}
@@ -141,7 +140,6 @@ jobs:
           VERSION=$(python3 /tmp/bump_version.py pyproject.toml ${{ github.event.inputs.version_increment }})
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
-      # ── Commit & Tag ───────────────────────────────────────────────────────────
 
       - name: Commit version bumps
         run: |
@@ -155,16 +153,30 @@ jobs:
           git diff --cached --quiet && echo "No version changes to commit." && exit 0
           git commit -m "chore: bump versions [${{ github.event.inputs.version_increment }}]"
 
-      - name: Push commit 
+      - name: Create tags
         run: |
-          git push
-      - name: Tag — rakam-systems
-        if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
-        run: |
-          git tag "${{ steps.rakam_systems_version.outputs.VERSION }}"
-          git push --tags
+          if [[ "${{ github.event.inputs.release_core }}" == "true" ]]; then
+            git tag "core-v${{ steps.core_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_tools }}" == "true" ]]; then
+            git tag "tools-v${{ steps.tools_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_agent }}" == "true" ]]; then
+            git tag "agent-v${{ steps.agent_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_vectorstore }}" == "true" ]]; then
+            git tag "vectorstore-v${{ steps.vectorstore_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_cli }}" == "true" ]]; then
+            git tag "cli-v${{ steps.cli_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_rakam_systems }}" == "true" ]]; then
+            git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
+          fi
 
-      # ── Build & Publish ────────────────────────────────────────────────────────
+      - name: Push commit and tags
+        run: git push --follow-tags
+
 
       - name: Build and publish rakam-systems-core
         if: ${{ github.event.inputs.release_core == 'true' }}
@@ -207,7 +219,6 @@ jobs:
           uv build
           uv publish --token ${{ secrets.PYPI_TOKEN }}
 
-      # ── GitHub Releases ────────────────────────────────────────────────────────
 
       - name: GitHub Release — rakam-systems-core
         if: ${{ github.event.inputs.release_core == 'true' }}
