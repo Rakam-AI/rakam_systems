@@ -22,7 +22,7 @@ classifiers = [
 ]
 dependencies = [
     "rakam-systems-core>=0.1.2",
-    "rakam-systems-tools>=0.2.1",
+    "rakam-systems-tools>=0.2.2",
     "pydantic>=2.11.5,<3.0.0",
     "pydantic-ai>=1.11.0,<2.0.0",
     "pyyaml>=6.0,<7.0",

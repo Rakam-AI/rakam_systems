@@ -23,7 +23,7 @@ classifiers = [
 # Core dependencies required for base functionality
 dependencies = [
     "rakam-systems-core>=0.1.2",
-    "rakam-systems-tools>=0.2.1",
+    "rakam-systems-tools>=0.2.2",
     "pyyaml>=6.0,<7.0",
     "numpy>=1.24.0,<3.0.0",
     "tqdm>=4.66.0,<5.0.0",
