@@ -40,7 +40,8 @@ class DeepEvalClient:
         )
         self.base_url = raw_url.rstrip("/")
         self.api_token = (
-            api_token or settings_token or os.getenv("EVALFRAMEWORK_API_KEY", "")
+            api_token or settings_token or os.getenv(
+                "EVALFRAMEWORK_API_KEY", "")
         )
         self.timeout = timeout
 
@@ -256,7 +257,8 @@ class DeepEvalClient:
 
         def validate(id_: Optional[int], tag: Optional[str], name: str) -> None:
             if bool(id_) == bool(tag):
-                raise ValueError(f"Provide exactly one of {name}_id or {name}_tag")
+                raise ValueError(
+                    f"Provide exactly one of {name}_id or {name}_tag")
 
         validate(testcase_a_id, testcase_a_tag, "testcase_a")
         validate(testcase_b_id, testcase_b_tag, "testcase_b")
@@ -332,6 +334,9 @@ class DeepEvalClient:
         component: str = "unknown",
         label: Optional[str] = None,
         raise_exception: bool = False,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]: ...
 
     def text_eval(
@@ -342,6 +347,9 @@ class DeepEvalClient:
         metrics: Optional[List[MetricConfig]] = None,
         component: str = "unknown",
         label: Optional[str] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
         raise_exception: bool = False,
     ) -> Optional[Dict]:
         if config is None:
@@ -350,6 +358,9 @@ class DeepEvalClient:
                 metrics=metrics,
                 component=component,
                 label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
             )
 
         return self._post(
@@ -365,10 +376,20 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Run background text evaluation (async job)."""
         payload = EvalConfig.model_construct(
-            data=data, metrics=metrics, component=component, version=label
+            data=data,
+            metrics=metrics,
+            component=component,
+            version=label,
+            scope=scope,
+            reason=reason,
+            risk_level=risk_level
+
         ).model_dump()
         return self._post(
             endpoint="/deepeval/text-eval/background",
@@ -379,20 +400,24 @@ class DeepEvalClient:
     @overload
     def schema_eval(
         self,
+        config: SchemaEvalConfig,
+        *,
+        raise_exception: bool = False,
+
+    ) -> Optional[Dict]: ...
+
+    @overload
+    def schema_eval(
+        self,
         *,
         data: List[SchemaInputItem],
         metrics: List[SchemaMetricConfig],
         component: str = "unknown",
         label: Optional[str] = None,
         raise_exception: bool = False,
-    ) -> Optional[Dict]: ...
-
-    @overload
-    def schema_eval(
-        self,
-        config: SchemaEvalConfig,
-        *,
-        raise_exception: bool = False,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]: ...
 
     def schema_eval(
@@ -404,6 +429,9 @@ class DeepEvalClient:
         component: str = "unknown",
         label: Optional[str] = None,
         raise_exception: bool = False,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         if config is None:
             if data is None or metrics is None:
@@ -416,6 +444,10 @@ class DeepEvalClient:
                 metrics=metrics,
                 component=component,
                 label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
+
             )
 
         return self._post(
@@ -431,10 +463,16 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Run background schema evaluation (async job)."""
         payload = SchemaEvalConfig.model_construct(
-            data=data, metrics=metrics, component=component, version=label
+            data=data, metrics=metrics, component=component, version=label,
+            scope=scope,
+            reason=reason,
+            risk_level=risk_level
         ).model_dump()
         return self._post(
             endpoint="/deepeval/schema-eval/background",
@@ -450,6 +488,9 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Randomly run text_eval based on a probability between 0 and 1."""
         self._validate_chance(chance)
@@ -460,6 +501,9 @@ class DeepEvalClient:
                 raise_exception=raise_exception,
                 component=component,
                 label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
             )
             if random.random() <= chance
             else None
@@ -473,12 +517,18 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Randomly run text_eval_background based on a probability between 0 and 1."""
         self._validate_chance(chance)
         return (
             self.text_eval_background(
-                data, metrics, raise_exception, component=component, label=label
+                data, metrics, raise_exception, component=component, label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
             )
             if random.random() <= chance
             else None
@@ -492,6 +542,9 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Randomly run schema_eval based on a probability between 0 and 1."""
         self._validate_chance(chance)
@@ -502,6 +555,9 @@ class DeepEvalClient:
                 raise_exception=raise_exception,
                 component=component,
                 label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
             )
             if random.random() <= chance
             else None
@@ -515,12 +571,18 @@ class DeepEvalClient:
         raise_exception: bool = False,
         component: str = "unknown",
         label: Union[str, None] = None,
+        scope: Optional[str] = None,
+        reason: Optional[str] = None,
+        risk_level: Optional[str] = None,
     ) -> Optional[Dict]:
         """Randomly run text_eval_background based on a probability between 0 and 1."""
         self._validate_chance(chance)
         return (
             self.schema_eval_background(
-                data, metrics, raise_exception, component=component, label=label
+                data, metrics, raise_exception, component=component, label=label,
+                scope=scope,
+                reason=reason,
+                risk_level=risk_level
             )
             if random.random() <= chance
             else None
