@@ -14,7 +14,7 @@ authors = [
 ]
 dependencies = [
     "psutil>=7.2.1",
-    "rakam-systems-tools>=0.2.1",
+    "rakam-systems-tools>=0.2.2",
     "typer>=0.12.5,<0.22.0",
 ]
 
