@@ -42,7 +42,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                python-version: ["3.10", "3.11", "3.12"]
         steps:
             - uses: actions/checkout@v4
 
@@ -57,12 +57,17 @@ jobs:
             - name: Run Core tests
               working-directory: core
               run: |
-                  uv run pytest -v || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Core tests collected"
                     exit 0
                   fi
                   exit ${EXIT_CODE:-0}
+
+            - name: Display Core coverage
+              working-directory: core
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
 
     agents-tests:
         needs: changes
@@ -85,12 +90,17 @@ jobs:
             - name: Run Agents tests
               working-directory: ai-components/agents
               run: |
-                  uv run pytest -v || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Agents tests collected"
                     exit 0
                   fi
                   exit ${EXIT_CODE:-0}
+
+            - name: Display Agents coverage
+              working-directory: ai-components/agents
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
 
     vectorstore-tests:
         needs: changes
@@ -113,12 +123,17 @@ jobs:
             - name: Run VectorStore tests
               working-directory: ai-components/vector-store
               run: |
-                  uv run pytest -v || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No VectorStore tests collected"
                     exit 0
                   fi
                   exit ${EXIT_CODE:-0}
+
+            - name: Display VectorStore coverage
+              working-directory: ai-components/vector-store
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
 
     tools-tests:
         needs: changes
@@ -126,7 +141,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                python-version: ["3.10", "3.11", "3.12"]
         steps:
             - uses: actions/checkout@v4
 
@@ -141,12 +156,17 @@ jobs:
             - name: Run Tools tests
               working-directory: tools
               run: |
-                  uv run pytest -v || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No Tools tests collected"
                     exit 0
                   fi
                   exit ${EXIT_CODE:-0}
+
+            - name: Display Tools coverage
+              working-directory: tools
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
 
     cli-tests:
         needs: changes
@@ -154,7 +174,7 @@ jobs:
         runs-on: ubuntu-latest
         strategy:
             matrix:
-                python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
+                python-version: ["3.10", "3.11", "3.12"]
         steps:
             - uses: actions/checkout@v4
 
@@ -169,9 +189,14 @@ jobs:
             - name: Run CLI tests
               working-directory: cli
               run: |
-                  uv run pytest -v || EXIT_CODE=$?
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
                   if [ "${EXIT_CODE:-0}" -eq 5 ]; then
                     echo "No CLI tests collected"
                     exit 0
                   fi
                   exit ${EXIT_CODE:-0}
+
+            - name: Display CLI coverage
+              working-directory: cli
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true

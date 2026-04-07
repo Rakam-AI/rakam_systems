@@ -105,6 +105,11 @@ class BaseAgent(TrackingMixin, AgentComponent):
         # Store registered dynamic system prompt functions
         self._dynamic_system_prompts: List[DynamicSystemPromptFunc] = []
 
+    @property
+    def dynamic_system_prompts(self) -> List[DynamicSystemPromptFunc]:
+        """Return a read-only view of the registered dynamic system prompt functions."""
+        return list(self._dynamic_system_prompts)
+
     def dynamic_system_prompt(
         self,
         func: Optional[DynamicSystemPromptFunc] = None
@@ -273,7 +278,8 @@ class BaseAgent(TrackingMixin, AgentComponent):
         self,
         input_data: AgentInput,
         deps: Optional[Any] = None,
-        model_settings: Optional[ModelSettings] = None
+        model_settings: Optional[ModelSettings] = None,
+        message_history: Optional[List[Any]] = None,
     ) -> AgentOutput:
         """Async inference using Pydantic AI."""
         pydantic_settings = self._convert_model_settings(model_settings)
@@ -283,6 +289,7 @@ class BaseAgent(TrackingMixin, AgentComponent):
             input_data.input_text,
             deps=deps,
             model_settings=pydantic_settings,
+            message_history=message_history,
         )
 
         # Get the raw output from Pydantic AI
@@ -322,10 +329,11 @@ class BaseAgent(TrackingMixin, AgentComponent):
         self,
         input_data: Union[str, AgentInput],
         deps: Optional[Any] = None,
-        model_settings: Optional[ModelSettings] = None
+        model_settings: Optional[ModelSettings] = None,
+        message_history: Optional[List[Any]] = None,
     ) -> AgentOutput:
         normalized_input = self._normalize_input(input_data)
-        return await self.ainfer(normalized_input, deps=deps, model_settings=model_settings)
+        return await self.ainfer(normalized_input, deps=deps, model_settings=model_settings, message_history=message_history)
 
     def stream(
         self,
@@ -342,7 +350,8 @@ class BaseAgent(TrackingMixin, AgentComponent):
         self,
         input_data: Union[str, AgentInput],
         deps: Optional[Any] = None,
-        model_settings: Optional[ModelSettings] = None
+        model_settings: Optional[ModelSettings] = None,
+        message_history: Optional[List[Any]] = None,
     ) -> AsyncIterator[str]:
         """Async streaming using Pydantic AI."""
         normalized_input = self._normalize_input(input_data)
@@ -353,6 +362,7 @@ class BaseAgent(TrackingMixin, AgentComponent):
             normalized_input.input_text,
             deps=deps,
             model_settings=pydantic_settings,
+            message_history=message_history,
         ) as result:
             async for chunk in result.stream():
                 yield chunk

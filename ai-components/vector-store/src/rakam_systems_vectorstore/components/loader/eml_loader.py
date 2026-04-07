@@ -81,12 +81,20 @@ class EmlLoader(Loader):
         self._extract_html = config.get('extract_html', True)
 
         # Initialize text chunker
-        self._chunker = TextChunker(
+        self.chunker = TextChunker(
             chunk_size=self._chunk_size,
             chunk_overlap=self._chunk_overlap,
             min_sentences_per_chunk=self._min_sentences_per_chunk,
             tokenizer=self._tokenizer
         )
+
+        # Update self.config with fully resolved values (including defaults)
+        self.config.update({
+            'chunk_size': self._chunk_size,
+            'chunk_overlap': self._chunk_overlap,
+            'include_headers': self._include_headers,
+            'extract_html': self._extract_html,
+        })
 
         logger.info(
             f"Initialized EmlLoader with chunk_size={self._chunk_size}, chunk_overlap={self._chunk_overlap}")
@@ -136,7 +144,7 @@ class EmlLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is an EML
-        if not self._is_eml_file(source):
+        if not self.is_eml_file(source):
             raise ValueError(
                 f"File is not an EML: {source}. Extension: {Path(source).suffix}")
 
@@ -187,7 +195,7 @@ class EmlLoader(Loader):
             raise FileNotFoundError(f"File not found: {source}")
 
         # Validate file is an EML
-        if not self._is_eml_file(source):
+        if not self.is_eml_file(source):
             raise ValueError(
                 f"File is not an EML: {source}. Extension: {Path(source).suffix}")
 
@@ -199,7 +207,7 @@ class EmlLoader(Loader):
             full_text = self._extract_text_from_eml(source)
 
             # Chunk the text using TextChunker
-            text_chunks = self._chunk_text(full_text)
+            text_chunks = self.chunk_text(full_text)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -277,7 +285,7 @@ class EmlLoader(Loader):
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"File not found: {file_path}")
 
-        if not self._is_eml_file(file_path):
+        if not self.is_eml_file(file_path):
             raise ValueError(f"File is not an EML: {file_path}")
 
         # Create VSFile
@@ -293,7 +301,7 @@ class EmlLoader(Loader):
             f"Created VSFile with {len(nodes)} nodes from: {file_path}")
         return vsfile
 
-    def _is_eml_file(self, file_path: str) -> bool:
+    def is_eml_file(self, file_path: str) -> bool:
         """
         Check if file is an EML based on extension.
 
@@ -480,7 +488,7 @@ class EmlLoader(Loader):
             logger.warning(f"Failed to convert HTML to text: {e}")
             return html
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using TextChunker.
 
@@ -495,7 +503,7 @@ class EmlLoader(Loader):
 
         try:
             # Use TextChunker's chunk_text method
-            chunk_dicts = self._chunker.chunk_text(text, context="eml")
+            chunk_dicts = self.chunker.chunk_text(text, context="eml")
 
             # Extract just the text from the chunk dictionaries
             text_chunks = [chunk_dict['text'] for chunk_dict in chunk_dicts]

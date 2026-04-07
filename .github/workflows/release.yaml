@@ -1,0 +1,269 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_increment:
+        description: "Version increment type"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      release_core:
+        description: "Release rakam-systems-core"
+        type: boolean
+        default: false
+      release_tools:
+        description: "Release rakam-systems-tools"
+        type: boolean
+        default: false
+      release_agent:
+        description: "Release rakam-systems-agent"
+        type: boolean
+        default: false
+      release_vectorstore:
+        description: "Release rakam-systems-vectorstore"
+        type: boolean
+        default: false
+      release_cli:
+        description: "Release rakam-systems-cli"
+        type: boolean
+        default: false
+      release_rakam_systems:
+        description: "Release rakam-systems (umbrella)"
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.10"
+
+      - name: Configure Git
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+
+      - name: Validate — at least one package selected
+        run: |
+          selected=(
+            "${{ github.event.inputs.release_core }}"
+            "${{ github.event.inputs.release_tools }}"
+            "${{ github.event.inputs.release_agent }}"
+            "${{ github.event.inputs.release_vectorstore }}"
+            "${{ github.event.inputs.release_cli }}"
+            "${{ github.event.inputs.release_rakam_systems }}"
+          )
+          for val in "${selected[@]}"; do
+            [[ "$val" == "true" ]] && exit 0
+          done
+          echo "::error::No package selected. Enable at least one release toggle."
+          exit 1
+
+      - name: Write version bump helper
+        run: |
+          cat > /tmp/bump_version.py << 'PYEOF'
+          import re, sys
+          path, bump = sys.argv[1], sys.argv[2]
+          content = open(path).read()
+          m = re.search(r'^version\s*=\s*"(\d+)\.(\d+)\.(\d+)"', content, re.MULTILINE)
+          if not m:
+              sys.exit(f"ERROR: version field not found in {path}")
+          ma, mi, pa = int(m.group(1)), int(m.group(2)), int(m.group(3))
+          if bump == "major": ma, mi, pa = ma + 1, 0, 0
+          elif bump == "minor": mi, pa = mi + 1, 0
+          else: pa += 1
+          v = f"{ma}.{mi}.{pa}"
+          open(path, "w").write(re.sub(r'^(version\s*=\s*)"[^"]+"', f'\\1"{v}"', content, flags=re.MULTILINE))
+          print(v, end="")
+          PYEOF
+
+
+      - name: Bump version — rakam-systems-core
+        if: ${{ github.event.inputs.release_core == 'true' }}
+        id: core_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py core/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version — rakam-systems-tools
+        if: ${{ github.event.inputs.release_tools == 'true' }}
+        id: tools_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py tools/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version — rakam-systems-agent
+        if: ${{ github.event.inputs.release_agent == 'true' }}
+        id: agent_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py ai-components/agents/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version — rakam-systems-vectorstore
+        if: ${{ github.event.inputs.release_vectorstore == 'true' }}
+        id: vectorstore_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py ai-components/vector-store/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version — rakam-systems-cli
+        if: ${{ github.event.inputs.release_cli == 'true' }}
+        id: cli_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py cli/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Bump version — rakam-systems
+        if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
+        id: rakam_systems_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+
+      - name: Commit version bumps
+        run: |
+          git add \
+            core/pyproject.toml \
+            tools/pyproject.toml \
+            ai-components/agents/pyproject.toml \
+            ai-components/vector-store/pyproject.toml \
+            cli/pyproject.toml \
+            pyproject.toml
+          git diff --cached --quiet && echo "No version changes to commit." && exit 0
+          git commit -m "chore: bump versions [${{ github.event.inputs.version_increment }}]"
+
+      - name: Create tags
+        run: |
+          if [[ "${{ github.event.inputs.release_core }}" == "true" ]]; then
+            git tag "core-v${{ steps.core_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_tools }}" == "true" ]]; then
+            git tag "tools-v${{ steps.tools_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_agent }}" == "true" ]]; then
+            git tag "agent-v${{ steps.agent_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_vectorstore }}" == "true" ]]; then
+            git tag "vectorstore-v${{ steps.vectorstore_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_cli }}" == "true" ]]; then
+            git tag "cli-v${{ steps.cli_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_rakam_systems }}" == "true" ]]; then
+            git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
+          fi
+
+      - name: Push commit and tags
+        run: git push --follow-tags
+
+
+      - name: Build and publish rakam-systems-core
+        if: ${{ github.event.inputs.release_core == 'true' }}
+        working-directory: core
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems-tools
+        if: ${{ github.event.inputs.release_tools == 'true' }}
+        working-directory: tools
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems-agent
+        if: ${{ github.event.inputs.release_agent == 'true' }}
+        working-directory: ai-components/agents
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems-vectorstore
+        if: ${{ github.event.inputs.release_vectorstore == 'true' }}
+        working-directory: ai-components/vector-store
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems-cli
+        if: ${{ github.event.inputs.release_cli == 'true' }}
+        working-directory: cli
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems
+        if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+
+      - name: GitHub Release — rakam-systems-core
+        if: ${{ github.event.inputs.release_core == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: core-v${{ steps.core_version.outputs.VERSION }}
+          name: "rakam-systems-core v${{ steps.core_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems-tools
+        if: ${{ github.event.inputs.release_tools == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: tools-v${{ steps.tools_version.outputs.VERSION }}
+          name: "rakam-systems-tools v${{ steps.tools_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems-agent
+        if: ${{ github.event.inputs.release_agent == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: agent-v${{ steps.agent_version.outputs.VERSION }}
+          name: "rakam-systems-agent v${{ steps.agent_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems-vectorstore
+        if: ${{ github.event.inputs.release_vectorstore == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: vectorstore-v${{ steps.vectorstore_version.outputs.VERSION }}
+          name: "rakam-systems-vectorstore v${{ steps.vectorstore_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems-cli
+        if: ${{ github.event.inputs.release_cli == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: cli-v${{ steps.cli_version.outputs.VERSION }}
+          name: "rakam-systems-cli v${{ steps.cli_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems
+        if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}
+          name: "rakam-systems v${{ steps.rakam_systems_version.outputs.VERSION }}"
+          generate_release_notes: true

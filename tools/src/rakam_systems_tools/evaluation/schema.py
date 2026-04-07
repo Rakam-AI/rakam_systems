@@ -1,14 +1,8 @@
 # Common base class for all metric configs
-import sys
-from typing import Any, Dict, List, Literal, Optional, Union
+from typing import Annotated, Any, Dict, List, Literal, Optional, Union
 
 # Base class (you can keep this abstract)
 from pydantic import BaseModel, Field
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
-else:
-    from typing import Annotated
 
 
 class MetricConfigBase(BaseModel):
@@ -71,12 +65,12 @@ class JsonCorrectnessConfig(MetricConfigBase):
     threshold: float = 0.5
     model: str = "gpt-4.1"
     include_reason: bool = True
-    excpected_schema: Dict[str, Any]
+    expected_schema: Dict[str, Any]
 
 
 class FieldsPresenceConfig(MetricConfigBase):
     type: Literal["fields_presence"] = "fields_presence"
-    excpected_schema: Dict[str, Any]
+    expected_schema: Dict[str, Any]
     threshold: float = 0.5
     include_reason: bool = True
     strict_mode: bool = True

@@ -256,7 +256,7 @@ class DocLoader(Loader):
             full_text = self.load_as_text(source)
 
             # Chunk the text using AdvancedChunker's chunk_text method
-            text_chunks = self._chunk_text(full_text)
+            text_chunks = self.chunk_text(full_text)
 
             elapsed = time.time() - start_time
             logger.info(
@@ -712,7 +712,7 @@ class DocLoader(Loader):
 
         return text + image_refs
 
-    def _chunk_text(self, text: str) -> List[str]:
+    def chunk_text(self, text: str) -> List[str]:
         """
         Chunk text using AdvancedChunker's chunk_text method.
 
