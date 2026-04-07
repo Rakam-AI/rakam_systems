@@ -123,9 +123,9 @@ class EvalConfig(BaseModel):
 class SchemaEvalConfig(BaseModel):
     __eval_config__ = "schema_eval"
     component: str = "unknown"
-    scope: Optional[str]
-    reason: Optional[str]
-    risk_level: Optional[str]
+    scope: Optional[str] = None
+    reason: Optional[str] = None
+    risk_level: Optional[str] = None
     label: Union[str, None] = None
     data: List[SchemaInputItem]
     metrics: List[SchemaMetricConfig] = Field(default_factory=list)
