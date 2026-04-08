@@ -17,5 +17,5 @@ This guide is for developers who want to understand the internals of Rakam Syste
 7. [Build vector pipelines](./vectorstore.md) — Data structures, embeddings, document loading, chunking
 8. [Search](./search.md) — Vector search, keyword search, hybrid search
 9. [Configure with YAML](./configuration.md) — Agent configuration, VectorStore configuration, multi-environment deployment
-10. [Track and evaluate](./tracking.md) — Tracking system, cross-reference evaluation CLI and SDK
+10. [Observability](./tracking.md) — TrackingManager (core), EvaluationTracker with Langfuse and MLflow backends, sessions, users, token/cost tracking, scores, datasets
 11. [Environment variables](./environment.md) — Complete reference table
