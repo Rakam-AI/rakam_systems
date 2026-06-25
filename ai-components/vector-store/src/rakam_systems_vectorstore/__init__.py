@@ -35,11 +35,15 @@ from rakam_systems_vectorstore.config import (
 def __getattr__(name):
     """Lazy import Django-dependent components."""
     if name == "ConfigurablePgVectorStore":
+        from rakam_systems_vectorstore._django_setup import ensure_django_configured
+        ensure_django_configured()
         from rakam_systems_vectorstore.components.vectorstore.configurable_pg_vector_store import (
             ConfigurablePgVectorStore,
         )
         return ConfigurablePgVectorStore
     elif name == "PgVectorStore":
+        from rakam_systems_vectorstore._django_setup import ensure_django_configured
+        ensure_django_configured()
         from rakam_systems_vectorstore.components.vectorstore.pg_vector_store import PgVectorStore
         return PgVectorStore
     elif name == "AdaptiveLoader":

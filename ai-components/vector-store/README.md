@@ -61,6 +61,39 @@ store.create_collection_from_nodes("my_collection", nodes)
 results, _ = store.search(collection_name="my_collection", query="AI programming", number=5)
 ```
 
+## PostgreSQL store (Django, FastAPI, or plain Python)
+
+The PostgreSQL store is exposed at a stable import path:
+
+```python
+from rakam_systems_vectorstore.stores import (
+    ConfigurablePgVectorStore,
+    VectorStoreConfig,
+)
+
+store = ConfigurablePgVectorStore(config=VectorStoreConfig())
+store.setup()  # creates the pgvector extension and tables if needed
+```
+
+The store connects through Django's ORM. **Inside a Django process** it uses your
+project's existing database configuration. **Outside Django** (FastAPI, workers,
+scripts) importing from `rakam_systems_vectorstore.stores` automatically
+configures Django from the `POSTGRES_*` environment variables — no
+`DJANGO_SETTINGS_MODULE` or `django.setup()` needed on your side. A host that has
+already configured Django is never overridden.
+
+To target a database other than the `POSTGRES_*` defaults, configure it
+explicitly before the first import from the store:
+
+```python
+from rakam_systems_vectorstore.config import DatabaseConfig
+from rakam_systems_vectorstore.stores import ensure_django_configured
+
+ensure_django_configured(DatabaseConfig(host="db.internal", database="tickets"))
+
+from rakam_systems_vectorstore.stores import ConfigurablePgVectorStore
+```
+
 ## Core Components
 
 - **ConfigurablePgVectorStore** — PostgreSQL with pgvector, hybrid search, keyword search
