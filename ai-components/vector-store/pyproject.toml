@@ -27,6 +27,10 @@ dependencies = [
     "pyyaml>=6.0,<7.0",
     "numpy>=1.24.0,<3.0.0",
     "tqdm>=4.66.0,<5.0.0",
+    # AI gateway embedder resolves providers via pydantic-ai. Pinned <2.0:
+    # 2.x changes provider/embeddings APIs (and 'openai:' default). See
+    # docs/specs/ai-gateway.md.
+    "pydantic-ai>=1.11.0,<2.0.0",
 ]
 
 [project.optional-dependencies]
