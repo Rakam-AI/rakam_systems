@@ -104,13 +104,14 @@ Documentation = "https://github.com/Rakam-AI/rakam_systems-inhouse"
 Repository = "https://github.com/Rakam-AI/rakam_systems-inhouse"
 Issues = "https://github.com/Rakam-AI/rakam_systems-inhouse/issues"
 
-# Optional (monorepo dev only): to test UNRELEASED rakam-systems-core APIs
-# before they are published, uncomment the block below to resolve the sibling
-# core from the local checkout instead of PyPI. Not needed now that the required
-# APIs (EmbeddingRef, ...) ship in rakam-systems-core>=0.1.3. uv strips
-# [tool.uv.sources] from the built wheel, so the published package is unaffected.
-# [tool.uv.sources]
-# rakam-systems-core = { path = "../../core", editable = true }
+# Monorepo dev/CI: resolve the sibling core from the local checkout so we can
+# build/test against UNRELEASED core APIs before they hit PyPI. Needed now:
+# EmbeddingModel.arun ships in rakam-systems-core 0.1.5, which isn't published
+# yet, so the >=0.1.5 pin below is otherwise unsatisfiable in CI. uv strips
+# [tool.uv.sources] from the built wheel, so the published package still pins
+# core>=0.1.5 correctly. Re-comment (optional) once core 0.1.5 is on PyPI.
+[tool.uv.sources]
+rakam-systems-core = { path = "../../core", editable = true }
 
 [tool.uv.build-backend]
 module-root = "src"
