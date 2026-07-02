@@ -72,8 +72,8 @@ Repository = "https://github.com/Rakam-AI/rakam_systems-inhouse"
 # NoopUsageHook) ships in the upcoming rakam-systems-core>=0.1.4, which is not
 # on PyPI yet. Comment this back out once 0.1.4 is published. uv strips
 # [tool.uv.sources] from the built wheel, so the published package is unaffected.
-[tool.uv.sources]
-rakam-systems-core = { path = "../../core", editable = true }
+# [tool.uv.sources]
+# rakam-systems-core = { path = "../../core", editable = true }
 
 [tool.uv.build-backend]
 module-root = "src"
