@@ -110,8 +110,8 @@ Issues = "https://github.com/Rakam-AI/rakam_systems-inhouse/issues"
 # yet, so the >=0.1.5 pin below is otherwise unsatisfiable in CI. uv strips
 # [tool.uv.sources] from the built wheel, so the published package still pins
 # core>=0.1.5 correctly. Re-comment (optional) once core 0.1.5 is on PyPI.
-[tool.uv.sources]
-rakam-systems-core = { path = "../../core", editable = true }
+#[tool.uv.sources]
+#rakam-systems-core = { path = "../../core", editable = true }
 
 [tool.uv.build-backend]
 module-root = "src"
