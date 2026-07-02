@@ -15,8 +15,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 from rakam_systems_core.config_schema import ModelRef
-
-from .metering import NoopUsageHook, UsageHook
+from rakam_systems_core.metering import NoopUsageHook, UsageHook
 
 if TYPE_CHECKING:
     from pydantic_ai.models import Model
