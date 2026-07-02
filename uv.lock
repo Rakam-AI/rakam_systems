@@ -4365,7 +4365,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems"
-version = "0.3.0rc14"
+version = "0.3.1"
 source = { editable = "." }
 dependencies = [
     { name = "rakam-systems-agent", extra = ["all"] },

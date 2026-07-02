@@ -3122,8 +3122,8 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
     { name = "rakam-systems-agent", extras = ["llm-providers"], marker = "extra == 'all'" },
     { name = "rakam-systems-agent", extras = ["postgres"], marker = "extra == 'all'" },
-    { name = "rakam-systems-core", specifier = ">=0.1.2" },
-    { name = "rakam-systems-tools", specifier = ">=0.2.1" },
+    { name = "rakam-systems-core", editable = "../../core" },
+    { name = "rakam-systems-tools", specifier = ">=0.2.2" },
     { name = "tiktoken", marker = "extra == 'llm-providers'", specifier = ">=0.7.0,<1.0.0" },
 ]
 provides-extras = ["llm-providers", "postgres", "all"]
@@ -3139,20 +3139,31 @@ dev = [
 
 [[package]]
 name = "rakam-systems-core"
-version = "0.1.2"
-source = { registry = "https://pypi.org/simple" }
+version = "0.1.4"
+source = { editable = "../../core" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/11/be574608102e6d6792ed7f7431742d74067347efae7239794f61f691e294/rakam_systems_core-0.1.2.tar.gz", hash = "sha256:4c182795de23dc9ed90f7eba560744434949abd30d1eac2e51cf4752ce0fca41", size = 138863, upload-time = "2026-02-27T10:51:11.261Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/42/08/ce6899bae248da8adca282be3344401322ca7a7eedba66b75bfb9545aeba/rakam_systems_core-0.1.2-py3-none-any.whl", hash = "sha256:d1a82658e597635641f4a1d634e256631708328f0091535e686f50513c4975a6", size = 45075, upload-time = "2026-02-27T10:51:08.794Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "build", specifier = ">=1.2.2.post1" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "twine", specifier = ">=6.1.0" },
 ]
 
 [[package]]
 name = "rakam-systems-tools"
-version = "0.2.1"
+version = "0.2.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "boto3" },
@@ -3161,9 +3172,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/34/89/f8f23833ad44009bafca436a4f503e62ba5565c7dcb1decc976d0af4db25/rakam_systems_tools-0.2.1.tar.gz", hash = "sha256:d07594582aa80db1e7b224b42c5dfacff66ae8f81e8182b757a330b401aceb4c", size = 14746, upload-time = "2026-03-31T14:27:59.94Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/44/3c/3602ffcb58cc23514c61cc83ea14438723ab4423d73e066f88d4488a5a23/rakam_systems_tools-0.2.2.tar.gz", hash = "sha256:7aee347fbb96947476bc1813f338272e1662ffc4aa3f091b5a15e4dded617ef9", size = 14789, upload-time = "2026-04-07T22:11:22.495Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/41/44/86002b9eb067261153f579a148ab58bca5be5e26f28a9646fe175cb372b7/rakam_systems_tools-0.2.1-py3-none-any.whl", hash = "sha256:8f7aed98adb0008f833cbfca0b247540f267d1202d0c9603ab6e9b7126f46e00", size = 20287, upload-time = "2026-03-31T14:27:58.823Z" },
+    { url = "https://files.pythonhosted.org/packages/f2/b4/af856f834f7fa794b6e2b5c979912e2ba2fc2a7b567d47e88fbc1c4edff8/rakam_systems_tools-0.2.2-py3-none-any.whl", hash = "sha256:3f289308a8f1cbeac0f9004d15be2091085a7981be8c3fb443f96eecdef597a9", size = 20122, upload-time = "2026-04-07T22:11:23.221Z" },
 ]
 
 [[package]]

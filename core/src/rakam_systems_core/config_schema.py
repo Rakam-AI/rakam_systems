@@ -94,6 +94,59 @@ class ModelConfigSchema(BaseModel):
     extra_settings: Dict[str, Any] = Field(default_factory=dict, description="Additional model settings")
 
 
+class ModelRef(BaseModel):
+    """Standardized model reference for the AI gateway (resolved via pydantic-ai).
+
+    ``ref`` is a ``"<provider>:<model>"`` string, e.g. ``"azure:gpt-4.1-mini"``,
+    ``"ollama:gemma2"``, ``"openai:gpt-4o"``. The same grammar is used for chat
+    and embeddings. Credentials come from the provider's standard environment
+    variables; ``base_url`` optionally overrides the endpoint for
+    OpenAI-compatible providers (Azure / Ollama / local).
+    """
+    # protected_namespaces=() silences pydantic's model_* warning for the
+    # model_name property; extra="allow" mirrors the other config schemas.
+    model_config = {"extra": "allow", "protected_namespaces": ()}
+
+    ref: str = Field(..., description='Model reference "<provider>:<model>"')
+    base_url: Optional[str] = Field(
+        None, description="Optional OpenAI-compatible endpoint override"
+    )
+
+    @validator("ref")
+    def _require_provider_prefix(cls, v):
+        # A bare model name is rejected on purpose: the provider prefix is what
+        # keeps the full pydantic-ai provider range reachable (no allow-list).
+        if ":" not in v:
+            raise ValueError(
+                f'model ref {v!r} must be "<provider>:<model>" '
+                '(e.g. "openai:gpt-4o"); a bare model name is not allowed'
+            )
+        return v
+
+    @property
+    def provider(self) -> str:
+        """Provider prefix, e.g. ``"azure"``."""
+        return self.ref.split(":", 1)[0]
+
+    @property
+    def model_name(self) -> str:
+        """Model portion after the first colon, e.g. ``"gpt-4.1-mini"``.
+
+        Only the first colon splits, so Bedrock inference-profile ids that
+        themselves contain colons survive intact.
+        """
+        return self.ref.split(":", 1)[1]
+
+
+class EmbeddingRef(ModelRef):
+    """Model reference for embeddings, plus the expected output dimension.
+
+    ``dim`` must match the dimension recorded when the index/corpus was built;
+    it is validated at startup to guarantee ingestion<->runtime consistency.
+    """
+    dim: int = Field(..., gt=0, description="Expected embedding output dimension")
+
+
 class PromptConfigSchema(BaseModel):
     """Configuration schema for system prompts and skill sets."""
     model_config = {"extra": "allow"}
