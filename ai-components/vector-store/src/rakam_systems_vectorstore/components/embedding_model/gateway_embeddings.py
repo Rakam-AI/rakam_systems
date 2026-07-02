@@ -22,11 +22,17 @@ _LOCAL_PROVIDERS = {"sentence-transformers", "sentence_transformer", "st", "loca
 
 
 class GatewayEmbeddings(EmbeddingModel):
-    """Sync ``EmbeddingModel`` adapter over a pydantic-ai embedder.
+    """``EmbeddingModel`` adapter over a pydantic-ai embedder.
 
-    ``embedder`` only needs an ``embed_documents_sync(texts) -> result`` method
-    whose result exposes ``.embeddings`` (a sequence of vectors); this keeps the
-    adapter unit-testable with a stub and independent of pydantic-ai internals.
+    pydantic-ai's ``Embedder`` is async-native, so :meth:`arun` awaits
+    ``embed_documents`` directly — the right path for async services (their
+    handlers run inside an event loop, where the sync ``embed_documents_sync``
+    would raise "event loop already running"). :meth:`run` stays for the sync
+    ``EmbeddingModel`` contract (the vector store's own sync/threaded indexing).
+
+    ``embedder`` needs ``embed_documents_sync`` and async ``embed_documents``,
+    each returning a result whose ``.embeddings`` is a sequence of vectors; a
+    stub with those is enough to unit-test the adapter.
     """
 
     def __init__(self, embedder: Any, dim: int, name: str = "gateway_embeddings") -> None:
@@ -34,20 +40,28 @@ class GatewayEmbeddings(EmbeddingModel):
         self._embedder = embedder
         self._dim = dim
 
-    def run(self, texts: List[str]) -> List[List[float]]:
-        if not texts:
-            return []
-        result = self._embedder.embed_documents_sync(texts)
+    def _to_vectors(self, result: Any) -> List[List[float]]:
         vectors = [list(v) for v in result.embeddings]
         # Cheap invariant: the provider honoured the requested dimension. Guards
         # against a model/ref that silently returns a different-width vector,
-        # which would corrupt the index. Full index<->runtime check is PR 4.
+        # which would corrupt the index. Full index<->runtime check is in the
+        # embedding_consistency helper.
         if vectors and len(vectors[0]) != self._dim:
             raise ValueError(
                 f"embedding dimension mismatch: model returned {len(vectors[0])}, "
                 f"config expects {self._dim} (check the ref and dim)"
             )
         return vectors
+
+    def run(self, texts: List[str]) -> List[List[float]]:
+        if not texts:
+            return []
+        return self._to_vectors(self._embedder.embed_documents_sync(texts))
+
+    async def arun(self, texts: List[str]) -> List[List[float]]:
+        if not texts:
+            return []
+        return self._to_vectors(await self._embedder.embed_documents(texts))
 
 
 def build_embedder(cfg: EmbeddingRef) -> EmbeddingModel:

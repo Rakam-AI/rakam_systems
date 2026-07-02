@@ -65,6 +65,16 @@ def __getattr__(name):
     elif name == "FaissVectorStore":
         from rakam_systems_vectorstore.components.vectorstore.faiss_vector_store import FaissStore as FaissVectorStore
         return FaissVectorStore
+    elif name == "build_embedder":
+        from rakam_systems_vectorstore.components.embedding_model.gateway_embeddings import (
+            build_embedder,
+        )
+        return build_embedder
+    elif name == "GatewayEmbeddings":
+        from rakam_systems_vectorstore.components.embedding_model.gateway_embeddings import (
+            GatewayEmbeddings,
+        )
+        return GatewayEmbeddings
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -90,6 +100,10 @@ __all__ = [
     "create_adaptive_loader",
     "ConfigurableEmbeddings",
     "create_embedding_model",
+
+    # AI gateway embedder
+    "build_embedder",
+    "GatewayEmbeddings",
 
     # Original components (backward compatibility)
     "PgVectorStore",

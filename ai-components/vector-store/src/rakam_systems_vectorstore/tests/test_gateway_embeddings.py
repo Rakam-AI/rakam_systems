@@ -1,4 +1,6 @@
 """Tests for the AI gateway embedder (build_embedder / GatewayEmbeddings)."""
+import asyncio
+
 import pytest
 
 from rakam_systems_core.config_schema import EmbeddingRef
@@ -15,14 +17,19 @@ class _FakeResult:
 
 
 class _FakeEmbedder:
-    """Minimal stand-in for pydantic-ai's Embedder (sync path only)."""
+    """Minimal stand-in for pydantic-ai's Embedder (sync + async paths)."""
 
     def __init__(self, embeddings):
         self._embeddings = embeddings
         self.calls = []
+        self.async_calls = []
 
     def embed_documents_sync(self, texts):
         self.calls.append(list(texts))
+        return _FakeResult(self._embeddings)
+
+    async def embed_documents(self, texts):
+        self.async_calls.append(list(texts))
         return _FakeResult(self._embeddings)
 
 
@@ -43,6 +50,36 @@ class TestGatewayEmbeddingsAdapter:
         fake = _FakeEmbedder([[0.1, 0.2, 0.3]])  # width 3
         with pytest.raises(ValueError, match="dimension mismatch"):
             GatewayEmbeddings(fake, dim=4).run(["a"])
+
+
+class TestGatewayEmbeddingsAsync:
+    def test_arun_awaits_native_async_path(self):
+        fake = _FakeEmbedder([[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]])
+        adapter = GatewayEmbeddings(fake, dim=4)
+        # arun must work *inside* a running loop — the whole reason it exists
+        # (embed_documents_sync would raise "event loop already running" here).
+        out = asyncio.run(adapter.arun(["a", "b"]))
+        assert out == [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]]
+        assert fake.async_calls == [["a", "b"]]  # took the async path, not sync
+        assert fake.calls == []
+
+    def test_arun_empty_short_circuits(self):
+        fake = _FakeEmbedder([])
+        assert asyncio.run(GatewayEmbeddings(fake, dim=4).arun([])) == []
+        assert fake.async_calls == []
+
+    def test_arun_dimension_mismatch_raises(self):
+        fake = _FakeEmbedder([[0.1, 0.2, 0.3]])  # width 3
+        with pytest.raises(ValueError, match="dimension mismatch"):
+            asyncio.run(GatewayEmbeddings(fake, dim=4).arun(["a"]))
+
+
+class TestPublicSurface:
+    def test_build_embedder_and_gateway_embeddings_importable_from_package_root(self):
+        import rakam_systems_vectorstore as vs
+
+        assert vs.build_embedder is build_embedder
+        assert vs.GatewayEmbeddings is GatewayEmbeddings
 
 
 class TestBuildEmbedder:
