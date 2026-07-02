@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 resolution-markers = [
     "python_full_version >= '3.14' and python_full_version < '4'",
@@ -4695,15 +4695,26 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-core"
-version = "0.1.3"
-source = { registry = "https://pypi.org/simple" }
+version = "0.1.5"
+source = { editable = "../../core" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cc/6e/3786a41a29972a70173ea318b8c47dda9a30390146fdb46c56bf7a6ca702/rakam_systems_core-0.1.3.tar.gz", hash = "sha256:30508db6d8c8035b77c4929ab30dcb29d628bb307d4f6a6aa646b24954a8baff", size = 43845, upload-time = "2026-07-02T10:29:25.634Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/97/df/86e27c4c1022b0623a05b6034d56f1aebaa284fb822dabb3bc40ca6e1a7d/rakam_systems_core-0.1.3-py3-none-any.whl", hash = "sha256:b1d67be99078cda0bfa5d7f7f0b141fd4446be69d98d437e37d4de5bb0c908ad", size = 59965, upload-time = "2026-07-02T10:29:24.434Z" },
+
+[package.metadata]
+requires-dist = [
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "build", specifier = ">=1.2.2.post1" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "pytest-asyncio", specifier = ">=0.24.0" },
+    { name = "pytest-cov", specifier = ">=5.0.0" },
+    { name = "twine", specifier = ">=6.1.0" },
 ]
 
 [[package]]
@@ -4724,7 +4735,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-vectorstore"
-version = "0.1.4"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -4816,7 +4827,7 @@ requires-dist = [
     { name = "python-docx", marker = "extra == 'loaders'", specifier = ">=1.2.0" },
     { name = "python-magic", marker = "extra == 'loaders'", specifier = ">=0.4.27" },
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
-    { name = "rakam-systems-core", specifier = ">=0.1.3" },
+    { name = "rakam-systems-core", editable = "../../core" },
     { name = "rakam-systems-tools", specifier = ">=0.2.2" },
     { name = "rakam-systems-vectorstore", extras = ["cohere"], marker = "extra == 'all'" },
     { name = "rakam-systems-vectorstore", extras = ["faiss"], marker = "extra == 'all'" },
