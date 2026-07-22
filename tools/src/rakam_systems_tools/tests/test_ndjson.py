@@ -157,18 +157,56 @@ def s3_ndjson_object():
     s3.delete_file(key)
 
 
-def test_stream_ndjson_from_s3_roundtrip_and_resume(s3_ndjson_object):
-    """Full stream matches source; a mid-record resume lands on a clean record."""
+def test_stream_ndjson_from_s3_default_resume_keeps_boundary_record(monkeypatch):
+    """Regression: resuming from a checkpoint ``end_offset`` (a clean boundary)
+    must NOT drop the record that starts at that boundary. No S3 — the reader is
+    faked, so this guards the wrapper's skip decision on every run.
+    """
+    from rakam_systems_tools.utils.s3 import s3 as s3mod
+
+    data = b'{"a":1}\n{"b":2}\n{"c":3}\n'
+
+    def fake_stream_file(key, bucket=None, chunk_size=1024, start_offset=0):
+        yield data[start_offset:]
+
+    monkeypatch.setattr(s3mod, "stream_file", fake_stream_file)
+
+    full = list(stream_ndjson_from_s3("k"))
+    assert [r for r, _ in full] == [{"a": 1}, {"b": 2}, {"c": 3}]
+
+    # end_offset yielded after the first record is a clean boundary.
+    checkpoint = full[0][1]
+    resumed = list(stream_ndjson_from_s3("k", start_offset=checkpoint))
+    assert [r for r, _ in resumed] == [{"b": 2}, {"c": 3}]  # {"b":2} NOT dropped
+    assert resumed[-1][1] == len(data)
+
+
+def test_stream_ndjson_from_s3_roundtrip_and_checkpoint_resume(s3_ndjson_object):
+    """Full stream matches source; resuming from a checkpoint end_offset yields
+    the next record onward without dropping the boundary record."""
     key, records, size = s3_ndjson_object
 
     streamed = list(stream_ndjson_from_s3(key))
     assert [r for r, _ in streamed] == records
     assert streamed[-1][1] == size
 
-    # Resume from a byte offset that lands inside some record.
+    # Resume from a real checkpoint: the end_offset yielded after record k.
+    k = len(records) // 2
+    checkpoint = streamed[k][1]
+    resumed = list(stream_ndjson_from_s3(key, start_offset=checkpoint))
+    assert [r for r, _ in resumed] == records[k + 1:]  # record k+1 not dropped
+    assert resumed[-1][1] == size
+
+
+def test_stream_ndjson_from_s3_arbitrary_offset_skips_partial(s3_ndjson_object):
+    """With skip_partial_first_line=True, an arbitrary mid-record offset skips
+    the shattered partial and starts on the next whole record."""
+    key, records, size = s3_ndjson_object
+
     mid = size // 2
-    resumed = list(stream_ndjson_from_s3(key, start_offset=mid))
-    # It must skip the shattered partial and start on the next whole record.
+    resumed = list(
+        stream_ndjson_from_s3(key, start_offset=mid, skip_partial_first_line=True)
+    )
     assert resumed[0][0] in records
     resume_index = records.index(resumed[0][0])
     assert [r for r, _ in resumed] == records[resume_index:]

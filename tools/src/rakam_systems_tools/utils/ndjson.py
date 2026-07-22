@@ -78,12 +78,20 @@ def stream_ndjson_from_s3(
     key: str,
     bucket: Optional[str] = None,
     start_offset: int = 0,
+    skip_partial_first_line: bool = False,
 ) -> Iterator[tuple[dict, int]]:
     """Stream an S3 NDJSON object as ``(record_dict, end_offset)`` records.
 
     Wires T1.1's ``s3.stream_file`` into ``iter_ndjson_lines`` and JSON-decodes
-    each record. When ``start_offset > 0``, issues the ranged read and drops the
-    first partial line so decoding starts on a clean record boundary.
+    each record.
+
+    ``start_offset`` is meant to be a checkpoint previously yielded as
+    ``end_offset`` — always the byte just past a record's terminating newline,
+    i.e. a clean record boundary. So the byte at ``start_offset`` is the start of
+    the next unprocessed record and is NOT dropped. Only set
+    ``skip_partial_first_line=True`` when resuming from an arbitrary byte offset
+    that may land mid-record (not a checkpoint) — otherwise the record sitting on
+    the boundary would be silently lost.
 
     Lives here (not in ``iter_ndjson_lines``) so JSON decoding stays out of the
     pure splitter and so ``rakam_systems_vectorstore`` never pulls in an S3
@@ -93,6 +101,9 @@ def stream_ndjson_from_s3(
         key: The S3 object key.
         bucket: Bucket name (defaults to ``S3_BUCKET_NAME``).
         start_offset: Absolute byte offset to resume from; 0 reads from the top.
+            A checkpoint ``end_offset`` is a clean boundary — no record is dropped.
+        skip_partial_first_line: Drop the first (partial) line. Only for resuming
+            from an arbitrary, non-checkpoint offset that may split a record.
 
     Yields:
         tuple[dict, int]: ``(record_dict, end_offset)`` per NDJSON record.
@@ -103,7 +114,7 @@ def stream_ndjson_from_s3(
     for line, end_offset in iter_ndjson_lines(
         chunks,
         start_offset=start_offset,
-        skip_partial_first_line=start_offset > 0,
+        skip_partial_first_line=skip_partial_first_line,
     ):
         yield json.loads(line.decode("utf-8")), end_offset
 
