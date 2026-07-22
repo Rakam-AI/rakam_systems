@@ -14,6 +14,7 @@ jobs:
             agents: ${{ steps.filter.outputs.agents }}
             vectorstore: ${{ steps.filter.outputs.vectorstore }}
             tools: ${{ steps.filter.outputs.tools }}
+            documents: ${{ steps.filter.outputs.documents }}
         steps:
             - uses: actions/checkout@v4
 
@@ -35,6 +36,8 @@ jobs:
                         - 'core/**'
                       tools:
                         - 'tools/**'
+                      documents:
+                        - 'documents/**'
 
     core-tests:
         needs: changes
@@ -198,5 +201,38 @@ jobs:
 
             - name: Display CLI coverage
               working-directory: cli
+              if: always()
+              run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
+
+    documents-tests:
+        needs: changes
+        if: needs.changes.outputs.documents == 'true'
+        runs-on: ubuntu-latest
+        strategy:
+            matrix:
+                python-version: ["3.10", "3.11", "3.12"]
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: astral-sh/setup-uv@v7
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install Documents dependencies
+              working-directory: documents
+              run: uv sync --all-extras --dev
+
+            - name: Run Documents tests
+              working-directory: documents
+              run: |
+                  uv run pytest -v --cov --cov-report=term-missing || EXIT_CODE=$?
+                  if [ "${EXIT_CODE:-0}" -eq 5 ]; then
+                    echo "No Documents tests collected"
+                    exit 0
+                  fi
+                  exit ${EXIT_CODE:-0}
+
+            - name: Display Documents coverage
+              working-directory: documents
               if: always()
               run: uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY || true
