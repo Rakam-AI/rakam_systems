@@ -41,6 +41,15 @@ postgres = [
     "django>=4.0.0,<6.0.0",
 ]
 
+# Standalone (non-Django) loaders for the ephemeral ingestion job.
+# psycopg v3 is a distinct distribution from the Django stores' psycopg2-binary
+# (postgres extra), so the two coexist without a version clash; kept out of the
+# runtime import path by living behind this optional extra.
+ingestion = [
+    "psycopg[binary]>=3.1,<4.0",
+    "neo4j>=5.0,<6.0",
+]
+
 # FAISS backend for in-memory vector search
 faiss = [
     "faiss-cpu>=1.12.0",
@@ -68,7 +77,10 @@ loaders = [
     "beautifulsoup4>=4.12.0",
     "python-docx>=1.2.0",
     "pymupdf>=1.24.0",
-    "pymupdf4llm>=0.0.17",
+    # Cap <1.0: the 1.x line pulls `pymupdf-layout` -> `onnxruntime`, whose
+    # py<3.11 pin has no cp310 wheels (breaks the 3.10 leg) and drags a heavy ML
+    # tree. Unbounded, a fresh lock resolves to 1.x; this keeps the light 0.x.
+    "pymupdf4llm>=0.0.17,<1.0",
     "docling==2.62.0",
     "chonkie==1.4.2",
     "odfpy==1.4.1",

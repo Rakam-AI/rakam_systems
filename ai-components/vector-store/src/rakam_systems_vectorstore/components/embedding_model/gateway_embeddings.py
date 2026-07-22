@@ -35,10 +35,22 @@ class GatewayEmbeddings(EmbeddingModel):
     stub with those is enough to unit-test the adapter.
     """
 
-    def __init__(self, embedder: Any, dim: int, name: str = "gateway_embeddings") -> None:
+    def __init__(
+        self,
+        embedder: Any,
+        dim: int,
+        name: str = "gateway_embeddings",
+        batch_size: int | None = None,
+    ) -> None:
         super().__init__(name=name)
         self._embedder = embedder
         self._dim = dim
+        # None -> hand all texts to the provider in one call (original behavior,
+        # what the 2 existing consumers get). A positive int chunks the corpus so
+        # the embed stage stays under provider per-request limits and O(batch)
+        # memory. Batches run in input order so vectors stay aligned with the
+        # caller's rows (the pgvector loader zips them positionally).
+        self._batch_size = batch_size
 
     def _to_vectors(self, result: Any) -> List[List[float]]:
         vectors = [list(v) for v in result.embeddings]
@@ -56,20 +68,43 @@ class GatewayEmbeddings(EmbeddingModel):
     def run(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        return self._to_vectors(self._embedder.embed_documents_sync(texts))
+        if not self._batch_size:
+            return self._to_vectors(self._embedder.embed_documents_sync(texts))
+        out: List[List[float]] = []
+        for i in range(0, len(texts), self._batch_size):
+            out.extend(
+                self._to_vectors(
+                    self._embedder.embed_documents_sync(texts[i : i + self._batch_size])
+                )
+            )
+        return out
 
     async def arun(self, texts: List[str]) -> List[List[float]]:
         if not texts:
             return []
-        return self._to_vectors(await self._embedder.embed_documents(texts))
+        if not self._batch_size:
+            return self._to_vectors(await self._embedder.embed_documents(texts))
+        out: List[List[float]] = []
+        for i in range(0, len(texts), self._batch_size):
+            out.extend(
+                self._to_vectors(
+                    await self._embedder.embed_documents(texts[i : i + self._batch_size])
+                )
+            )
+        return out
 
 
-def build_embedder(cfg: EmbeddingRef) -> EmbeddingModel:
+def build_embedder(cfg: EmbeddingRef, batch_size: int | None = None) -> EmbeddingModel:
     """Build an ``EmbeddingModel`` from a standardized :class:`EmbeddingRef`.
 
     Returns a live embedder ready for the vector stores' ``run(texts)`` call.
     pydantic-ai imports are lazy so importing this module never requires
     pydantic-ai unless the gateway path is actually used.
+
+    ``batch_size`` defaults to ``None`` — a single provider call, the behavior
+    the 2 existing product consumers rely on. The ingestion embed stage passes a
+    positive size to bound per-request payload/memory over a large corpus.
+    (``EmbeddingRef`` carries no batch field, so the param is the sole source.)
     """
     if cfg.provider in _LOCAL_PROVIDERS:
         from rakam_systems_vectorstore.components.embedding_model.configurable_embeddings import (
@@ -97,4 +132,4 @@ def build_embedder(cfg: EmbeddingRef) -> EmbeddingModel:
     # dimensions is applied to every request so the output width equals cfg.dim
     # (this is what produces the graph's 384-dim truncation of text-embedding-3-*).
     embedder = Embedder(model, settings=EmbeddingSettings(dimensions=cfg.dim))
-    return GatewayEmbeddings(embedder, dim=cfg.dim)
+    return GatewayEmbeddings(embedder, dim=cfg.dim, batch_size=batch_size)
