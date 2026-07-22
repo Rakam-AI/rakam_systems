@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 """
 Byte-level NDJSON streaming for rakam_systems.
 
@@ -13,6 +11,7 @@ U+2028, U+2085 and ``\r``, which shatters records whose JSON string values
 (email bodies) legitimately contain those characters. Doing the split at the
 byte level is the canonical fix for that corruption.
 """
+from __future__ import annotations
 
 import json
 from typing import Iterable, Iterator, Optional
