@@ -33,6 +33,61 @@ class _FakeEmbedder:
         return _FakeResult(self._embeddings)
 
 
+class _EchoEmbedder:
+    """Returns one index-encoding vector per input text, so batch splitting and
+    output order are both checkable. ``calls`` records each batch's size."""
+
+    def __init__(self, dim=4):
+        self._dim = dim
+        self.calls = []
+        self.async_calls = []
+
+    def _vectors(self, texts):
+        # Each text is "t{k}"; encode k in the first slot, pad to dim so the
+        # per-batch dim-guard stays satisfied.
+        return _FakeResult(
+            [[float(int(t[1:]))] + [0.0] * (self._dim - 1) for t in texts]
+        )
+
+    def embed_documents_sync(self, texts):
+        self.calls.append(len(texts))
+        return self._vectors(texts)
+
+    async def embed_documents(self, texts):
+        self.async_calls.append(len(texts))
+        return self._vectors(texts)
+
+
+class TestGatewayEmbeddingsBatching:
+    def test_batching_splits_into_expected_calls(self):
+        fake = _EchoEmbedder()
+        adapter = GatewayEmbeddings(fake, dim=4, batch_size=100)
+        adapter.run([f"t{k}" for k in range(250)])
+        assert fake.calls == [100, 100, 50]
+
+    def test_batching_preserves_order_and_count(self):
+        fake = _EchoEmbedder()
+        adapter = GatewayEmbeddings(fake, dim=4, batch_size=100)
+        out = adapter.run([f"t{k}" for k in range(250)])
+        assert len(out) == 250
+        assert [int(v[0]) for v in out] == list(range(250))  # vector k <- input k
+
+    def test_batch_size_none_is_single_call(self):
+        # Regression guard for the 2 existing consumers: default path is untouched.
+        fake = _EchoEmbedder()
+        adapter = GatewayEmbeddings(fake, dim=4)
+        adapter.run([f"t{k}" for k in range(250)])
+        assert fake.calls == [250]
+
+    def test_arun_batches_in_order(self):
+        fake = _EchoEmbedder()
+        adapter = GatewayEmbeddings(fake, dim=4, batch_size=100)
+        out = asyncio.run(adapter.arun([f"t{k}" for k in range(250)]))
+        assert fake.async_calls == [100, 100, 50]
+        assert [int(v[0]) for v in out] == list(range(250))
+        assert fake.calls == []  # async path only
+
+
 class TestGatewayEmbeddingsAdapter:
     def test_extracts_vectors_as_lists(self):
         fake = _FakeEmbedder([[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]])
@@ -91,6 +146,11 @@ class TestBuildEmbedder:
         emb = build_embedder(EmbeddingRef(ref="openai:text-embedding-3-small", dim=1536))
         assert isinstance(emb, GatewayEmbeddings)
         assert emb._dim == 1536
+
+    def test_build_embedder_threads_batch_size(self):
+        cfg = EmbeddingRef(ref="openai:text-embedding-3-small", dim=1536)
+        assert build_embedder(cfg, batch_size=64)._batch_size == 64
+        assert build_embedder(cfg)._batch_size is None  # default unchanged
 
     def test_base_url_ref_returns_adapter(self):
         emb = build_embedder(
