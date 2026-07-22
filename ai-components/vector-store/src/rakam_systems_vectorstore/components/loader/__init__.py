@@ -29,6 +29,8 @@ _DOCUMENT_LOADERS = {
 _INGESTION_LOADERS = {
     "PgVectorLoader": "pgvector_loader",
     "PgVectorLoaderConfig": "pgvector_loader",
+    "Neo4jLoader": "neo4j_loader",
+    "Neo4jLoaderConfig": "neo4j_loader",
 }
 
 

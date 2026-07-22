@@ -47,6 +47,7 @@ postgres = [
 # runtime import path by living behind this optional extra.
 ingestion = [
     "psycopg[binary]>=3.1,<4.0",
+    "neo4j>=5.0,<6.0",
 ]
 
 # FAISS backend for in-memory vector search

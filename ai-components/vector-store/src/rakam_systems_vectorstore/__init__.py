@@ -84,6 +84,15 @@ def __getattr__(name):
             "PgVectorLoader": PgVectorLoader,
             "PgVectorLoaderConfig": PgVectorLoaderConfig,
         }[name]
+    elif name in ("Neo4jLoader", "Neo4jLoaderConfig"):
+        from rakam_systems_vectorstore.components.loader.neo4j_loader import (
+            Neo4jLoader,
+            Neo4jLoaderConfig,
+        )
+        return {
+            "Neo4jLoader": Neo4jLoader,
+            "Neo4jLoaderConfig": Neo4jLoaderConfig,
+        }[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -117,6 +126,8 @@ __all__ = [
     # Ingestion loaders (standalone, non-Django)
     "PgVectorLoader",
     "PgVectorLoaderConfig",
+    "Neo4jLoader",
+    "Neo4jLoaderConfig",
 
     # Original components (backward compatibility)
     "PgVectorStore",
