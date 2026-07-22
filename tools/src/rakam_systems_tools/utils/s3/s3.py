@@ -25,7 +25,7 @@ Configuration is read from environment variables:
 """
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterator, List, Optional
 
 try:
     import boto3
@@ -46,6 +46,8 @@ _S3_BUCKET_NAME = os.getenv("S3_BUCKET_NAME")
 
 # Singleton client instance
 _client: Optional[Any] = None
+
+_DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB — matches the prototyped brick reads
 
 
 class S3Error(Exception):
@@ -217,6 +219,66 @@ def download_file(
         if error_code == 'NoSuchKey' or error_code == '404':
             raise S3NotFoundError(f"File not found: '{key}'")
         raise S3Error(f"Failed to download file '{key}': {error_code} - {e}")
+
+
+def stream_file(
+    key: str,
+    bucket: Optional[str] = None,
+    chunk_size: int = _DEFAULT_CHUNK_SIZE,
+    start_offset: int = 0,
+) -> Iterator[bytes]:
+    """
+    Yield an object's Body in bounded ``chunk_size`` chunks.
+
+    Peak memory is ~one chunk regardless of object size. When ``start_offset > 0``,
+    issues a ranged request (``Range: bytes=<start_offset>-``) so only the tail is
+    fetched — the resume primitive for byte-offset checkpointing.
+
+    Args:
+        key: The S3 object key (path/filename).
+        bucket: Bucket name (defaults to S3_BUCKET_NAME).
+        chunk_size: Maximum size in bytes of each yielded chunk.
+        start_offset: Byte offset to resume from; 0 reads the whole object.
+
+    Yields:
+        bytes: Successive chunks of the object body, each up to ``chunk_size``.
+
+    Raises:
+        S3NotFoundError: If the object does not exist.
+        S3Error: If the read fails.
+
+    Note:
+        Closes the Body when the generator is exhausted or garbage-collected.
+        A ``start_offset`` past the end of the object yields nothing and returns
+        cleanly — an empty tail is a valid resume state.
+    """
+    client = get_client()
+    bucket = bucket or _S3_BUCKET_NAME
+
+    get_args = {"Bucket": bucket, "Key": key}
+    if start_offset > 0:
+        get_args["Range"] = f"bytes={start_offset}-"
+
+    try:
+        response = client.get_object(**get_args)
+    except ClientError as e:
+        error_code = e.response.get("Error", {}).get("Code", "Unknown")
+        if error_code == "NoSuchKey" or error_code == "404":
+            raise S3NotFoundError(f"File not found: '{key}'")
+        # A start_offset at/past EOF is a valid resume state, not an error.
+        if error_code == "InvalidRange":
+            return
+        raise S3Error(f"Failed to stream file '{key}': {error_code} - {e}")
+
+    body = response["Body"]
+    try:
+        while True:
+            chunk = body.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
+    finally:
+        body.close()
 
 
 def delete_file(key: str, bucket: Optional[str] = None) -> bool:
@@ -468,6 +530,7 @@ __all__ = [
     # File operations
     "upload_file",
     "download_file",
+    "stream_file",
     "delete_file",
     "file_exists",
     "list_files",
