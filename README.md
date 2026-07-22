@@ -23,6 +23,7 @@ Rakam Systems provides modular, independently installable packages:
 | `rakam-systems-vectorstore` | Vector storage and document processing for semantic search and RAG |
 | `rakam-systems-tools` | Evaluation tools, cloud storage utilities, and monitoring |
 | `rakam-systems-cli` | Command-line interface for running evaluations and tracking quality |
+| `rakam-systems-documents` | Generic document preparation: any source (PDF, Excel, CSV, email, image) → markdown + structured rows + provenance |
 
 
 ## Installation
@@ -50,6 +51,9 @@ pip install rakam-systems-tools
 
 # CLI
 pip install rakam-systems-cli
+
+# Documents (document preparation; add [docling] for on-prem OCR)
+pip install rakam-systems-documents
 
 # Agent + Vectorstore (for RAG applications)
 pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]

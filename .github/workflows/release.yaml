@@ -32,6 +32,10 @@ on:
         description: "Release rakam-systems-cli"
         type: boolean
         default: false
+      release_documents:
+        description: "Release rakam-systems-documents"
+        type: boolean
+        default: false
       release_rakam_systems:
         description: "Release rakam-systems (umbrella)"
         type: boolean
@@ -71,6 +75,7 @@ jobs:
             "${{ github.event.inputs.release_agent }}"
             "${{ github.event.inputs.release_vectorstore }}"
             "${{ github.event.inputs.release_cli }}"
+            "${{ github.event.inputs.release_documents }}"
             "${{ github.event.inputs.release_rakam_systems }}"
           )
           for val in "${selected[@]}"; do
@@ -133,6 +138,13 @@ jobs:
           VERSION=$(python3 /tmp/bump_version.py cli/pyproject.toml ${{ github.event.inputs.version_increment }})
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Bump version — rakam-systems-documents
+        if: ${{ github.event.inputs.release_documents == 'true' }}
+        id: documents_version
+        run: |
+          VERSION=$(python3 /tmp/bump_version.py documents/pyproject.toml ${{ github.event.inputs.version_increment }})
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Bump version — rakam-systems
         if: ${{ github.event.inputs.release_rakam_systems == 'true' }}
         id: rakam_systems_version
@@ -149,6 +161,7 @@ jobs:
             ai-components/agents/pyproject.toml \
             ai-components/vector-store/pyproject.toml \
             cli/pyproject.toml \
+            documents/pyproject.toml \
             pyproject.toml
           git diff --cached --quiet && echo "No version changes to commit." && exit 0
           git commit -m "chore: bump versions [${{ github.event.inputs.version_increment }}]"
@@ -169,6 +182,9 @@ jobs:
           fi
           if [[ "${{ github.event.inputs.release_cli }}" == "true" ]]; then
             git tag "cli-v${{ steps.cli_version.outputs.VERSION }}"
+          fi
+          if [[ "${{ github.event.inputs.release_documents }}" == "true" ]]; then
+            git tag "documents-v${{ steps.documents_version.outputs.VERSION }}"
           fi
           if [[ "${{ github.event.inputs.release_rakam_systems }}" == "true" ]]; then
             git tag "rakam-systems-v${{ steps.rakam_systems_version.outputs.VERSION }}"
@@ -209,6 +225,13 @@ jobs:
       - name: Build and publish rakam-systems-cli
         if: ${{ github.event.inputs.release_cli == 'true' }}
         working-directory: cli
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_TOKEN }}
+
+      - name: Build and publish rakam-systems-documents
+        if: ${{ github.event.inputs.release_documents == 'true' }}
+        working-directory: documents
         run: |
           uv build
           uv publish --token ${{ secrets.PYPI_TOKEN }}
@@ -258,6 +281,14 @@ jobs:
         with:
           tag_name: cli-v${{ steps.cli_version.outputs.VERSION }}
           name: "rakam-systems-cli v${{ steps.cli_version.outputs.VERSION }}"
+          generate_release_notes: true
+
+      - name: GitHub Release — rakam-systems-documents
+        if: ${{ github.event.inputs.release_documents == 'true' }}
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: documents-v${{ steps.documents_version.outputs.VERSION }}
+          name: "rakam-systems-documents v${{ steps.documents_version.outputs.VERSION }}"
           generate_release_notes: true
 
       - name: GitHub Release — rakam-systems

@@ -1,0 +1,52 @@
+[build-system]
+requires = ["uv_build >= 0.7.19, <0.9.0"]
+build-backend = "uv_build"
+
+[project]
+name = "rakam-systems-documents"
+version = "0.1.0"
+description = "Generic document preparation: any source -> PreparedContent (markdown + structured rows + provenance)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Roman Grebnev" }
+]
+dependencies = [
+    "pydantic>=2.10.6",
+    # Cap below 0.0.18: that release pulls in `pymupdf-layout` -> `onnxruntime`,
+    # a heavy ML dep whose py<3.11 pin (onnxruntime 1.24.x) has no cp310 wheels —
+    # it breaks the 3.10 build and defeats this package's light, no-egress goal.
+    "pymupdf4llm>=0.0.17,<0.0.18",
+    "pymupdf>=1.24.0",
+    "openpyxl>=3.1.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+# On-prem, no-egress OCR. Optional — the default (hosted) OCR path needs none of this.
+docling = ["docling==2.62.0"]
+
+[dependency-groups]
+dev = [
+    "build>=1.2.2.post1",
+    "pytest>=8.3.5",
+    "pytest-cov>=5.0.0",
+    "twine>=6.1.0",
+]
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.uv.build-backend]
+module-root = "src"
+exclude = ["**/tests/**"]
+
+[tool.pytest.ini_options]
+testpaths = ["src/rakam_systems_documents/tests"]
+python_files = "test_*.py"
