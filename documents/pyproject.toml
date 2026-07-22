@@ -14,7 +14,10 @@ authors = [
 ]
 dependencies = [
     "pydantic>=2.10.6",
-    "pymupdf4llm>=0.0.17",
+    # Cap below 0.0.18: that release pulls in `pymupdf-layout` -> `onnxruntime`,
+    # a heavy ML dep whose py<3.11 pin (onnxruntime 1.24.x) has no cp310 wheels —
+    # it breaks the 3.10 build and defeats this package's light, no-egress goal.
+    "pymupdf4llm>=0.0.17,<0.0.18",
     "pymupdf>=1.24.0",
     "openpyxl>=3.1.0",
     "httpx>=0.27.0",
