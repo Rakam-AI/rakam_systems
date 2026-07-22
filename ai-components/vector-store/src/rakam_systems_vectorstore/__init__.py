@@ -75,6 +75,15 @@ def __getattr__(name):
             GatewayEmbeddings,
         )
         return GatewayEmbeddings
+    elif name in ("PgVectorLoader", "PgVectorLoaderConfig"):
+        from rakam_systems_vectorstore.components.loader.pgvector_loader import (
+            PgVectorLoader,
+            PgVectorLoaderConfig,
+        )
+        return {
+            "PgVectorLoader": PgVectorLoader,
+            "PgVectorLoaderConfig": PgVectorLoaderConfig,
+        }[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
@@ -104,6 +113,10 @@ __all__ = [
     # AI gateway embedder
     "build_embedder",
     "GatewayEmbeddings",
+
+    # Ingestion loaders (standalone, non-Django)
+    "PgVectorLoader",
+    "PgVectorLoaderConfig",
 
     # Original components (backward compatibility)
     "PgVectorStore",

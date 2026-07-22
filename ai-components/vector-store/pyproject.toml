@@ -1,6 +1,6 @@
 [project]
 name = "rakam-systems-vectorstore"
-version = "0.1.6"
+version = "0.2.0"
 description = "Utility package for interacting with vectorstores"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -39,6 +39,14 @@ postgres = [
     "psycopg2-binary>=2.9.9,<3.0.0",
     "pgvector>=0.3.0,<1.0.0",
     "django>=4.0.0,<6.0.0",
+]
+
+# Standalone (non-Django) loaders for the ephemeral ingestion job.
+# psycopg v3 is a distinct distribution from the Django stores' psycopg2-binary
+# (postgres extra), so the two coexist without a version clash; kept out of the
+# runtime import path by living behind this optional extra.
+ingestion = [
+    "psycopg[binary]>=3.1,<4.0",
 ]
 
 # FAISS backend for in-memory vector search
