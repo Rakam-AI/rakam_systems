@@ -154,3 +154,53 @@ def test_upload_binary(s3_require_config, s3_test_key):
     out = s3.download_file(key=key_bin)
     assert out == data
     s3.delete_file(key_bin)
+
+
+# ---- Streaming / range read (T1.1) ----
+
+ONE_MIB = 1024 * 1024
+
+
+@pytest.fixture(scope="module")
+def s3_stream_object(s3_require_config):
+    """Upload a ~3 MiB object once for the streaming tests; yield (key, bytes)."""
+    key = f"{TEST_PREFIX}stream_{datetime.now().strftime('%Y%m%d_%H%M%S')}.bin"
+    data = os.urandom(3 * ONE_MIB + 123)  # not a whole number of chunks
+    s3.upload_file(key=key, content=data,
+                   content_type="application/octet-stream")
+    yield key, data
+    s3.delete_file(key)
+
+
+def test_stream_file_roundtrip_matches_download_file(s3_stream_object):
+    """Concatenated stream equals the one-shot download_file bytes."""
+    key, data = s3_stream_object
+    assert b"".join(s3.stream_file(key)) == s3.download_file(key)
+
+
+def test_stream_file_chunks_are_bounded(s3_stream_object):
+    """Every chunk is <= chunk_size and there is more than one chunk."""
+    key, _ = s3_stream_object
+    chunks = list(s3.stream_file(key, chunk_size=ONE_MIB))
+    assert len(chunks) > 1
+    for chunk in chunks:
+        assert len(chunk) <= ONE_MIB
+
+
+def test_stream_file_range_resume(s3_stream_object):
+    """Streaming from an offset returns exactly the object's tail from there."""
+    key, data = s3_stream_object
+    off = len(data) // 3
+    assert b"".join(s3.stream_file(key, start_offset=off)) == data[off:]
+
+
+def test_stream_file_not_found_raises(s3_require_config):
+    """stream_file raises S3NotFoundError for a missing key."""
+    with pytest.raises(S3NotFoundError):
+        list(s3.stream_file(TEST_PREFIX + "does_not_exist_stream_xyz.bin"))
+
+
+def test_stream_file_offset_past_eof_yields_empty(s3_stream_object):
+    """start_offset at the object size yields nothing and does not raise."""
+    key, data = s3_stream_object
+    assert list(s3.stream_file(key, start_offset=len(data))) == []
