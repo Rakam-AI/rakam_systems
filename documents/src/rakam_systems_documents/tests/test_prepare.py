@@ -256,3 +256,72 @@ def test_split_pages_degrades_on_undelimited_content():
     """0.1.x-prepared content, and non-paged sources, must not error."""
     assert split_pages("plain markdown, no markers") == [(1, "plain markdown, no markers")]
     assert split_pages("") == []
+
+
+# ── PDF line items (0.2.0) ──────────────────────────────────────────────────
+def _grid_pdf() -> bytes:
+    """A ruled table, i.e. the shape generic detection handles reliably."""
+    doc = fitz.open()
+    page = doc.new_page()
+    page.insert_text((60, 60), "BON DE LIVRAISON", fontsize=12)
+    cols = [60, 200, 300, 400]
+    rows_y = [100, 130, 160, 190]
+    data = [
+        ["Designation", "Qte", "PU", "Total"],
+        ["Tube acier E24", "12", "45.00", "540.00"],
+        ["Plaque S235", "3", "120.00", "360.00"],
+    ]
+    for ri, row in enumerate(data):
+        for ci, val in enumerate(row):
+            page.insert_text((cols[ci] + 4, rows_y[ri] + 14), val, fontsize=9)
+    for y in rows_y:                                    # horizontal rules
+        page.draw_line(fitz.Point(60, y), fitz.Point(480, y))
+    for x in [*cols, 480]:                              # vertical rules
+        page.draw_line(fitz.Point(x, rows_y[0]), fitz.Point(x, rows_y[-1]))
+    return doc.tobytes()
+
+
+def test_pdf_tables_become_rows_with_page_provenance():
+    pc = prepare(_grid_pdf(), PDF, "bl.pdf", max_chars=100000)
+
+    assert pc.rows, "a ruled table must yield structured rows"
+    assert all(r.source.page == 1 for r in pc.rows)
+    # The numeric columns must be separate fields, not folded into the
+    # description — that separation is the whole point for comparison.
+    joined = " ".join(v for r in pc.rows for v in r.cells.values())
+    assert "Tube acier E24" in joined
+    assert any("12" in v for r in pc.rows for v in r.cells.values())
+
+
+def test_header_row_is_not_emitted_as_data():
+    """find_tables reports header.external=False for these documents, meaning
+    row 0 IS the header; emitting it yields a row whose values are its own
+    column names."""
+    pc = prepare(_grid_pdf(), PDF, "bl.pdf", max_chars=100000)
+    for row in pc.rows:
+        assert not (row.cells.get("Designation") == "Designation")
+
+
+def test_blank_and_duplicate_headers_get_positional_names():
+    """Real supplier documents have unnamed spacer columns and repeated
+    labels; a dict-key clash would silently drop a column."""
+    from rakam_systems_documents.prepare import _column_names
+
+    assert _column_names(["A", "", None, "A"], 4) == ["A", "col1", "col2", "A_1"]
+    assert _column_names([], 2) == ["col0", "col1"]
+    # Wrapped headers carry embedded newlines.
+    assert _column_names(["Total HT\nport inclus"], 1) == ["Total HT port inclus"]
+
+
+def test_rows_are_absent_for_a_pdf_with_no_tables():
+    pc = prepare(_native_pdf(), PDF, "prose.pdf", max_chars=100000)
+    assert isinstance(pc.rows, list)
+
+
+def test_spreadsheet_rows_are_unaffected():
+    """The xlsx/csv branches owned `rows` before PDFs did; their provenance
+    stays sheet/row, not page."""
+    pc = prepare(_catalogue_xlsx(), XLSX, "cat.xlsx")
+    assert pc.rows
+    assert pc.rows[0].source.sheet == "Catalogue"
+    assert pc.rows[0].source.page is None

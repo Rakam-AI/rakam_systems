@@ -119,6 +119,107 @@ def _strip_page_rule(text: str) -> str:
     return text.rstrip().removesuffix("-----").rstrip()
 
 
+# A table-heavy PDF (a price list, a long packing list) can carry thousands of
+# rows, and ``rows`` is persisted by consumers. Cap it and say so in ``meta``
+# rather than silently returning a subset.
+_MAX_TABLE_ROWS = 2000
+
+
+def _column_names(names: list, width: int) -> list[str]:
+    """Header labels for a table, one per column.
+
+    Real documents give blank, ``None`` and duplicate headers — a supplier
+    acknowledgement routinely has unnamed spacer columns. Blanks become
+    ``colN`` (matching the spreadsheet/CSV branches) and collisions are
+    suffixed, so ``cells`` never silently loses a column to a dict-key clash."""
+    out: list[str] = []
+    seen: dict[str, int] = {}
+    for i in range(width):
+        raw = (names[i] if i < len(names) else None) or ""
+        # Collapse the embedded newlines pymupdf leaves in wrapped headers.
+        name = " ".join(str(raw).split()) or f"col{i}"
+        if name in seen:
+            seen[name] += 1
+            name = f"{name}_{seen[name]}"
+        else:
+            seen[name] = 0
+        out.append(name)
+    return out
+
+
+def _find_tables(page):
+    """Detect a page's tables, preferring the strategy that keeps numeric
+    columns apart.
+
+    Measured on real supplier documents (an order acknowledgement and a packing
+    list):
+
+    * ``lines_strict`` splits a line item into its own columns —
+      ``['2 Bloc-Porte ...', '3 U', '327.78 €', '983.34 €']`` — which is what
+      comparing a quantity against an ERP quantity requires.
+    * ``lines`` finds the same table but collapses quantity, unit price and
+      total into the description cell, leaving the numeric columns empty.
+    * ``text`` shatters a row into ~10 fragment columns; unusable.
+
+    ``lines_strict`` mangles the *header* (a wrapped multi-line header lands in
+    column 0), so callers fall back to positional ``colN`` names — the semantic
+    mapping from column to business field is client-specific anyway.
+    """
+    tables = page.find_tables(strategy="lines_strict").tables
+    if tables:
+        return tables
+    # A borderless table has no strict ruling to find; the looser strategy at
+    # least recovers the rows.
+    return page.find_tables(strategy="lines").tables
+
+
+def _pdf_table_rows(doc) -> tuple[list[TableRow], bool]:
+    """Structured line items from a native PDF's tables, with page provenance.
+
+    The markdown already renders these tables for a reader; this is the same
+    data as *fields*, which is what line-by-line comparison against an ERP
+    needs (quantity vs quantity, price vs price). ``pymupdf4llm``'s own
+    ``tables`` key carries only geometry, so the cells come from PyMuPDF's
+    ``find_tables()``.
+
+    Best-effort by design: table detection is heuristic, so a page that fails
+    to parse is skipped rather than failing the document. Returns
+    ``(rows, capped)``."""
+    rows_out: list[TableRow] = []
+    for pno in range(doc.page_count):
+        try:
+            tables = _find_tables(doc[pno])
+        except Exception:  # noqa: BLE001, PERF203 — heuristic; a bad page must not sink the doc
+            continue
+        for table in tables:
+            try:
+                data = table.extract()
+            except Exception:  # noqa: BLE001, PERF203
+                continue
+            if not data:
+                continue
+            header = getattr(table, "header", None)
+            names = list(header.names) if header and header.names else []
+            # external=False means the header row is ALSO data[0]; emitting it
+            # would produce a row whose values are its own column names.
+            body = data[1:] if (header and not header.external) else data
+            width = max((len(r) for r in data), default=0)
+            columns = _column_names(names, width)
+            for r_idx, raw_row in enumerate(body, start=1):
+                cells = {
+                    columns[i]: " ".join(str(raw_row[i] or "").split())
+                    for i in range(min(len(raw_row), width))
+                }
+                if not any(cells.values()):  # spacer/rule rows
+                    continue
+                rows_out.append(
+                    TableRow(cells=cells, source=SourceRef(page=pno + 1, row=r_idx)),
+                )
+                if len(rows_out) >= _MAX_TABLE_ROWS:
+                    return rows_out, True
+    return rows_out, False
+
+
 def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> PreparedContent:
     text_len, pages = _pdf_text_len(content)
     if text_len >= _PDF_TEXT_MIN:
@@ -135,6 +236,7 @@ def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> Prepared
             chunks = pymupdf4llm.to_markdown(
                 doc, page_chunks=True, show_progress=False,
             )
+            table_rows, capped = _pdf_table_rows(doc)
         # Read the page number from chunk metadata rather than enumerating —
         # do not assume chunk order matches page order for every document.
         numbered = sorted(
@@ -148,9 +250,13 @@ def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> Prepared
             # Strip pymupdf4llm's own trailing "-----" page rule: it would sit
             # alongside our delimiter as a second, ambiguous marker.
             markdown=_join_pages([_strip_page_rule(text) for _, text in numbered]),
+            rows=table_rows,
             provider="pdf_text",
             provenance=[SourceRef(page=n) for n, _ in numbered],
-            meta={"page_count": pages},
+            meta={
+                "page_count": pages,
+                **({"rows_capped": _MAX_TABLE_ROWS} if capped else {}),
+            },
         )
     if ocr and ocr.available():
         markdown, provenance = ocr.ocr(content, mime)
