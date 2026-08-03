@@ -9,9 +9,17 @@ from __future__ import annotations
 
 from .prepare import prepare
 from .providers import DoclingOCRProvider, MistralOCRProvider, OCRProvider
-from .schema import PreparedContent, SourceRef, TableRow
+from .schema import (
+    PAGE_DELIMITER,
+    PAGE_DELIMITER_RE,
+    PreparedContent,
+    SourceRef,
+    TableRow,
+    page_delimiter,
+    split_pages,
+)
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 __all__ = [
     "prepare",
@@ -21,4 +29,10 @@ __all__ = [
     "OCRProvider",
     "MistralOCRProvider",
     "DoclingOCRProvider",
+    # Page segmentation (0.2.0) — consumers slice on the shared constant
+    # rather than re-deriving the marker.
+    "PAGE_DELIMITER",
+    "PAGE_DELIMITER_RE",
+    "page_delimiter",
+    "split_pages",
 ]

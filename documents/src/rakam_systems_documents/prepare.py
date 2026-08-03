@@ -15,11 +15,54 @@ import csv
 import io
 
 from .providers import OCRProvider
-from .schema import PreparedContent, SourceRef, TableRow
+from .schema import (
+    PAGE_DELIMITER_RE,
+    PreparedContent,
+    SourceRef,
+    TableRow,
+    page_delimiter,
+)
 
 # Below this many stripped characters a PDF page is treated as "no text layer"
 # (i.e. scanned) and routed to OCR.
 _PDF_TEXT_MIN = 20
+
+
+def _join_pages(pages: list[str]) -> str:
+    """Delimit per-page markdown so a consumer can slice it back apart."""
+    return "\n\n".join(
+        f"{page_delimiter(i)}\n{text}" for i, text in enumerate(pages, start=1)
+    )
+
+
+def _truncate(markdown: str, max_chars: int) -> tuple[str, bool, int | None]:
+    """Cut to ``max_chars`` without severing a page delimiter.
+
+    A naive slice can land inside ``<!-- page:12 -->`` and leave a fragment
+    that breaks the consumer's regex, so prefer the last *whole* page that
+    fits. When even the first page overruns, cut mid-page — but never inside a
+    marker. Returns ``(markdown, truncated, last_whole_page)``."""
+    if len(markdown) <= max_chars:
+        return markdown, False, None
+
+    last_boundary = None
+    last_page = None
+    for match in PAGE_DELIMITER_RE.finditer(markdown):
+        if match.start() > max_chars:
+            break
+        last_boundary, last_page = match.start(), int(match.group(1))
+
+    # A boundary at 0 is the first page's own marker — cutting there would
+    # yield an empty document, so fall through to the mid-page cut.
+    if last_boundary:
+        return markdown[:last_boundary].rstrip("\n"), True, last_page - 1
+
+    cut = markdown[:max_chars]
+    # Drop a delimiter the slice may have bisected.
+    partial = cut.rfind("<!-- page:")
+    if partial != -1 and "-->" not in cut[partial:]:
+        cut = cut[:partial].rstrip("\n")
+    return cut, True, None
 
 
 def prepare(
@@ -53,9 +96,12 @@ def prepare(
     except Exception as exc:  # noqa: BLE001 — best-effort: a bad file must never raise
         pc = PreparedContent(provider="none", meta={"help": f"processing failed: {exc}"})
 
-    if len(pc.markdown) > max_chars:
-        pc.markdown = pc.markdown[:max_chars]
-        pc.truncated = True
+    # Recorded before the cut so a consumer can say "showing 8000 of 143000"
+    # instead of lying by omission.
+    pc.meta["total_chars"] = len(pc.markdown)
+    pc.markdown, pc.truncated, last_whole_page = _truncate(pc.markdown, max_chars)
+    if last_whole_page is not None:
+        pc.meta["truncated_after_page"] = last_whole_page
     return pc
 
 
@@ -68,6 +114,11 @@ def _pdf_text_len(content: bytes) -> tuple[int, int]:
         return total, doc.page_count
 
 
+def _strip_page_rule(text: str) -> str:
+    """Drop pymupdf4llm's trailing ``-----`` page separator from a chunk."""
+    return text.rstrip().removesuffix("-----").rstrip()
+
+
 def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> PreparedContent:
     text_len, pages = _pdf_text_len(content)
     if text_len >= _PDF_TEXT_MIN:
@@ -75,11 +126,30 @@ def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> Prepared
         import pymupdf4llm
 
         with fitz.open(stream=content, filetype="pdf") as doc:
-            markdown = pymupdf4llm.to_markdown(doc)
+            # page_chunks: per-page markdown instead of one fused string, so
+            # provenance points at locatable regions rather than being a bare
+            # list of page numbers.
+            # show_progress: the default prints "Processing ..." and an ASCII
+            # progress bar to stdout — on a server that is one log spam burst
+            # per uploaded file.
+            chunks = pymupdf4llm.to_markdown(
+                doc, page_chunks=True, show_progress=False,
+            )
+        # Read the page number from chunk metadata rather than enumerating —
+        # do not assume chunk order matches page order for every document.
+        numbered = sorted(
+            (
+                (int((c.get("metadata") or {}).get("page", i + 1)), c.get("text") or "")
+                for i, c in enumerate(chunks)
+            ),
+            key=lambda pair: pair[0],
+        )
         return PreparedContent(
-            markdown=markdown,
+            # Strip pymupdf4llm's own trailing "-----" page rule: it would sit
+            # alongside our delimiter as a second, ambiguous marker.
+            markdown=_join_pages([_strip_page_rule(text) for _, text in numbered]),
             provider="pdf_text",
-            provenance=[SourceRef(page=i + 1) for i in range(pages)],
+            provenance=[SourceRef(page=n) for n, _ in numbered],
             meta={"page_count": pages},
         )
     if ocr and ocr.available():
@@ -99,7 +169,13 @@ def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> Prepared
 def _prepare_image(content: bytes, mime: str, ocr: OCRProvider | None) -> PreparedContent:
     if ocr and ocr.available():
         markdown, provenance = ocr.ocr(content, mime)
-        return PreparedContent(markdown=markdown, provider=f"{ocr.name}_ocr", provenance=provenance)
+        return PreparedContent(
+            markdown=markdown,
+            provider=f"{ocr.name}_ocr",
+            provenance=provenance,
+            # Was the one paged branch reporting no page_count at all.
+            meta={"page_count": len(provenance) or 1},
+        )
     return PreparedContent(provider="none", meta={"help": "image needs OCR; provider unavailable"})
 
 
