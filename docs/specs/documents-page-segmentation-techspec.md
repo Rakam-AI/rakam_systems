@@ -41,17 +41,31 @@ not perturb a model reading the text.
 ### `_prepare_pdf` — native-text branch
 
 ```python
-chunks = pymupdf4llm.to_markdown(doc, page_chunks=True)   # list[dict]
+chunks = pymupdf4llm.to_markdown(doc, page_chunks=True, show_progress=False)
 ```
 
-`page_chunks=True` is confirmed present in the pinned `pymupdf4llm` 0.0.17
-(verified against the installed signature; the parameter list also carries
-`extract_words`, unused here). Each chunk is a dict with `text` and a
-`metadata` mapping carrying the page number.
+**Verified empirically** against the pinned 0.0.17 (2-page synthetic PDF):
+returns a `list[dict]` with keys
+`['graphics','images','metadata','tables','text','toc_items','words']`;
+`chunk["metadata"]["page"]` is **1-indexed** (`[1, 2]`); `chunk["text"]` holds
+that page's markdown.
+
+`show_progress=False` is **required**, not cosmetic. The default prints a
+progress bar to stdout — `Processing None...` plus `====[====...]` — on every
+call. In the agent this runs inside `asyncio.to_thread` on every upload and
+would spam container logs.
 
 Join as `PAGE_DELIMITER.format(n=…) + "\n" + chunk_text`, separated by blank
-lines. Read the page number from chunk metadata rather than enumerating — do
-not assume the library returns chunks in page order for every document.
+lines. Read the page number from `chunk["metadata"]["page"]` rather than
+enumerating — do not assume chunk order matches page order for every document.
+
+**Strip the existing separator.** In fused mode `to_markdown` already ends each
+page with `\n\n\n-----\n\n`, and the per-page `text` carries that trailing
+`-----` too (observed: `'Page one: …\n\n\n-----\n\n'`). That is an *implicit,
+ambiguous* page break — a document containing a literal `-----` is
+indistinguishable from a boundary, which is precisely why an explicit
+`<!-- page:N -->` is needed. Strip the trailing rule when emitting, or the
+output carries two competing markers.
 
 Keep `provenance` as one `SourceRef(page=n)` per page. Shape is unchanged; the
 difference is that each entry now has a locatable region in `markdown`.
@@ -83,7 +97,11 @@ regex. Truncate to the last **complete** page boundary at or before
 `max_chars`; if even page 1 exceeds the limit, cut mid-page but never mid-
 delimiter. Record the last whole page in `meta["truncated_after_page"]`.
 
-Extend `meta["page_count"]` to the OCR branch (currently native-only).
+**`page_count` correction.** An earlier draft said the OCR branch lacks
+`page_count`. It does not — `_prepare_pdf`'s OCR branch already sets
+`meta={"page_count": len(provenance) or pages}` (`prepare.py:91`). The real gap
+is **`_prepare_image`** (`prepare.py:102`), which returns no `meta` at all. Add
+`page_count: 1` there so every paged branch reports it uniformly.
 
 ---
 
@@ -124,8 +142,10 @@ ignore `page_range`, never error.
 | XLSX / CSV | unchanged; `rows` provenance untouched |
 | Unreadable bytes | still `provider="none"` + `meta["help"]`, never raises |
 
-Run on **3.11** — the repo `.venv` is 3.9-era and cannot evaluate `int | None`
-annotations in this package (hit during W30; use a `uv` 3.11 scratch venv).
+Run in the repo `.venv` — **Python 3.12.13** (verified 2026-08-03). The W30-era
+note that the venv was 3.9 and could not evaluate `int | None` annotations is
+**obsolete**; no scratch venv is needed. The package still declares
+`requires-python = ">=3.10"`, so keep annotations 3.10-compatible.
 
 ---
 
