@@ -4,7 +4,7 @@ build-backend = "uv_build"
 
 [project]
 name = "rakam-systems-documents"
-version = "0.1.0"
+version = "0.1.1"
 description = "Generic document preparation: any source -> PreparedContent (markdown + structured rows + provenance)"
 readme = "README.md"
 requires-python = ">=3.10"
