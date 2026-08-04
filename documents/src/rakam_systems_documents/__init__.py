@@ -7,6 +7,9 @@ belong to the caller.
 """
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError
+from importlib.metadata import version as _metadata_version
+
 from .prepare import prepare
 from .providers import DoclingOCRProvider, MistralOCRProvider, OCRProvider
 from .schema import (
@@ -19,7 +22,15 @@ from .schema import (
     split_pages,
 )
 
-__version__ = "0.2.0"
+# Read from the installed distribution rather than restated here. The release
+# workflow bumps `pyproject.toml` only, so a hand-written literal drifts on the
+# very next release: this one said "0.2.0" while the published package was
+# 0.1.1 — a version that never existed on PyPI. pyproject is the single source
+# of truth.
+try:
+    __version__ = _metadata_version("rakam-systems-documents")
+except PackageNotFoundError:  # running from a source tree, not installed
+    __version__ = "0.0.0+unknown"
 
 __all__ = [
     "prepare",
@@ -29,8 +40,8 @@ __all__ = [
     "OCRProvider",
     "MistralOCRProvider",
     "DoclingOCRProvider",
-    # Page segmentation (0.2.0) — consumers slice on the shared constant
-    # rather than re-deriving the marker.
+    # Page segmentation — consumers slice on the shared constant rather than
+    # re-deriving the marker.
     "PAGE_DELIMITER",
     "PAGE_DELIMITER_RE",
     "page_delimiter",
