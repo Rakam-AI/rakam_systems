@@ -8,14 +8,20 @@ import base64
 import os
 from typing import Protocol, runtime_checkable
 
-from ..schema import SourceRef
+from ..schema import SourceRef, page_delimiter
 
 
 @runtime_checkable
 class OCRProvider(Protocol):
     """An OCR engine. ``ocr`` returns ``(markdown, provenance)`` and must be
     best-effort — the caller treats an empty return as "unreadable", never an
-    exception path."""
+    exception path.
+
+    A provider that can attribute text to pages MUST delimit its markdown with
+    :func:`~rakam_systems_documents.schema.page_delimiter`, so consumers slice
+    OCR output exactly as they slice native-PDF output. One that cannot returns
+    undelimited markdown and ``split_pages`` degrades it to a single page —
+    correct, just coarser."""
 
     name: str
 
@@ -57,7 +63,15 @@ class MistralOCRProvider:
         )
         resp.raise_for_status()
         pages = resp.json().get("pages", [])
-        markdown = "\n\n".join(p.get("markdown", "") for p in pages)
+        # The API returns one markdown blob per page, so real page boundaries
+        # are available — emit them rather than fusing the pages together.
+        # (Note: the response carries bounding boxes only for *extracted
+        # images*, never for text spans, so page level is the finest
+        # attribution this engine can support.)
+        markdown = "\n\n".join(
+            f"{page_delimiter(i)}\n{p.get('markdown', '')}"
+            for i, p in enumerate(pages, start=1)
+        )
         return markdown, [SourceRef(page=i + 1) for i in range(len(pages))]
 
 
@@ -91,6 +105,10 @@ class DoclingOCRProvider:
             markdown = document.export_to_markdown()
         finally:
             _os.unlink(path)
-        # Docling exposes page count; provenance stays page-level (best-effort).
+        # ``export_to_markdown`` fuses the document into one string, so unlike
+        # the Mistral path there is no per-page text to delimit. Returned
+        # undelimited on purpose: ``split_pages`` degrades it to a single page,
+        # which is coarse but honest. Fabricating a ``page:1`` marker for a
+        # multi-page scan would attribute every citation to page 1.
         pages = getattr(document, "num_pages", None) or 1
         return markdown, [SourceRef(page=i + 1) for i in range(pages)]
