@@ -72,8 +72,9 @@ class ModelGateway:
                 instrumented ``http_client``. Mutually exclusive with
                 ``cfg.base_url``, which the client already encodes.
             http_client: An ``httpx.AsyncClient`` for the provider to build its
-                own SDK client on. Ignored by providers that take no such
-                argument.
+                own SDK client on. A provider whose constructor takes no such
+                argument raises its own ``TypeError`` rather than silently
+                dropping it -- ``bedrock:``, for instance.
 
         Returns:
             A pydantic-ai ``Model``, carrying ``settings`` as its defaults.

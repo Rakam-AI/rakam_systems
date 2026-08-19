@@ -51,7 +51,7 @@ model = ModelGateway().build_chat_model(
 
 The settings become the model's *own* defaults, which pydantic-ai merges under anything passed per run (`Agent.run(model_settings=...)`).
 
-Pin `temperature=0` and a recorded `seed` for extraction and classification work. Unpinned sampling is not a cosmetic default: on the ingestion engine it made run-to-run noise roughly 5x the size of the effect being measured, and two published conclusions had to be retracted.
+Pin `temperature=0` and a recorded `seed` for extraction and classification work. Unpinned sampling is not a cosmetic default: it adds run-to-run variation that makes outputs non-reproducible and can swamp the difference you are actually trying to measure between two runs.
 
 ### Custom provider client
 
