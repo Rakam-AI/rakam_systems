@@ -24,7 +24,11 @@ dependencies = [
     "rakam-systems-core>=0.1.4",
     "rakam-systems-tools>=0.2.2",
     "pydantic>=2.11.5,<3.0.0",
-    "pydantic-ai>=1.11.0,<2.0.0",
+    # >=1.14: ModelGateway threads a caller's own provider client through
+    # `infer_model(provider_factory=...)`, which landed in 1.14.0 -- it is the
+    # only public seam that injects a client without us mapping provider ->
+    # model class ourselves (1.13 and older take no provider_factory).
+    "pydantic-ai>=1.14.0,<2.0.0",
     "pyyaml>=6.0,<7.0",
     "python-dotenv>=1.0.0,<2.0.0",
 ]

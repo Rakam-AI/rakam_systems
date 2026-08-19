@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.10"
 
 [[package]]
@@ -3075,7 +3075,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-agent"
-version = "0.1.4"
+version = "0.1.5"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
@@ -3117,12 +3117,12 @@ requires-dist = [
     { name = "openai", marker = "extra == 'llm-providers'", specifier = ">=1.37.0,<3.0.0" },
     { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = ">=2.9.9,<3.0.0" },
     { name = "pydantic", specifier = ">=2.11.5,<3.0.0" },
-    { name = "pydantic-ai", specifier = ">=1.11.0,<2.0.0" },
+    { name = "pydantic-ai", specifier = ">=1.14.0,<2.0.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
     { name = "rakam-systems-agent", extras = ["llm-providers"], marker = "extra == 'all'" },
     { name = "rakam-systems-agent", extras = ["postgres"], marker = "extra == 'all'" },
-    { name = "rakam-systems-core", editable = "../../core" },
+    { name = "rakam-systems-core", specifier = ">=0.1.4" },
     { name = "rakam-systems-tools", specifier = ">=0.2.2" },
     { name = "tiktoken", marker = "extra == 'llm-providers'", specifier = ">=0.7.0,<1.0.0" },
 ]
@@ -3140,25 +3140,14 @@ dev = [
 [[package]]
 name = "rakam-systems-core"
 version = "0.1.4"
-source = { editable = "../../core" }
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "pydantic" },
-    { name = "pyyaml" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "build", specifier = ">=1.2.2.post1" },
-    { name = "pytest", specifier = ">=8.3.5" },
-    { name = "pytest-asyncio", specifier = ">=0.24.0" },
-    { name = "pytest-cov", specifier = ">=5.0.0" },
-    { name = "twine", specifier = ">=6.1.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/9e/c2/318a8d16aa782b8ac7b8ef1c943c879c77a62fd53f91076f7d7f64423483/rakam_systems_core-0.1.4.tar.gz", hash = "sha256:e199152218d111bf34f06061508a5c8774b844a78df2dcff70432d67fe198c25", size = 44785, upload-time = "2026-07-02T11:27:31.221Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/2b/226ce97cd89973221cc838fc5f67caa8827a26d04c568bdee2275fe1f2a4/rakam_systems_core-0.1.4-py3-none-any.whl", hash = "sha256:1cee0ee462348eb2de34abc4e6b82cb634fbf65eb2f80690b0ac53ac1d9a9b9b", size = 61435, upload-time = "2026-07-02T11:27:29.66Z" },
 ]
 
 [[package]]

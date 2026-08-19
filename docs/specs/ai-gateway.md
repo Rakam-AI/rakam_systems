@@ -60,6 +60,8 @@ The embedding-consistency helpers are consumed by the vector-store component; if
 class ModelRef(BaseModel):
     ref: str                      # "<provider>:<model>", e.g. "azure:gpt-4.1-mini"
     base_url: str | None = None   # optional OpenAI-compatible endpoint override
+    # model_config = {"extra": "allow"}, so a config file may also declare
+    #   settings: ModelSettings   # sampling + provider extra_body (see §4a)
     # credentials resolved from the provider's standard env vars (not stored here)
 
 class EmbeddingRef(ModelRef):
@@ -69,9 +71,18 @@ class EmbeddingRef(ModelRef):
 class ModelGateway:
     def __init__(self, usage_hook: UsageHook | None = None) -> None: ...
 
-    def build_chat_model(self, cfg: ModelRef) -> pydantic_ai.models.Model:
+    def build_chat_model(
+        self,
+        cfg: ModelRef,
+        *,
+        settings: ModelSettings | None = None,          # merged over cfg.settings
+        openai_client: AsyncOpenAI | None = None,       # or AsyncAzureOpenAI
+        http_client: httpx.AsyncClient | None = None,
+    ) -> pydantic_ai.models.Model:
         """Resolve cfg.ref via pydantic_ai infer_model, applying base_url and
-        registering the usage hook. Returns a pydantic-ai Model for Agent(model=...)."""
+        registering the usage hook. Returns a pydantic-ai Model for Agent(model=...).
+        The keyword arguments are optional passthrough (see §4a); passing none of
+        them is the original behaviour."""
 
     def build_embedder(self, cfg: EmbeddingRef) -> EmbeddingModel:
         """Resolve cfg.ref via pydantic_ai infer_embedding_model, applying base_url
@@ -95,6 +106,19 @@ from pydantic_ai.embeddings import infer_embedding_model, Embedder
 
 > Guardrail: the only mapping the gateway owns is `ref → pydantic-ai object`. It must not maintain a `_PROVIDERS` dict. An unknown provider surfaces pydantic-ai's own error unchanged.
 
+### 4a. Settings and client passthrough
+
+A `ref` cannot express two things a real consumer needs, and without them the gateway is unusable for them — the ingestion engine kept two duplicated local model builders for exactly this reason:
+
+| Need | Carried by | Why not the other place |
+|---|---|---|
+| Sampling + provider options (`temperature`, `seed`, `max_tokens`, `reasoning_effort`, `extra_body={"store": False}`) | `ModelRef.settings` (declarative) **and** a `settings=` argument merged over it, key by key | Sampling policy is per-deployment configuration and must be serialisable — so it belongs on the ref. But a caller that computes a setting at runtime needs an argument too, so both exist and the argument wins. |
+| An already built `AsyncOpenAI` / `AsyncAzureOpenAI` (`max_retries`, instrumented `http_client`) | `openai_client=` argument only | A live client object cannot live in a YAML file. Mutually exclusive with `base_url`, which the client already encodes. |
+
+Settings become the model's own defaults (`Model.settings`), which pydantic-ai merges under per-run settings. `store=False` is a compliance guarantee for consumers under a data-retention obligation, so a setting that fails to attach raises rather than being dropped silently.
+
+The client is threaded through pydantic-ai's own `infer_model(provider_factory=...)` seam, which keeps the guardrail above intact: the gateway decides how the *provider* is built, never which model class a provider maps to. That is what makes the same argument work for `openai:` and for the Azure ZDR route without naming either. It requires **pydantic-ai >= 1.14** (where `provider_factory` was added), hence the floor in the agents `pyproject.toml`.
+
 ---
 
 ## 5. Configuration
@@ -105,6 +129,9 @@ The `ref` grammar is identical for chat and embeddings; credentials/endpoint com
 # chat
 model:
   ref: "azure:gpt-4.1-mini"
+  settings:                # optional; pydantic-ai ModelSettings keys (§4a)
+    temperature: 0
+    seed: 1234
 # env: AZURE_OPENAI_ENDPOINT, AZURE_OPENAI_API_KEY, OPENAI_API_VERSION
 
 # embeddings
@@ -187,6 +214,8 @@ The existing raw-SDK gateway (`openai`/`mistral`) remains in place and is not mo
 ## 10. Testing
 
 - **Unit:** `build_chat_model` / `build_embedder` resolve known `ref`s to the correct pydantic-ai model type; `base_url` is threaded to the provider; an unknown provider raises pydantic-ai's error unchanged (no swallowing).
+- **Unit:** settings declared on the ref and settings passed as an argument both reach `Model.settings`, the argument winning key by key; `extra_body={"store": False}` survives; a custom `openai_client` is the client the model ends up using, on `openai:` and on `azure:`; `base_url` + `openai_client` together are rejected; a ref with neither still yields `Model.settings is None`.
+- **Unit:** the package imports with **no** extras installed — asserted in a subprocess that refuses `psycopg2` / `openai` / `mistralai` / `tiktoken`, since CI installs `--all-extras` — and each optional symbol raises an `ImportError` naming the extra that ships it.
 - **Unit:** `UsageHook.record` is invoked once per call with token counts and never content; `NoopUsageHook` default is a no-op.
 - **Unit:** consistency `validate` passes on match, raises on model/dim mismatch, and treats same-model/different-provider as compatible.
 - **Integration (critical path, real deps preferred):** an `Agent` built from `build_chat_model("openai:...")` against a live/OpenAI-compatible endpoint; an `Embedder` from `build_embedder(...)` producing vectors of the declared `dim`. Prefer a local Ollama/OpenAI-compatible endpoint in CI over mocks.

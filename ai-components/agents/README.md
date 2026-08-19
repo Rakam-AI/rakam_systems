@@ -25,14 +25,17 @@ pip install rakam-systems-agent
 
 Available extras:
 
-| Extra | What it adds |
-|-------|-------------|
-| `llm-providers` | `openai`, `mistralai`, `tiktoken` |
-| `all` | Everything above |
+| Extra | What it adds | Needed for |
+|-------|-------------|-----------|
+| `llm-providers` | `openai`, `mistralai`, `tiktoken` | `OpenAIGateway`, `MistralGateway`, `LLMGatewayFactory`, `get_llm_gateway` |
+| `postgres` | `psycopg2-binary` | `PostgresChatHistory` |
+| `all` | Everything above | |
 
 ```bash
 pip install rakam-systems-agent[all]
 ```
+
+The extras are genuinely optional: `BaseAgent`, `ModelGateway`, `JSONChatHistory` and `SQLChatHistory` work on a bare install. The symbols in the table are resolved on first access and raise an `ImportError` naming the extra to install if it is missing.
 
 ## Quick Start
 
@@ -84,6 +87,7 @@ asyncio.run(main())
 - **Tool** — Wrapper for tool functions using `Tool.from_schema` pattern
 - **ModelSettings** — Configure parallel tool calls, temperature, max tokens
 - **LLM Gateway** — Provider-agnostic interface for OpenAI and Mistral ([details](src/rakam_systems_agent/components/llm_gateway/README.md))
+- **ModelGateway** — Factory resolving a `provider:model` ref to a configured pydantic-ai model, with model settings and custom provider clients
 - **Chat History** — JSON, SQLite, and PostgreSQL backends
 - **MCP Server** — Message-based component registry for agent tools ([details](src/rakam_systems_agent/server/README.md))
 
@@ -94,7 +98,8 @@ rakam-systems-agent/
 ├── src/rakam_systems_agent/
 │   ├── components/
 │   │   ├── base_agent.py         # BaseAgent (Pydantic AI-powered)
-│   │   ├── llm_gateway/          # LLM provider gateways
+│   │   ├── llm_gateway/          # LLM provider gateways (raw SDK)
+│   │   ├── model_gateway/        # ModelGateway (pydantic-ai model factory)
 │   │   ├── chat_history/         # Chat history backends
 │   │   ├── tools/                # Built-in tools
 │   │   └── __init__.py           # Exports

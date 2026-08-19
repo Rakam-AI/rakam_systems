@@ -45,7 +45,7 @@ messages = history.get_chat_history("chat123")
 
 ## PostgreSQL (production)
 
-For production deployments with PostgreSQL-backed storage:
+For production deployments with PostgreSQL-backed storage. This backend needs `psycopg2`, which ships in the `postgres` extra (`pip install "rakam-systems-agent[postgres]"`); without it, the import below raises an `ImportError` naming the extra. The other backends need no extra.
 
 ```python
 from rakam_systems_agent.components.chat_history import PostgresChatHistory
