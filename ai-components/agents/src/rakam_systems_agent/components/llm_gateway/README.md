@@ -37,6 +37,8 @@ print(response.content)
 | OpenAI | `gpt-4o`, `gpt-4o-mini`, `gpt-4-turbo` | `OPENAI_API_KEY` |
 | Mistral | `mistral-large-latest`, `mistral-small-latest` | `MISTRAL_API_KEY` |
 
+Both gateways accept a `base_url` for a proxied or self-hosted endpoint. `MistralGateway` also takes `structured_mode` (native strict `json_schema` by default, with an automatic fallback) and `token_counter` (an exact token count, replacing the character approximation). See the [LLM gateways guide](../../../../../docs/developer-guide/llm-gateways.md).
+
 ## Documentation
 
 For full usage guide including structured outputs, streaming, factory patterns, and custom provider registration, see the [official documentation](https://rakam-ai.github.io/rakam-systems-docs/).
