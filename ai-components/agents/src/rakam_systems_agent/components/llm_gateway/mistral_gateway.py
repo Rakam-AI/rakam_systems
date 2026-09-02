@@ -1,7 +1,7 @@
 """Mistral LLM Gateway implementation with structured output support."""
 from __future__ import annotations
 import os
-from typing import Any, Dict, Iterator, Literal, Optional, Type, TypeVar
+from typing import Any, Callable, Dict, Iterator, Literal, Optional, Type, TypeVar
 
 from mistralai import Mistral
 from pydantic import BaseModel
@@ -103,6 +103,8 @@ class MistralGateway(LLMGateway):
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         structured_mode: Literal["auto", "json_schema", "json_object"] = "auto",
+        token_counting: Literal["auto", "exact", "approximate"] = "auto",
+        token_counter: Optional[Callable[[str], int]] = None,
     ):
         """Initialize Mistral Gateway.
 
@@ -123,6 +125,17 @@ class MistralGateway(LLMGateway):
                 on the wire); ``"auto"`` (default) tries strict mode and falls back
                 to ``"json_object"`` for the life of this instance the first time a
                 model rejects it.
+            token_counting: How :meth:`count_tokens` counts. ``"exact"`` requires
+                ``token_counter`` and raises without it; ``"approximate"`` always
+                uses the character heuristic; ``"auto"`` (default) uses
+                ``token_counter`` when one was given and the heuristic otherwise.
+            token_counter: A callable turning text into a token count. Mistral
+                publishes no tokenize endpoint and ships no usable offline
+                tokenizer for its current models (``mistral-common``'s
+                ``from_model`` is deprecated and recognises no ``-latest`` alias;
+                its replacement needs the Hugging Face hub), so an exact local
+                count has to come from the caller. See :meth:`count_tokens` for
+                the exact count that costs nothing.
         """
         super().__init__(
             name=name,
@@ -147,6 +160,19 @@ class MistralGateway(LLMGateway):
         # Per-instance, never module-global: one model refusing strict mode says
         # nothing about the next gateway someone builds.
         self._structured_downgraded = False
+        self._token_counting = token_counting
+        self._token_counter = token_counter
+        if token_counting == "exact" and token_counter is None:
+            raise ValueError(
+                "MistralGateway(token_counting='exact') needs a token_counter: "
+                "Mistral has no tokenize endpoint and no offline tokenizer that "
+                "covers its current models, so an exact count must be supplied. "
+                "Use token_counting='auto' to fall back to the character "
+                "heuristic, or read LLMResponse.usage.prompt_tokens after a call."
+            )
+        # One warning per gateway, not one per call: count_tokens is often called
+        # in a loop over a corpus.
+        self._token_counter_warned = False
         self.client = Mistral(
             api_key=self.api_key,
             server_url=_server_origin(base_url) if base_url else None,
@@ -430,21 +456,52 @@ class MistralGateway(LLMGateway):
     def count_tokens(self, text: str, model: Optional[str] = None) -> int:
         """Count tokens in text.
 
-        Mistral doesn't provide a native tokenization library, so we use approximation.
+        Exactness is opt-in, because Mistral gives no way to be exact for free:
+        there is no tokenize endpoint, and ``mistral-common`` -- the obvious
+        candidate -- cannot resolve any ``-latest`` model name offline
+        (``from_model`` is deprecated and knows only 16 dated names; the
+        replacement ``from_hf_hub`` needs the Hugging Face hub at runtime). So a
+        caller who needs exact counts supplies ``token_counter``, and everyone
+        else gets the character heuristic rather than a heavy dependency that
+        would quietly reach for the network.
+
+        The exact count that costs nothing is already on every response:
+        ``LLMResponse.usage.prompt_tokens``, reported by the API itself. Prefer it
+        whenever you are counting a prompt you are also going to send.
 
         Args:
             text: Text to count tokens for
-            model: Model name (unused for Mistral)
+            model: Accepted for interface compatibility; Mistral's counting does
+                not vary by model here.
 
         Returns:
-            Approximate number of tokens in the text
+            Number of tokens -- exact if a ``token_counter`` produced it,
+            otherwise approximated at 4 characters per token.
+
+        Raises:
+            ValueError: Only in ``token_counting="exact"`` mode, if the supplied
+                counter fails. ``"auto"`` degrades to the heuristic instead, so a
+                broken tokenizer never takes down an ingestion run.
         """
-        # Approximation: average of 4 characters per token
-        # This is less accurate than tiktoken but reasonable for most use cases
+        if self._token_counting != "approximate" and self._token_counter is not None:
+            try:
+                return int(self._token_counter(text))
+            except Exception as e:
+                if self._token_counting == "exact":
+                    raise ValueError(
+                        f"token_counter failed on {len(text)} characters of text: {e}"
+                    ) from e
+                if not self._token_counter_warned:
+                    self._token_counter_warned = True
+                    logger.warning(
+                        f"token_counter failed ({type(e).__name__}: {e}); falling "
+                        f"back to the 4-characters-per-token approximation for the "
+                        f"life of this gateway"
+                    )
+
         token_count = len(text) // 4
-
         logger.debug(
-            f"Counted ~{token_count} tokens (approximation) for text of length {len(text)} characters"
+            f"Counted ~{token_count} tokens (approximation) for text of length "
+            f"{len(text)} characters"
         )
-
         return token_count

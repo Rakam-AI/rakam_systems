@@ -8,7 +8,6 @@ token counting all survived.
 Hermetic: a real `mistralai.Mistral` driven through an `httpx.MockTransport`, so
 the SDK's own request serialisation is exercised. Nothing leaves the process.
 """
-
 import json
 
 import httpx
@@ -230,6 +229,53 @@ class TestStructuredOutput:
         )
         with pytest.raises(ValueError, match="no text content"):
             gw.generate_structured(LLMRequest(user_prompt="q"), Answer)
+
+
+class TestTokenCounting:
+    def test_approximation_is_the_default_and_is_unchanged(self):
+        gw = MistralGateway(model="mistral-small-latest")
+        text = "hello world, this is a test"
+        assert gw.count_tokens(text) == len(text) // 4
+
+    def test_an_injected_counter_is_used(self):
+        gw = MistralGateway(model="mistral-small-latest", token_counter=lambda t: len(t.split()))
+        assert gw.count_tokens("one two three") == 3
+
+    def test_approximate_mode_ignores_an_injected_counter(self):
+        gw = MistralGateway(
+            model="mistral-small-latest",
+            token_counting="approximate",
+            token_counter=lambda t: 999,
+        )
+        assert gw.count_tokens("abcdefgh") == 2
+
+    def test_exact_mode_without_a_counter_fails_at_construction(self):
+        # Fail where the mistake is, not on the first count deep inside a run.
+        with pytest.raises(ValueError, match="needs a token_counter"):
+            MistralGateway(model="mistral-small-latest", token_counting="exact")
+
+    def test_exact_mode_propagates_a_counter_failure(self):
+        gw = MistralGateway(
+            model="mistral-small-latest",
+            token_counting="exact",
+            token_counter=lambda t: 1 / 0,
+        )
+        with pytest.raises(ValueError, match="token_counter failed"):
+            gw.count_tokens("abc")
+
+    def test_auto_mode_degrades_when_the_counter_breaks(self):
+        # A broken tokenizer must not take down an ingestion run.
+        gw = MistralGateway(
+            model="mistral-small-latest", token_counter=lambda t: 1 / 0
+        )
+        assert gw.count_tokens("abcdefgh") == 2
+
+    def test_the_counter_warning_is_emitted_once_per_gateway(self, caplog):
+        gw = MistralGateway(model="mistral-small-latest", token_counter=lambda t: 1 / 0)
+        with caplog.at_level("WARNING"):
+            gw.count_tokens("abcdefgh")
+            gw.count_tokens("abcdefgh")
+        assert sum("token_counter failed" in r.message for r in caplog.records) == 1
 
 
 class TestGenerate:
