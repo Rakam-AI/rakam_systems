@@ -91,6 +91,58 @@ embeddings = create_embedding_model(
 )
 ```
 
+### AI gateway embedder (`build_embedder`)
+
+`ConfigurableEmbeddings` above is configured by backend. The AI gateway takes the
+other route: one `"<provider>:<model>"` reference resolved through pydantic-ai, the
+same grammar chat models use. Use it when the provider is a deployment choice
+rather than a code choice — see [the AI gateway spec](../specs/ai-gateway.md).
+
+```python
+from rakam_systems_core.config_schema import EmbeddingRef
+from rakam_systems_vectorstore import build_embedder
+
+embedder = build_embedder(EmbeddingRef(ref="openai:text-embedding-3-small", dim=1536))
+vectors = embedder.run(["Hello world", "How are you?"])   # sync, for the stores
+vectors = await embedder.arun(["Hello world"])            # inside an event loop
+```
+
+`EmbeddingRef` carries the ref, a required `dim`, and an optional `base_url`.
+`dim` is not documentation: it is sent to the provider as the requested output
+width *and* checked against what comes back, so a model that silently returns a
+different width fails loudly instead of corrupting the index.
+
+`build_embedder(cfg, batch_size=N)` splits the corpus into `N`-sized provider
+calls, in input order. The default (`None`) sends everything in one call.
+
+Three routing cases:
+
+| Ref | Goes to |
+|---|---|
+| `sentence-transformers:<model>` (or `st:`, `local:`) | `ConfigurableEmbeddings`, offline — pydantic-ai has no local ST embedder |
+| `mistral:mistral-embed` | This package's `MistralEmbeddingModel` — pydantic-ai ships no Mistral embeddings backend, so `infer_embedding_model` would raise `UserError` |
+| anything else | pydantic-ai's `infer_embedding_model` (OpenAI, Azure, Cohere, Google, Bedrock, Voyage, …) |
+
+The first two are a closed exception list, not the start of a provider registry:
+a provider only belongs there while pydantic-ai ships no backend for it.
+
+```python
+# Mistral. Needs MISTRAL_API_KEY and the `mistral` extra
+# (pip install "rakam-systems-vectorstore[mistral]").
+embedder = build_embedder(EmbeddingRef(ref="mistral:mistral-embed", dim=1024))
+
+# A self-hosted or proxied endpoint. Give the ORIGIN: mistralai appends /v1/...
+# itself, and a trailing /v1 is stripped for you, so this matches how base_url is
+# written for the OpenAI-compatible route.
+embedder = build_embedder(
+    EmbeddingRef(ref="mistral:mistral-embed", base_url="https://gw.internal", dim=1024)
+)
+```
+
+Note the ref must go through `build_embedder`. Handing `"mistral:mistral-embed"`
+straight to pydantic-ai's `infer_embedding_model` still raises
+`UserError: Unknown embeddings model`.
+
 ## Document loading
 
 ### AdaptiveLoader
