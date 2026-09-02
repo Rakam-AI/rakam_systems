@@ -14,6 +14,23 @@ logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
 
 
+def _server_origin(base_url: str) -> str:
+    """Turn an OpenAI-style base URL into mistralai's origin-only ``server_url``.
+
+    openai-python's ``base_url`` must include ``/v1``; mistralai's ``server_url``
+    is the ORIGIN and the SDK appends ``/v1/chat/completions`` itself. So an
+    un-normalised ``https://host/v1`` would request
+    ``https://host/v1/v1/chat/completions`` -- a 404 at call time rather than a
+    configuration error anyone sees at startup. ``LLMGatewayConfigSchema.base_url``
+    is one field shared with :class:`OpenAIGateway`, so the difference is absorbed
+    here instead of forcing two spellings on config files. Only an exact trailing
+    ``/v1`` is stripped, so a path-mounted proxy like ``https://proxy/v1beta``
+    survives untouched.
+    """
+    trimmed = base_url.rstrip("/")
+    return trimmed[: -len("/v1")] if trimmed.endswith("/v1") else trimmed
+
+
 class MistralGateway(LLMGateway):
     """Mistral LLM Gateway with support for structured outputs.
 
@@ -42,6 +59,7 @@ class MistralGateway(LLMGateway):
         model: str = "mistral-large-latest",
         default_temperature: float = 0.7,
         api_key: Optional[str] = None,
+        base_url: Optional[str] = None,
     ):
         """Initialize Mistral Gateway.
 
@@ -51,6 +69,10 @@ class MistralGateway(LLMGateway):
             model: Mistral model name (e.g., "mistral-large-latest", "mistral-small-latest")
             default_temperature: Default temperature for generation
             api_key: Mistral API key (falls back to MISTRAL_API_KEY env var)
+            base_url: Optional endpoint override for a proxy or self-hosted
+                deployment. Give the origin (``https://gw.internal``); a trailing
+                ``/v1`` is stripped for you so the same config value works for
+                this gateway and :class:`OpenAIGateway`.
         """
         super().__init__(
             name=name,
@@ -66,11 +88,19 @@ class MistralGateway(LLMGateway):
                 "Mistral API key must be provided via api_key parameter or MISTRAL_API_KEY environment variable"
             )
 
-        # Initialize Mistral client
-        self.client = Mistral(api_key=self.api_key)
+        # `base_url` is stored under the name the config schema and OpenAIGateway
+        # both use; the SDK's own kwarg is `server_url` and wants a bare origin.
+        # Not forwarded to super(): the LLMGateway ABC takes no such parameter, and
+        # widening it would mean publishing a new rakam-systems-core.
+        self.base_url = base_url
+        self.client = Mistral(
+            api_key=self.api_key,
+            server_url=_server_origin(base_url) if base_url else None,
+        )
 
         logger.info(
-            f"Initialized Mistral Gateway with model={self.model}, temperature={self.default_temperature}"
+            f"Initialized Mistral Gateway with model={self.model}, "
+            f"temperature={self.default_temperature}, endpoint={self.base_url or 'default'}"
         )
 
     def _build_messages(self, request: LLMRequest) -> list[dict]:

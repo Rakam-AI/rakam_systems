@@ -187,7 +187,7 @@ class LLMGatewayFactory:
         # Add provider-specific parameters
         provider_specific_keys = {
             "openai": ["base_url", "organization"],
-            "mistral": [],
+            "mistral": ["base_url"],
         }
 
         for key in provider_specific_keys.get(provider, []):
