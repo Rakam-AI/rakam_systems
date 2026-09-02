@@ -1,7 +1,7 @@
 """Mistral LLM Gateway implementation with structured output support."""
 from __future__ import annotations
 import os
-from typing import Any, Dict, Iterator, Optional, Type, TypeVar
+from typing import Any, Dict, Iterator, Literal, Optional, Type, TypeVar
 
 from mistralai import Mistral
 from pydantic import BaseModel
@@ -29,6 +29,48 @@ def _server_origin(base_url: str) -> str:
     """
     trimmed = base_url.rstrip("/")
     return trimmed[: -len("/v1")] if trimmed.endswith("/v1") else trimmed
+
+
+def _strict_json_schema(node: Any) -> Any:
+    """Close every object node so Mistral's strict ``json_schema`` mode accepts it.
+
+    WHY THIS IS NOT ``mistralai.extra.response_format_from_pydantic_model`` (nor
+    ``client.chat.parse``, which calls it): that helper's recursion treats only
+    str/bool/None as terminal, so ANY schema carrying a numeric default or a
+    ge/le/max_length bound hits its ``raise ValueError(f"Unexpected type:
+    {node}")`` -- reproduced on mistralai 1.9.11 and 1.12.4 with a plain
+    ``confidence: float = Field(0.5, ge=0, le=1)``. Upstream fixed it in 2.x by
+    adding int and float as terminals, but 2.x also repackaged the SDK (no
+    top-level ``mistralai``), so the ``<2.0.0`` cap this package needs rules that
+    release out. The fix is one line; we carry it here.
+
+    Two deliberate departures from a naive "make it strict" rewrite:
+
+    * It **only** sets ``additionalProperties``. It never synthesises
+      ``required = list(properties)``: promoting every ``Optional`` field to
+      mandatory would silently rewrite the caller's own contract, and would make
+      the strict path and the ``json_object`` fallback describe different schemas
+      for the same model.
+    * It leaves a node alone when ``additionalProperties`` is already present, so
+      a ``Dict[str, str]`` field -- which pydantic emits as
+      ``{"type": "object", "additionalProperties": {"type": "string"}}`` -- keeps
+      its value schema instead of being rewritten to ``false`` and made
+      uninhabitable.
+    """
+    if isinstance(node, dict):
+        out = {key: _strict_json_schema(value) for key, value in node.items()}
+        if (
+            out.get("type") == "object"
+            and "properties" in out
+            and "additionalProperties" not in out
+        ):
+            out["additionalProperties"] = False
+        return out
+    if isinstance(node, list):
+        return [_strict_json_schema(item) for item in node]
+    # Scalars (including the int/float that upstream's version chokes on) are
+    # schema values -- bounds, defaults, enum members -- and pass through as-is.
+    return node
 
 
 class MistralGateway(LLMGateway):
@@ -60,6 +102,7 @@ class MistralGateway(LLMGateway):
         default_temperature: float = 0.7,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
+        structured_mode: Literal["auto", "json_schema", "json_object"] = "auto",
     ):
         """Initialize Mistral Gateway.
 
@@ -73,6 +116,13 @@ class MistralGateway(LLMGateway):
                 deployment. Give the origin (``https://gw.internal``); a trailing
                 ``/v1`` is stripped for you so the same config value works for
                 this gateway and :class:`OpenAIGateway`.
+            structured_mode: How :meth:`generate_structured` asks for JSON.
+                ``"json_schema"`` sends the schema to Mistral's strict mode;
+                ``"json_object"`` reproduces the pre-existing behaviour exactly
+                (schema pasted into the system prompt, ``{"type": "json_object"}``
+                on the wire); ``"auto"`` (default) tries strict mode and falls back
+                to ``"json_object"`` for the life of this instance the first time a
+                model rejects it.
         """
         super().__init__(
             name=name,
@@ -93,6 +143,10 @@ class MistralGateway(LLMGateway):
         # Not forwarded to super(): the LLMGateway ABC takes no such parameter, and
         # widening it would mean publishing a new rakam-systems-core.
         self.base_url = base_url
+        self._structured_mode = structured_mode
+        # Per-instance, never module-global: one model refusing strict mode says
+        # nothing about the next gateway someone builds.
+        self._structured_downgraded = False
         self.client = Mistral(
             api_key=self.api_key,
             server_url=_server_origin(base_url) if base_url else None,
@@ -191,7 +245,13 @@ class MistralGateway(LLMGateway):
     ) -> T:
         """Generate structured output conforming to a Pydantic schema.
 
-        Uses Mistral's JSON mode and parses the response into the schema.
+        Uses Mistral's native strict ``json_schema`` response format when the
+        model supports it, which constrains decoding server-side, and otherwise
+        the older technique of describing the schema in the system prompt and
+        asking for ``json_object``. See ``structured_mode`` in :meth:`__init__`
+        for how the choice is made; a model that rejects strict mode downgrades
+        this instance once and stays downgraded, so a rejection costs one extra
+        request per gateway rather than one per call.
 
         Args:
             request: Standardized LLM request
@@ -200,9 +260,88 @@ class MistralGateway(LLMGateway):
         Returns:
             Instance of the schema class
         """
-        import json
+        if self._structured_mode == "json_object" or self._structured_downgraded:
+            return self._generate_structured_json_object(request, schema)
 
-        messages = self._build_messages(request)
+        try:
+            return self._generate_structured_json_schema(request, schema)
+        except Exception as e:
+            if self._structured_mode != "auto":
+                raise
+            # Strict mode is per-model, and Mistral signals a model that lacks it
+            # with an ordinary API error, so the only way to find out is to ask.
+            self._structured_downgraded = True
+            logger.warning(
+                f"Mistral model={self.model} rejected the native json_schema "
+                f"response format ({type(e).__name__}: {e}); falling back to "
+                f"json_object with a prompt-described schema for the life of this "
+                f"gateway. Pass structured_mode='json_object' to skip this probe, "
+                f"or structured_mode='json_schema' to make it a hard error."
+            )
+            return self._generate_structured_json_object(request, schema)
+
+    def _generate_structured_json_schema(
+        self,
+        request: LLMRequest,
+        schema: Type[T],
+    ) -> T:
+        """Ask for the schema natively, via Mistral's strict ``json_schema`` mode."""
+        from mistralai.models import JSONSchema, ResponseFormat
+
+        params = {
+            "model": self.model,
+            "messages": self._build_messages(request),
+            "temperature": request.temperature
+            if request.temperature is not None
+            else self.default_temperature,
+            "response_format": ResponseFormat(
+                type="json_schema",
+                json_schema=JSONSchema(
+                    name=schema.__name__,
+                    schema_definition=_strict_json_schema(schema.model_json_schema()),
+                    strict=True,
+                ),
+            ),
+        }
+
+        if request.max_tokens:
+            params["max_tokens"] = request.max_tokens
+
+        params.update(request.extra_params)
+
+        logger.debug(
+            f"Calling Mistral API with native json_schema, model={self.model}, "
+            f"schema={schema.__name__}"
+        )
+
+        response = self.client.chat.complete(**params)
+        content = response.choices[0].message.content
+        if not isinstance(content, str):
+            # AssistantMessage.content is Optional[Union[str, List[ContentChunk]]];
+            # model_validate_json would raise something unreadable on either.
+            raise ValueError(
+                f"Mistral returned no text content to parse as {schema.__name__} "
+                f"(got {type(content).__name__})"
+            )
+        parsed_result = schema.model_validate_json(content)
+
+        logger.info(
+            f"Mistral structured response received (json_schema): schema={schema.__name__}"
+        )
+        return parsed_result
+
+    def _generate_structured_json_object(
+        self,
+        request: LLMRequest,
+        schema: Type[T],
+    ) -> T:
+        """Describe the schema in the system prompt and ask for ``json_object``.
+
+        The original implementation, kept intact: it is the fallback for models
+        without strict-mode support, and reproduces the pre-change request exactly
+        for anyone who pins ``structured_mode="json_object"``.
+        """
+        import json
 
         # Add schema information to the system prompt
         schema_json = schema.model_json_schema()
@@ -211,16 +350,10 @@ class MistralGateway(LLMGateway):
         enhanced_system = request.system_prompt or ""
         enhanced_system += f"\n\nYou must respond with valid JSON that matches this schema:\n{json.dumps(schema_json, indent=2)}"
 
-        # Update messages with enhanced system prompt
-        messages = []
-        messages.append({
-            "role": "system",
-            "content": enhanced_system
-        })
-        messages.append({
-            "role": "user",
-            "content": request.user_prompt
-        })
+        messages = [
+            {"role": "system", "content": enhanced_system},
+            {"role": "user", "content": request.user_prompt},
+        ]
 
         # Prepare API call parameters
         params = {
