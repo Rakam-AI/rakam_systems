@@ -4816,7 +4816,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-vectorstore"
-version = "0.2.0"
+version = "0.1.7"
 source = { editable = "." }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
@@ -4836,6 +4836,7 @@ all = [
     { name = "django" },
     { name = "docling" },
     { name = "faiss-cpu" },
+    { name = "mistralai" },
     { name = "odfpy" },
     { name = "openai" },
     { name = "pgvector" },
@@ -4879,6 +4880,9 @@ local-embeddings = [
     { name = "sentence-transformers" },
     { name = "torch" },
 ]
+mistral = [
+    { name = "mistralai" },
+]
 openai = [
     { name = "openai" },
 ]
@@ -4897,6 +4901,7 @@ requires-dist = [
     { name = "django", marker = "extra == 'postgres'", specifier = ">=4.0.0,<6.0.0" },
     { name = "docling", marker = "extra == 'loaders'", specifier = "==2.62.0" },
     { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.12.0" },
+    { name = "mistralai", marker = "extra == 'mistral'", specifier = ">=1.9.11,<2.0.0" },
     { name = "neo4j", marker = "extra == 'ingestion'", specifier = ">=5.0,<6.0" },
     { name = "numpy", specifier = ">=1.24.0,<3.0.0" },
     { name = "odfpy", marker = "extra == 'loaders'", specifier = "==1.4.1" },
@@ -4920,6 +4925,7 @@ requires-dist = [
     { name = "rakam-systems-vectorstore", extras = ["faiss"], marker = "extra == 'all'" },
     { name = "rakam-systems-vectorstore", extras = ["loaders"], marker = "extra == 'all'" },
     { name = "rakam-systems-vectorstore", extras = ["local-embeddings"], marker = "extra == 'all'" },
+    { name = "rakam-systems-vectorstore", extras = ["mistral"], marker = "extra == 'all'" },
     { name = "rakam-systems-vectorstore", extras = ["openai"], marker = "extra == 'all'" },
     { name = "rakam-systems-vectorstore", extras = ["postgres"], marker = "extra == 'all'" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.1.0" },
@@ -4927,7 +4933,7 @@ requires-dist = [
     { name = "torch", marker = "extra == 'local-embeddings'", specifier = ">=2.0.0" },
     { name = "tqdm", specifier = ">=4.66.0,<5.0.0" },
 ]
-provides-extras = ["postgres", "ingestion", "faiss", "local-embeddings", "openai", "cohere", "loaders", "dev", "all"]
+provides-extras = ["postgres", "ingestion", "faiss", "local-embeddings", "openai", "cohere", "mistral", "loaders", "dev", "all"]
 
 [[package]]
 name = "rapidocr"
