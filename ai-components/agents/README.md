@@ -15,7 +15,7 @@ The agent package of Rakam Systems providing AI agent implementations powered by
 - **Pydantic AI Powered**: Built on top of Pydantic AI library
 - **Streaming Support**: Both sync and async streaming interfaces
 - **Chat History**: Multiple backends (JSON, SQLite, PostgreSQL)
-- **LLM Gateway**: Unified interface for OpenAI and Mistral AI
+- **LLM Gateway**: Unified interface for OpenAI and Mistral AI (custom endpoints, native structured outputs)
 
 ## Installation
 
