@@ -85,6 +85,23 @@ def test_native_pdf_uses_text_layer_not_ocr():
     assert pc.provenance and pc.provenance[0].page == 1
 
 
+def test_native_pdf_keeps_text_in_the_page_margins():
+    # A CV's name and title sit at the very top of the page, a footer at the
+    # very bottom — both inside pymupdf4llm's default margin band.
+    doc = fitz.open()
+    page = doc.new_page()  # 612 x 792 pt
+    page.insert_text((72, 20), "Camille Testard", fontsize=14)
+    page.insert_text((72, 36), "Responsable Marketing Digital", fontsize=11)
+    page.insert_text((72, 200), "Experience\n2021-2025 Chef de projet marketing", fontsize=11)
+    page.insert_text((72, 785), "Page 1 / 1", fontsize=8)
+    pc = prepare(doc.tobytes(), PDF, "cv.pdf")
+    assert pc.provider == "pdf_text"
+    assert "Camille Testard" in pc.markdown
+    assert "Responsable Marketing Digital" in pc.markdown
+    assert "Page 1 / 1" in pc.markdown
+    assert pc.markdown.index("Camille Testard") < pc.markdown.index("Experience")
+
+
 def test_scanned_pdf_routes_to_ocr():
     pc = prepare(_scanned_pdf(), PDF, "invoice.pdf", ocr=_MockOCR())
     assert pc.provider == "mistral_ocr"

@@ -233,8 +233,16 @@ def _prepare_pdf(content: bytes, mime: str, ocr: OCRProvider | None) -> Prepared
             # show_progress: the default prints "Processing ..." and an ASCII
             # progress bar to stdout — on a server that is one log spam burst
             # per uploaded file.
+            # margins=0: pymupdf4llm 0.0.17 otherwise drops every text line
+            # that sits in the top/bottom band of the page. On a CV that band
+            # holds the candidate's name and job title — measured on the
+            # Beetween agent (ClickUp 86cb6zfmm, 2026-09-23): « extract this
+            # CV » returned experience, education and skills but never the
+            # name, because /prepared started at the first section heading.
+            # The cost is that running page headers/footers are kept, which
+            # is the lesser loss for a reader.
             chunks = pymupdf4llm.to_markdown(
-                doc, page_chunks=True, show_progress=False,
+                doc, page_chunks=True, show_progress=False, margins=0,
             )
             table_rows, capped = _pdf_table_rows(doc)
         # Read the page number from chunk metadata rather than enumerating —
