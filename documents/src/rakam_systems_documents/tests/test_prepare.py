@@ -342,3 +342,86 @@ def test_spreadsheet_rows_are_unaffected():
     assert pc.rows
     assert pc.rows[0].source.sheet == "Catalogue"
     assert pc.rows[0].source.page is None
+
+
+# ── docx / email attachments / legacy binary (2026-09-24) ──────────────────
+DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+
+def _docx() -> bytes:
+    import zipfile
+
+    w = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+
+    def p(text: str, style: str | None = None) -> str:
+        ppr = f'<w:pPr><w:pStyle w:val="{style}"/></w:pPr>' if style else ""
+        return f"<w:p>{ppr}<w:r><w:t>{text}</w:t></w:r></w:p>"
+
+    def tr(*cells: str) -> str:
+        return "<w:tr>" + "".join(f"<w:tc>{p(c)}</w:tc>" for c in cells) + "</w:tr>"
+
+    body = (
+        p("Offre de prix", "Heading1")
+        + p("Affaire 26CO 5293")
+        + "<w:tbl>" + tr("Article", "Nuance", "Prix") + tr("HEB 160", "S275JR", "3 123,43") + "</w:tbl>"
+        + p("")
+        + p("Validité 30 jours")
+    )
+    xml = f'<?xml version="1.0"?><w:document {w}><w:body>{body}</w:body></w:document>'
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        zf.writestr("[Content_Types].xml", "<Types/>")
+        zf.writestr("word/document.xml", xml)
+    return buf.getvalue()
+
+
+def test_docx_emits_paragraphs_headings_and_table_rows_in_order():
+    pc = prepare(_docx(), DOCX, "offre.docx")
+    assert pc.provider == "text"
+    assert pc.markdown.startswith("# Offre de prix")
+    assert "| Article | Nuance | Prix |" in pc.markdown
+    # Document order is kept: the table sits between the two paragraphs.
+    assert pc.markdown.index("26CO 5293") < pc.markdown.index("HEB 160") < pc.markdown.index("Validité")
+    assert pc.rows[0].cells == {"Article": "HEB 160", "Nuance": "S275JR", "Prix": "3 123,43"}
+    assert pc.rows[0].source.sheet == "table1"
+
+
+def test_docx_is_recognised_by_extension_when_the_browser_sends_no_type():
+    assert prepare(_docx(), "application/octet-stream", "offre.docx").provider == "text"
+
+
+def test_email_reads_its_attachments():
+    msg = EmailMessage()
+    msg["Subject"] = "ARC commande CF08771"
+    msg["From"] = "sales@supplier.example"
+    msg.set_content("Veuillez trouver ci-joint notre confirmation.")
+    msg.add_attachment(_native_pdf(), maintype="application", subtype="pdf", filename="arc.pdf")
+    msg.add_attachment(b"code,qte\nHEB160,12\n", maintype="text", subtype="csv", filename="lignes.csv")
+    pc = prepare(bytes(msg), "message/rfc822", "arc.eml")
+    assert pc.meta["attachments"] == ["arc.pdf", "lignes.csv"]
+    assert "ci-joint notre confirmation" in pc.markdown
+    assert "## Pièce jointe : arc.pdf" in pc.markdown
+    assert "OFFRE FOURNISSEUR ACME" in pc.markdown
+    assert "HEB160" in pc.markdown
+
+
+def test_html_only_email_is_read_as_text():
+    msg = EmailMessage()
+    msg["Subject"] = "Relance"
+    msg.set_content("<html><body><p>Bonjour,</p><p>Prix&nbsp;: 12,50 &euro;</p></body></html>", subtype="html")
+    pc = prepare(bytes(msg), "message/rfc822", "relance.eml")
+    assert "<p>" not in pc.markdown
+    assert "Prix : 12,50 €" in pc.markdown.replace("\xa0", " ")
+
+
+def test_csv_labelled_as_excel_by_the_browser_is_still_a_csv():
+    pc = prepare(b"produit,quantite\nTube E24,1200\n", "application/vnd.ms-excel", "req.csv")
+    assert pc.provider == "tabular"
+    assert pc.rows[0].cells == {"produit": "Tube E24", "quantite": "1200"}
+
+
+def test_legacy_xls_says_what_to_do_instead_of_failing_obscurely():
+    ole = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\x00" * 64
+    pc = prepare(ole, "application/vnd.ms-excel", "tarif.xls")
+    assert pc.provider == "none"
+    assert ".xlsx" in pc.meta["help"]
