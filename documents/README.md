@@ -31,7 +31,10 @@ gives every caller one document→content primitive so none reimplements parsing
 | Native PDF | `pymupdf4llm` → markdown (text layer, exact, no egress) |
 | Scanned PDF / image | **hybrid gate** → OCR provider (see below) |
 | Excel / CSV | `openpyxl` / `csv` → markdown table **+ structured rows + (sheet,row) provenance** |
-| Email / text | rfc822 + multi-encoding decode (binary rejected) |
+| Word (.docx) | stdlib zip + WordprocessingML → paragraphs (headings kept) and markdown tables **+ header-keyed rows**, in document order |
+| Email (.eml) | rfc822 headers + body (html bodies stripped to text) **+ every attachment prepared in turn** under `## Pièce jointe : <name>` |
+| Text | multi-encoding decode (binary rejected) |
+| Legacy .xls / .doc / .msg | not parsed — `provider="none"` with a "save as .xlsx/.docx/.eml" hint |
 
 ## OCR is pluggable
 

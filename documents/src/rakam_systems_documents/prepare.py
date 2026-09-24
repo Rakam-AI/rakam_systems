@@ -23,6 +23,9 @@ from .schema import (
     page_delimiter,
 )
 
+# Compound File Binary (OLE2) signature — legacy .xls / .doc / .msg.
+_OLE_MAGIC = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"
+
 # Below this many stripped characters a PDF page is treated as "no text layer"
 # (i.e. scanned) and routed to OCR.
 _PDF_TEXT_MIN = 20
@@ -80,12 +83,25 @@ def prepare(
             pc = _prepare_pdf(content, mime, ocr)
         elif mime.startswith("image/") or ext in ("png", "jpg", "jpeg", "tiff", "webp"):
             pc = _prepare_image(content, mime, ocr)
-        elif ext in ("xlsx", "xlsm") or "spreadsheetml" in mime or "ms-excel" in mime:
-            pc = _prepare_xlsx(content)
+        # Extension before mime for csv: browsers label a .csv
+        # application/vnd.ms-excel, which the spreadsheet branch below would
+        # hand to openpyxl — and openpyxl cannot read a csv.
         elif ext == "csv" or mime == "text/csv":
             pc = _prepare_csv(content)
+        elif ext == "xls" or content[:8] == _OLE_MAGIC:
+            # Legacy binary Excel (and other OLE files: .doc, .msg). openpyxl
+            # reads only the zip-based formats; say what to do instead of
+            # failing with a zip error.
+            pc = PreparedContent(
+                provider="none",
+                meta={"help": "legacy binary Office file (.xls/.doc/.msg) — save it as .xlsx/.docx/.eml"},
+            )
+        elif ext in ("xlsx", "xlsm") or "spreadsheetml" in mime or "ms-excel" in mime:
+            pc = _prepare_xlsx(content)
+        elif ext == "docx" or "wordprocessingml" in mime:
+            pc = _prepare_docx(content)
         elif ext == "eml" or mime == "message/rfc822":
-            pc = _prepare_email(content)
+            pc = _prepare_email(content, ocr, max_chars)
         else:
             text = _decode_text(content)
             pc = PreparedContent(
@@ -362,13 +378,125 @@ def _decode_text(content: bytes) -> str | None:
     return None
 
 
-def _prepare_email(content: bytes) -> PreparedContent:
+
+
+def _html_to_text(html: str) -> str:
+    """Crude but dependency-free: drop script/style, turn block ends into
+    newlines, strip the remaining tags, unescape entities."""
+    import html as _html
+    import re
+
+    html = re.sub(r"(?is)<(script|style)[^>]*>.*?</\1>", "", html)
+    html = re.sub(r"(?i)<br\s*/?>|</(p|div|tr|li|h[1-6])>", "\n", html)
+    text = _html.unescape(re.sub(r"<[^>]+>", "", html))
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+
+def _prepare_email(
+    content: bytes, ocr: OCRProvider | None = None, max_chars: int = 8000
+) -> PreparedContent:
+    """Headers + body, then every attachment prepared in turn.
+
+    A supplier's order confirmation usually arrives as a PDF ATTACHED to the
+    email, so an email reader that stops at the body hands over everything
+    but the document. Each attachment goes through ``prepare`` itself (same
+    OCR, same limits) and is appended under its own heading."""
     import email
     from email import policy
 
     msg = email.message_from_bytes(content, policy=policy.default)
     body = msg.get_body(preferencelist=("plain", "html"))
     text = body.get_content() if body else ""
+    if body is not None and body.get_content_type() == "text/html":
+        text = _html_to_text(text)
     subject = msg.get("subject", "")
-    markdown = f"# {subject}\n\n**From:** {msg.get('from', '')}\n\n{text}".strip()
-    return PreparedContent(markdown=markdown, provider="text", meta={"subject": subject})
+    header = [f"# {subject}", ""]
+    for label, key in (("From", "from"), ("To", "to"), ("Date", "date")):
+        if msg.get(key):
+            header.append(f"**{label}:** {msg.get(key)}  ")
+    blocks = ["\n".join(header).strip(), text.strip()]
+    attachments: list[str] = []
+    for part in msg.iter_attachments():
+        name = part.get_filename() or "attachment"
+        attachments.append(name)
+        payload = part.get_payload(decode=True) or b""
+        inner = prepare(payload, part.get_content_type(), name, ocr, max_chars)
+        body_md = inner.markdown or f"_(unreadable: {inner.meta.get('help', 'no text')})_"
+        blocks.append(f"## Pièce jointe : {name}\n\n{body_md}")
+    return PreparedContent(
+        markdown="\n\n".join(b for b in blocks if b).strip(),
+        provider="text",
+        meta={"subject": subject, "attachments": attachments},
+    )
+
+
+def _prepare_docx(content: bytes) -> PreparedContent:
+    """Word (.docx) without a new dependency: it is a zip of WordprocessingML.
+    Paragraphs become lines (headings keep a ``#``), tables become markdown
+    tables with header-keyed rows, in document order."""
+    import zipfile
+    from xml.etree import ElementTree as ET
+
+    ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
+    w = "{%s}" % ns["w"]
+    with zipfile.ZipFile(io.BytesIO(content)) as zf:
+        root = ET.fromstring(zf.read("word/document.xml"))
+    body = root.find("w:body", ns)
+    if body is None:
+        return PreparedContent(provider="none", meta={"help": "empty .docx"})
+
+    def para_text(p) -> str:
+        parts: list[str] = []
+        for node in p.iter():
+            if node.tag == w + "t" and node.text:
+                parts.append(node.text)
+            elif node.tag == w + "tab":
+                parts.append("\t")
+            elif node.tag in (w + "br", w + "cr"):
+                parts.append("\n")
+        return "".join(parts)
+
+    blocks: list[str] = []
+    rows_out: list[TableRow] = []
+    table_idx = 0
+    for el in body:
+        if el.tag == w + "p":
+            line = para_text(el).strip()
+            if not line:
+                continue
+            style = el.find("w:pPr/w:pStyle", ns)
+            level = None
+            if style is not None:
+                val = style.get(w + "val", "")
+                if val.lower().startswith("heading") and val[-1:].isdigit():
+                    level = int(val[-1])
+                elif val.lower() == "title":
+                    level = 1
+            blocks.append(f"{'#' * min(level, 6)} {line}" if level else line)
+        elif el.tag == w + "tbl":
+            table_idx += 1
+            grid = [
+                [para_text(tc).strip().replace("\n", " ") for tc in tr.findall("w:tc", ns)]
+                for tr in el.findall("w:tr", ns)
+            ]
+            grid = [r for r in grid if any(r)]
+            if not grid:
+                continue
+            width = max(len(r) for r in grid)
+            grid = [r + [""] * (width - len(r)) for r in grid]
+            headers = _column_names(grid[0], width)
+            blocks.append(_rows_to_markdown(headers, grid[1:]))
+            for r_idx, vals in enumerate(grid[1:], start=2):
+                rows_out.append(
+                    TableRow(
+                        cells=dict(zip(headers, vals)),
+                        source=SourceRef(sheet=f"table{table_idx}", row=r_idx),
+                    )
+                )
+    markdown = "\n\n".join(blocks)
+    return PreparedContent(
+        markdown=markdown,
+        rows=rows_out,
+        provider="text" if markdown else "none",
+        meta={"tables": table_idx} if markdown else {"help": "no text in .docx"},
+    )
