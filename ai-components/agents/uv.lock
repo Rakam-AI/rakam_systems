@@ -3075,7 +3075,7 @@ wheels = [
 
 [[package]]
 name = "rakam-systems-agent"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
     { name = "pydantic" },
@@ -3091,11 +3091,13 @@ all = [
     { name = "mistralai" },
     { name = "openai" },
     { name = "psycopg2-binary" },
+    { name = "pydantic-ai" },
     { name = "tiktoken" },
 ]
 llm-providers = [
     { name = "mistralai" },
     { name = "openai" },
+    { name = "pydantic-ai" },
     { name = "tiktoken" },
 ]
 postgres = [
@@ -3113,11 +3115,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mistralai", marker = "extra == 'llm-providers'", specifier = ">=1.9.0,<2.0.0" },
+    { name = "mistralai", marker = "extra == 'llm-providers'", specifier = ">=1.9.11,<2.0.0" },
     { name = "openai", marker = "extra == 'llm-providers'", specifier = ">=1.37.0,<3.0.0" },
     { name = "psycopg2-binary", marker = "extra == 'postgres'", specifier = ">=2.9.9,<3.0.0" },
     { name = "pydantic", specifier = ">=2.11.5,<3.0.0" },
     { name = "pydantic-ai", specifier = ">=1.14.0,<2.0.0" },
+    { name = "pydantic-ai", marker = "extra == 'llm-providers'", specifier = "<1.76.0" },
     { name = "python-dotenv", specifier = ">=1.0.0,<2.0.0" },
     { name = "pyyaml", specifier = ">=6.0,<7.0" },
     { name = "rakam-systems-agent", extras = ["llm-providers"], marker = "extra == 'all'" },

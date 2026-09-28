@@ -20,7 +20,13 @@ from rakam_systems_agent.components.model_gateway import ModelGateway
 model = ModelGateway().build_chat_model(ModelRef(ref="openai:gpt-4o"))
 ```
 
-There is no provider allow-list: the ref goes straight to pydantic-ai's `infer_model`, so every provider it supports is reachable, and an unknown provider surfaces pydantic-ai's own error. Set `base_url` for an OpenAI-compatible endpoint (Ollama, local, OpenAI-compatible Azure).
+There is no provider allow-list: the ref goes straight to pydantic-ai's `infer_model`, so every provider it supports is reachable, and an unknown provider surfaces pydantic-ai's own error. Mistral needs no extra of its own here — `MISTRAL_API_KEY` is all it takes:
+
+```python
+model = ModelGateway().build_chat_model(ModelRef(ref="mistral:mistral-large-latest"))
+```
+
+Set `base_url` for an OpenAI-compatible endpoint (Ollama, local, OpenAI-compatible Azure). Note that `base_url` routes *any* ref through the OpenAI-compatible path, so `mistral:<model>` with a `base_url` gives you an OpenAI-shaped client on `OPENAI_API_KEY`, not a Mistral one. To reach an OpenAI-compatible proxy, write the ref as `openai:<model>`.
 
 ### Model settings
 
@@ -70,6 +76,8 @@ model = ModelGateway().build_chat_model(
 ```
 
 `openai_client` also serves the Azure route (`ref="azure:<deployment>"` with an `AsyncAzureOpenAI`). It is mutually exclusive with `ModelRef.base_url`, which the client already encodes. To let the provider build its own SDK client on your transport, pass `http_client=` instead.
+
+The argument is threaded through pydantic-ai's own provider factory rather than interpreted here, so it only fits providers that accept an `openai_client`. On a `mistral:` ref it raises `TypeError: MistralProvider.__init__() got an unexpected keyword argument 'openai_client'` — `http_client=` works there instead.
 
 ## Optional extras
 
@@ -124,7 +132,37 @@ gateway = MistralGateway(
 )
 ```
 
-The Mistral gateway exposes the same `generate`, `generate_structured`, `stream`, and `count_tokens` methods as the OpenAI gateway.
+The Mistral gateway exposes the same `generate`, `generate_structured`, `stream`, and `count_tokens` methods as the OpenAI gateway, plus three optional settings.
+
+### Custom endpoint
+
+```python
+gateway = MistralGateway(model="mistral-large-latest", base_url="https://gw.internal")
+```
+
+Give the origin. mistralai appends `/v1/...` itself, so a trailing `/v1` is stripped for you and `https://gw.internal`, `https://gw.internal/` and `https://gw.internal/v1` all reach the same place — one config value works for both this gateway and `OpenAIGateway`. `LLMGatewayFactory.create_gateway_from_config` forwards `base_url` for Mistral too (before, it silently dropped it).
+
+### Structured output
+
+`generate_structured` asks for Mistral's native strict `json_schema` format by default and falls back to describing the schema in the system prompt if the model rejects it:
+
+```python
+gateway = MistralGateway(model="mistral-large-latest", structured_mode="auto")
+```
+
+- `"auto"` (default) — try strict mode; on the first rejection, downgrade *this gateway* to `"json_object"` and log a warning. One extra request per gateway, not per call.
+- `"json_schema"` — strict mode only; a model that does not support it raises.
+- `"json_object"` — the pre-existing behaviour, byte for byte. Use it to pin the old wire format.
+
+### Token counting
+
+`count_tokens` approximates at 4 characters per token unless you supply a counter:
+
+```python
+gateway = MistralGateway(model="mistral-large-latest", token_counter=my_counter)
+```
+
+Mistral publishes no tokenize endpoint, and `mistral-common` cannot resolve a `-latest` model name offline, so an exact *local* count has to come from you. **If you are counting a prompt you are about to send, don't** — the API reports the exact number on every response as `LLMResponse.usage.prompt_tokens`. Pass `token_counting="exact"` to make a missing or failing counter an error instead of a silent fall back to the approximation.
 
 ## Gateway factory
 
@@ -133,12 +171,20 @@ Create gateways dynamically by provider name:
 ```python
 from rakam_systems_agent import LLMGatewayFactory, get_llm_gateway
 
-# Using factory
-gateway = LLMGatewayFactory.create(
-    provider="openai",
-    model="gpt-4o",
-    api_key="..."
+# From a "provider:model" string
+gateway = LLMGatewayFactory.create_gateway(
+    model_string="mistral:mistral-large-latest",
+    temperature=0.7,
+    api_key="...",
 )
+
+# From a config dict (provider-specific keys such as base_url are forwarded)
+gateway = LLMGatewayFactory.create_gateway_from_config({
+    "provider": "mistral",
+    "model": "mistral-large-latest",
+    "temperature": 0.7,
+    "base_url": "https://gw.internal",
+})
 
 # Using convenience function
 gateway = get_llm_gateway(provider="openai", model="gpt-4o")

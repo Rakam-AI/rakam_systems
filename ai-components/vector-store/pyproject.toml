@@ -71,6 +71,18 @@ cohere = [
     "cohere>=4.0.0",
 ]
 
+# Mistral embeddings.
+# LOAD-BEARING, not hygiene: pydantic-ai no longer guarantees a usable mistralai.
+# pydantic-ai-slim's `mistral` extra requires mistralai>=2.0.0 from 1.76.0 on, and
+# mistralai 2.x dropped the top-level package entirely -- `Mistral` moved to
+# mistralai.client.sdk, so `from mistralai import Mistral` fails outright. Without
+# this declaration a fresh resolve lands on mistralai 2.x and the embedder cannot
+# import its own SDK. The floor is what pydantic-ai-slim[mistral] itself required
+# while it was still on the 1.x line.
+mistral = [
+    "mistralai>=1.9.11,<2.0.0",
+]
+
 # Document loaders for various file types
 loaders = [
     "python-magic>=0.4.27",
@@ -104,6 +116,7 @@ all = [
     "rakam-systems-vectorstore[local-embeddings]",
     "rakam-systems-vectorstore[openai]",
     "rakam-systems-vectorstore[cohere]",
+    "rakam-systems-vectorstore[mistral]",
     "rakam-systems-vectorstore[loaders]",
 ]
 [build-system]

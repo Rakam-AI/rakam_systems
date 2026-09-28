@@ -6,8 +6,8 @@ title: Environment variables
 
 | Variable            | Description         | Used by                               |
 | ------------------- | ------------------- | ------------------------------------- |
-| `OPENAI_API_KEY`    | OpenAI API key      | OpenAIGateway, ConfigurableEmbeddings |
-| `MISTRAL_API_KEY`   | Mistral API key     | MistralGateway                        |
+| `OPENAI_API_KEY`    | OpenAI API key      | OpenAIGateway, ConfigurableEmbeddings, ModelGateway, build_embedder |
+| `MISTRAL_API_KEY`   | Mistral API key     | MistralGateway, MistralOCRProvider, ModelGateway (`mistral:` refs), build_embedder (`mistral:` refs) |
 | `COHERE_API_KEY`    | Cohere API key      | ConfigurableEmbeddings                |
 | `HUGGINGFACE_TOKEN` | HuggingFace token   | ConfigurableEmbeddings (private models) |
 | `POSTGRES_HOST`     | PostgreSQL host     | DatabaseConfig, PostgresChatHistory   |

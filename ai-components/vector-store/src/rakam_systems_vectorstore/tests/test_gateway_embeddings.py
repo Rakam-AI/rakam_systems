@@ -141,6 +141,7 @@ class TestBuildEmbedder:
     @pytest.fixture(autouse=True)
     def _dummy_key(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
 
     def test_openai_ref_returns_adapter(self):
         emb = build_embedder(EmbeddingRef(ref="openai:text-embedding-3-small", dim=1536))
@@ -178,3 +179,115 @@ class TestBuildEmbedder:
         assert isinstance(emb, _StubConfigurable)
         assert captured["config"]["model_type"] == "sentence_transformer"
         assert captured["config"]["model_name"] == "all-MiniLM-L6-v2"
+
+
+class TestMistralRouting:
+    """`mistral:` refs get this package's own backend, not pydantic-ai's.
+
+    pydantic-ai ships no embeddings backend for Mistral, so before this branch
+    existed `mistral:mistral-embed` raised UserError and `mistral:` + base_url
+    silently built an OpenAIEmbeddingModel authenticating with OPENAI_API_KEY.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _dummy_keys(self, monkeypatch):
+        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("MISTRAL_API_KEY", "test-key")
+
+    @staticmethod
+    def _inner_model(adapter):
+        # Embedder.model is public; the private _get_model() is not.
+        return adapter._embedder.model
+
+    def test_mistral_ref_builds_a_mistral_embedding_model(self):
+        from rakam_systems_vectorstore.components.embedding_model.mistral_embedding_model import (
+            MistralEmbeddingModel,
+        )
+
+        emb = build_embedder(EmbeddingRef(ref="mistral:mistral-embed", dim=1024))
+        assert isinstance(emb, GatewayEmbeddings)
+        assert emb._dim == 1024
+        model = self._inner_model(emb)
+        assert isinstance(model, MistralEmbeddingModel)
+        assert model.system == "mistral"
+        assert model.model_name == "mistral-embed"
+
+    def test_mistral_ref_with_base_url_does_not_route_through_openai(self):
+        # The regression test for the live mis-route: with both keys set, the
+        # OpenAI-shaped branch would happily win and nothing would look wrong.
+        from rakam_systems_vectorstore.components.embedding_model.mistral_embedding_model import (
+            MistralEmbeddingModel,
+        )
+
+        emb = build_embedder(
+            EmbeddingRef(
+                ref="mistral:mistral-embed", base_url="https://gw.internal/v1", dim=8
+            )
+        )
+        model = self._inner_model(emb)
+        assert isinstance(model, MistralEmbeddingModel)
+        # Normalised to the origin: the SDK appends /v1/embeddings itself, so an
+        # unstripped /v1 would request /v1/v1/embeddings.
+        assert model.base_url == "https://gw.internal"
+
+    @pytest.mark.parametrize(
+        "given,expected",
+        [
+            ("https://h", "https://h"),
+            ("https://h/", "https://h"),
+            ("https://h/v1", "https://h"),
+            ("https://h/v1/", "https://h"),
+            ("https://p/mistral/v1", "https://p/mistral"),
+            ("https://p/v1beta", "https://p/v1beta"),
+        ],
+    )
+    def test_mistral_server_origin(self, given, expected):
+        assert gateway_embeddings._mistral_server_origin(given) == expected
+
+    def test_other_refs_are_unaffected(self):
+        # The three pre-existing routes still land where they did.
+        from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
+
+        plain = build_embedder(EmbeddingRef(ref="openai:text-embedding-3-small", dim=1536))
+        assert isinstance(self._inner_model(plain), OpenAIEmbeddingModel)
+        compat = build_embedder(
+            EmbeddingRef(ref="openai:nomic-embed-text", base_url="http://localhost:11434/v1", dim=768)
+        )
+        assert isinstance(self._inner_model(compat), OpenAIEmbeddingModel)
+
+    def test_mistral_embedder_runs_end_to_end_through_the_adapter(self):
+        # Fake transport -> real Mistral SDK -> MistralEmbeddingModel -> real
+        # Embedder -> real GatewayEmbeddings, covering both the sync and async
+        # entry points the vector stores actually call.
+        import httpx
+        from mistralai import Mistral
+        from pydantic_ai.embeddings import Embedder
+        from pydantic_ai.embeddings.settings import EmbeddingSettings
+
+        from rakam_systems_vectorstore.components.embedding_model.mistral_embedding_model import (
+            MistralEmbeddingModel,
+        )
+
+        def handler(request):
+            return httpx.Response(200, json={
+                "id": "emb-1", "object": "list", "model": "mistral-embed",
+                "usage": {"prompt_tokens": 4, "completion_tokens": 0, "total_tokens": 4},
+                "data": [
+                    {"object": "embedding", "index": 1, "embedding": [0.5, 0.6, 0.7, 0.8]},
+                    {"object": "embedding", "index": 0, "embedding": [0.1, 0.2, 0.3, 0.4]},
+                ],
+            })
+
+        client = Mistral(
+            api_key="sk-fake",
+            async_client=httpx.AsyncClient(transport=httpx.MockTransport(handler)),
+        )
+        model = MistralEmbeddingModel("mistral-embed", client=client)
+        adapter = GatewayEmbeddings(
+            Embedder(model, settings=EmbeddingSettings(dimensions=4)), dim=4
+        )
+        expected = [[0.1, 0.2, 0.3, 0.4], [0.5, 0.6, 0.7, 0.8]]
+        # run() uses embed_documents_sync, which drives its own loop -- so it must
+        # be called from sync context, never from inside an async test.
+        assert adapter.run(["a", "b"]) == expected
+        assert asyncio.run(adapter.arun(["a", "b"])) == expected

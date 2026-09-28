@@ -32,7 +32,7 @@ The gateway is a **factory**, not a call proxy: it returns configured `pydantic_
 - No network proxy / hosted gateway / sidecar.
 - No custom rate limiting or caching (rely on provider SDK retries + pydantic-ai `FallbackModel` + provider-native caching).
 - No reimplementation of provider SDKs.
-- **No change to the existing raw-SDK `LLMGatewayFactory`** — it is still used by other consumers and coexists untouched.
+- No *replacement* of the existing raw-SDK `LLMGatewayFactory` — it is still used by other consumers and coexists. (It is no longer left untouched: see §9a.)
 
 ---
 
@@ -89,8 +89,10 @@ class ModelGateway:
         and registering the usage hook. Returns an adapter implementing the existing
         sync `rakam_systems_core.EmbeddingModel.run()` contract (vector stores are
         coded against it), bridging to pydantic-ai's async Embedder internally.
-        For a local `sentence_transformer` ref, returns ConfigurableEmbeddings
-        directly (no pydantic-ai — pydantic-ai has no local ST embedder)."""
+        For a local `sentence_transformer` ref returns ConfigurableEmbeddings
+        directly, and for a `mistral:` ref this package's own
+        MistralEmbeddingModel -- the two providers pydantic-ai ships no
+        embeddings backend for."""
 ```
 
 **Resolution is passthrough** — the gateway never enumerates providers:
@@ -100,11 +102,11 @@ from pydantic_ai.models import infer_model
 from pydantic_ai.embeddings import infer_embedding_model, Embedder
 ```
 
-`build_chat_model` wraps `infer_model(cfg.ref)`; when `cfg.base_url` is set it constructs the provider explicitly (`OpenAIProvider(base_url=...)`) and passes it through. `build_embedder` mirrors this with `infer_embedding_model`, then wraps the resulting async `Embedder` in a sync `EmbeddingModel` adapter (see §8a) so the vector stores stay unchanged.
+`build_chat_model` wraps `infer_model(cfg.ref)`; when `cfg.base_url` is set it constructs the provider explicitly (`OpenAIProvider(base_url=...)`) and passes it through. `build_embedder` mirrors this with `infer_embedding_model` — except for the two providers in the exception list above, which it constructs directly — then wraps the resulting async `Embedder` in a sync `EmbeddingModel` adapter (see §8a) so the vector stores stay unchanged.
 
 > **Embedder return type is deliberately `EmbeddingModel`, not `pydantic_ai.Embedder`.** The stores call sync `EmbeddingModel.run(texts) -> List[List[float]]`; pydantic-ai's `Embedder` exposes async `embed_documents`/`embed_query`. Returning the raw Embedder would break every store. The adapter bridges async→sync (dedicated event loop / `asyncio.run` at the call boundary — validate under the services' existing async context).
 
-> Guardrail: the only mapping the gateway owns is `ref → pydantic-ai object`. It must not maintain a `_PROVIDERS` dict. An unknown provider surfaces pydantic-ai's own error unchanged.
+> **Guardrail (amended — see §9a).** `build_chat_model` owns no provider map at all: the ref goes straight to `infer_model`, and an unknown provider surfaces pydantic-ai's own error unchanged. `build_embedder` additionally carries **one narrow, enumerated exception list**: providers for which pydantic-ai ships *no embeddings backend at all*, where the alternative is not "a different SDK" but `UserError: Unknown embeddings model`. Today that list has exactly two entries — local `sentence-transformers` and `mistral` — and its normative home is the module docstring of `gateway_embeddings.py`. Admitting a provider requires showing that `pydantic_ai/embeddings/` ships no module for it in the current release; removing one is **mandatory** the release after upstream ships a backend. A provider pydantic-ai *does* support must never appear there. Neither half may grow a general `_PROVIDERS` dict.
 
 ### 4a. Settings and client passthrough
 
@@ -156,6 +158,10 @@ Provider → env reference:
 | Ollama | `ollama:<model>` | `OLLAMA_BASE_URL` |
 | OpenAI-compatible | `openai:<model>` + `base_url` | `OPENAI_API_KEY` (dummy allowed) |
 | OpenAI | `openai:<model>` | `OPENAI_API_KEY` |
+| Mistral (chat) | `mistral:<model>` | `MISTRAL_API_KEY` |
+| Mistral (embeddings) | `mistral:mistral-embed` + `dim` | `MISTRAL_API_KEY` |
+
+> **`base_url` is asymmetric for Mistral.** For **embeddings**, a `mistral:` ref with a `base_url` reaches Mistral natively and the value is the *origin* (`https://gw.internal`) — mistralai appends `/v1/...` itself, and `build_embedder` strips a trailing `/v1` so one config value serves both providers. For **chat**, `build_chat_model` routes *any* ref carrying a `base_url` through `OpenAIProvider`, so `mistral:<model>` + `base_url` yields an OpenAI-shaped client authenticating with `OPENAI_API_KEY`. That is a known inconsistency, pinned by a test rather than fixed; to reach an OpenAI-compatible proxy use `openai:<model>` + `base_url`.
 
 ---
 
@@ -199,7 +205,7 @@ Where stored: pgvector collection metadata for ticket-rag; graph store metadata 
 | Copilot chat | **Deferred** — no near-term payoff without metering, and it re-plumbs a working path. Revisit with the metering feature spec: `BaseAgent`/`_resolve_model` would obtain the model from `ModelGateway.build_chat_model(...)` and the private metering hook would be injected in the copilot. | `ots-copilot-agent` `services/agent/agent.py`, `rakam_systems_agent` `base_agent.py` |
 | Graph embedder | Build via `build_embedder(...)`; add `record`/`validate`. | `ots-graph-generation-service` `shared/embedding/encoder.py` |
 | Ticket-RAG | Build via `build_embedder(...)`; add `record`/`validate`. | `ots-ticket-service` `services/ticket-rag/.../vector_store.py` |
-| Raw-SDK `LLMGatewayFactory` | **Unchanged** — coexists. | `rakam_systems_agent/components/llm_gateway/*` |
+| Raw-SDK `LLMGatewayFactory` | Coexists; `MistralGateway` modernized — see §9a. | `rakam_systems_agent/components/llm_gateway/*` |
 
 The Bedrock profile handling currently in `_resolve_model` moves behind `build_chat_model` (still special-cased there), so consumers stay uniform.
 
@@ -207,15 +213,29 @@ The Bedrock profile handling currently in `_resolve_model` moves behind `build_c
 
 ## 9. Coexistence with `LLMGatewayFactory`
 
-The existing raw-SDK gateway (`openai`/`mistral`) remains in place and is not modified. The new `ModelGateway` is additive and used by new provider needs (Azure, Ollama, embeddings, copilot routing). No shared state; the two can live side by side indefinitely. A future consolidation is out of scope for this spec.
+The existing raw-SDK gateway (`openai`/`mistral`) remains in place. The new `ModelGateway` is additive and used by new provider needs (Azure, Ollama, embeddings, copilot routing). No shared state; the two can live side by side indefinitely. A future consolidation is out of scope for this spec.
+
+### 9a. Amendment: `MistralGateway` modernized in place
+
+This spec originally said the raw-SDK gateway "is not modified". That no longer holds, deliberately. `MistralGateway` had drifted far enough behind the SDK to be a liability, and the three fixes are additive keyword arguments with today's behaviour as the default:
+
+| Change | Default | Opt out |
+|---|---|---|
+| `base_url=` endpoint override, normalised to mistralai's origin-only `server_url` (a trailing `/v1` is stripped, so one config value serves this gateway and `OpenAIGateway`). `gateway_factory`'s `provider_specific_keys` now forwards it — previously a mistral `base_url` in a config file was silently discarded. | unset — `https://api.mistral.ai` | — |
+| `structured_mode=` — native strict `json_schema` instead of pasting the schema into the system prompt. Note the SDK's own `response_format_from_pydantic_model` (and therefore `client.chat.parse`) **cannot be used**: its recursion treats only str/bool/None as terminal and raises `ValueError: Unexpected type` for any numeric default or `ge`/`le` bound. Upstream fixed that in mistralai 2.x, which the `<2.0.0` cap rules out, so the strict schema is built in-gateway. | `"auto"` — try strict, downgrade this instance once on rejection | `"json_object"` reproduces the old request exactly |
+| `token_counter=` — an injectable exact counter, replacing `len // 4` for callers who have a tokenizer. Nothing heavier is bundled: `mistral-common` cannot resolve any `-latest` model name offline (`from_model` is deprecated and knows 16 dated names; `from_hf_hub` needs the Hugging Face hub), so a mandatory dependency would buy a 155 MB tree and a possible network call. The exact count that costs nothing is `LLMResponse.usage.prompt_tokens`. | `"auto"` — counter if given, else the old approximation | `"approximate"` |
+
+The two gateways still share no state, and `ModelGateway` is unaffected.
 
 ---
 
 ## 10. Testing
 
 - **Unit:** `build_chat_model` / `build_embedder` resolve known `ref`s to the correct pydantic-ai model type; `base_url` is threaded to the provider; an unknown provider raises pydantic-ai's error unchanged (no swallowing).
+- **Unit (Mistral):** a `mistral:` chat ref yields a `MistralModel` carrying its settings, and an `http_client` reaches the provider; an `openai_client` on a `mistral:` ref raises `TypeError` (the absent provider-agnostic client seam, pinned as documented behaviour); a missing `MISTRAL_API_KEY` surfaces pydantic-ai's `UserError`; a `mistral:` chat ref with a `base_url` still yields an `OpenAIChatModel` (the §5 asymmetry, pinned rather than fixed).
+- **Unit (Mistral embeddings):** a `mistral:` embedding ref builds a `MistralEmbeddingModel`, **not** an `OpenAIEmbeddingModel`, with or without a `base_url`; a `base_url` ending in `/v1` is normalised so no request doubles the segment; `dimensions` becomes `output_dimension` and is omitted when unset; `usage.prompt_tokens` is reported as `input_tokens`; a response whose `index` values are permuted is realigned, and one whose indexes duplicate, skip, or partly vanish is rejected rather than mis-ordered (the pgvector loader zips positionally); 4xx/422 become `ModelHTTPError` and a transport failure a `ModelAPIError`.
 - **Unit:** settings declared on the ref and settings passed as an argument both reach `Model.settings`, the argument winning key by key; `extra_body={"store": False}` survives; a custom `openai_client` is the client the model ends up using, on `openai:` and on `azure:`; `base_url` + `openai_client` together are rejected; a ref with neither still yields `Model.settings is None`.
-- **Unit:** the package imports with **no** extras installed — asserted in a subprocess that refuses `psycopg2` / `openai` / `mistralai` / `tiktoken`, since CI installs `--all-extras` — and each optional symbol raises an `ImportError` naming the extra that ships it.
+- **Unit:** the package imports with **no** extras installed — asserted in a subprocess that refuses `psycopg2` / `openai` / `mistralai` / `tiktoken`, since CI installs `--all-extras` — and each optional symbol raises an `ImportError` naming the extra that ships it. The vector-store package has the mirror guard: importing it must leave `mistralai`, `pydantic_ai`, `openai`, `cohere` and `sentence_transformers` out of `sys.modules`, and building a `mistral:` embedder is what loads the SDK.
 - **Unit:** `UsageHook.record` is invoked once per call with token counts and never content; `NoopUsageHook` default is a no-op.
 - **Unit:** consistency `validate` passes on match, raises on model/dim mismatch, and treats same-model/different-provider as compatible.
 - **Integration (critical path, real deps preferred):** an `Agent` built from `build_chat_model("openai:...")` against a live/OpenAI-compatible endpoint; an `Embedder` from `build_embedder(...)` producing vectors of the declared `dim`. Prefer a local Ollama/OpenAI-compatible endpoint in CI over mocks.

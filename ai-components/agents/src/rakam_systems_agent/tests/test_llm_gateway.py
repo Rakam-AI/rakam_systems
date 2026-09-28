@@ -117,3 +117,42 @@ def test_register_and_list_providers():
         "dummy", DummyGateway, default_model="dummy-model")
     assert "dummy" in LLMGatewayFactory.list_providers()
     assert LLMGatewayFactory.get_default_model("dummy") == "dummy-model"
+
+
+def test_create_gateway_from_config_forwards_mistral_base_url(mock_mistral_gateway):
+    # provider_specific_keys used to map "mistral" to an empty list, so a base_url
+    # in a config file was silently discarded -- no error, no warning, requests
+    # quietly going to api.mistral.ai instead of the configured proxy.
+    with patch.object(
+        LLMGatewayFactory,
+        "_PROVIDERS",
+        {"mistral": mock_mistral_gateway}
+    ):
+        LLMGatewayFactory.create_gateway_from_config({
+            "provider": "mistral",
+            "model": "mistral-large-latest",
+            "temperature": 0.3,
+            "base_url": "https://gw.internal",
+        })
+
+    kwargs = mock_mistral_gateway.call_args.kwargs
+    assert kwargs["base_url"] == "https://gw.internal"
+    assert kwargs["model"] == "mistral-large-latest"
+
+
+def test_create_gateway_from_config_omits_base_url_when_absent(mock_mistral_gateway):
+    # The forwarding loop is guarded by `if key in config`, so a config without a
+    # base_url must not start passing base_url=None -- that would break the exact
+    # assert_called_once_with in the tests above and change the client's endpoint
+    # handling.
+    with patch.object(
+        LLMGatewayFactory,
+        "_PROVIDERS",
+        {"mistral": mock_mistral_gateway}
+    ):
+        LLMGatewayFactory.create_gateway_from_config({
+            "provider": "mistral",
+            "model": "mistral-large-latest",
+        })
+
+    assert "base_url" not in mock_mistral_gateway.call_args.kwargs

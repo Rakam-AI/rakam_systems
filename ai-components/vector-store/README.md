@@ -10,7 +10,7 @@ The vectorstore package of Rakam Systems providing vector database solutions and
 
 - **Configuration-First Design**: Change your entire vector store setup via YAML — no code changes
 - **Multiple Backends**: PostgreSQL with pgvector and FAISS in-memory storage
-- **Flexible Embeddings**: SentenceTransformers, OpenAI, and Cohere
+- **Flexible Embeddings**: SentenceTransformers, OpenAI, Cohere, and Mistral
 - **Document Loaders**: PDF, DOCX, HTML, Markdown, CSV, and more
 - **Search Capabilities**: Vector search, keyword search (BM25), and hybrid search
 - **Chunking**: Intelligent text chunking with context preservation
@@ -35,6 +35,7 @@ Available extras:
 | `local-embeddings` | `sentence-transformers`, `torch`                                                 |
 | `openai`           | `openai` (for OpenAI embeddings)                                                 |
 | `cohere`           | `cohere` (for Cohere embeddings)                                                 |
+| `mistral`          | `mistralai` (for Mistral embeddings via the AI gateway)                          |
 | `loaders`          | `python-magic`, `beautifulsoup4`, `python-docx`, `pymupdf`, `docling`, `chonkie` |
 | `all`              | Everything above                                                                 |
 
@@ -113,6 +114,7 @@ from rakam_systems_vectorstore.stores import ConfigurablePgVectorStore
 | `POSTGRES_PASSWORD` | Database password |
 | `OPENAI_API_KEY` | For OpenAI embeddings |
 | `COHERE_API_KEY` | For Cohere embeddings |
+| `MISTRAL_API_KEY` | For Mistral embeddings |
 | `HUGGINGFACE_TOKEN` | For private HuggingFace models |
 
 ## Documentation

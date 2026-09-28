@@ -4,11 +4,22 @@ The vector stores are coded against the sync ``EmbeddingModel.run(texts)``
 contract. pydantic-ai's ``Embedder`` exposes ``embed_documents_sync``, so the
 adapter is a straight sync-to-sync wrapper -- no async bridge needed.
 
-Routing:
-- a local ``sentence-transformers`` ref uses the offline
-  ``ConfigurableEmbeddings`` backend (pydantic-ai has no local ST embedder);
-- everything else resolves through pydantic-ai (any OpenAI-compatible /
-  voyage / google / cohere provider) and is wrapped in ``GatewayEmbeddings``.
+Routing. Everything resolves through pydantic-ai except one enumerated exception
+list: providers for which pydantic-ai ships **no embeddings backend at all**, so
+that the alternative is not "a different SDK" but ``UserError: Unknown embeddings
+model``. This list is the normative home of that exception (see the guardrail in
+docs/specs/ai-gateway.md) and it has exactly two entries:
+
+- ``sentence-transformers`` and its aliases -> the offline
+  ``ConfigurableEmbeddings`` backend;
+- ``mistral`` -> :class:`MistralEmbeddingModel`, this package's own
+  ``pydantic_ai.embeddings`` backend.
+
+Everything else -- any OpenAI-compatible / voyage / google / cohere / bedrock
+provider -- goes to ``infer_embedding_model`` untouched. Admitting a provider here
+requires showing that ``pydantic_ai/embeddings/`` ships no module for it in the
+current release; removing one is mandatory the release after upstream ships a
+backend. A provider pydantic-ai *does* support must never appear here.
 """
 from __future__ import annotations
 
@@ -19,6 +30,22 @@ from rakam_systems_core.interfaces.embedding_model import EmbeddingModel
 
 # Provider prefixes that mean "run locally, offline" rather than call a provider.
 _LOCAL_PROVIDERS = {"sentence-transformers", "sentence_transformer", "st", "local"}
+
+
+def _mistral_server_origin(base_url: str) -> str:
+    """Turn an OpenAI-style base URL into mistralai's origin-only ``server_url``.
+
+    openai-python's ``base_url`` must include ``/v1``; mistralai's ``server_url``
+    is the ORIGIN and the SDK appends ``/v1/embeddings`` itself. So an
+    un-normalised ``https://host/v1`` would request ``https://host/v1/v1/embeddings``
+    -- a 404 at request time, not a configuration error anyone sees at startup.
+    ``EmbeddingRef.base_url`` is one field shared by both branches, so the
+    difference is absorbed here rather than forked into the config convention.
+    Only an exact trailing ``/v1`` segment is stripped, so a path-mounted proxy
+    such as ``https://proxy/v1beta`` is left alone.
+    """
+    trimmed = base_url.rstrip("/")
+    return trimmed[: -len("/v1")] if trimmed.endswith("/v1") else trimmed
 
 
 class GatewayEmbeddings(EmbeddingModel):
@@ -118,7 +145,25 @@ def build_embedder(cfg: EmbeddingRef, batch_size: int | None = None) -> Embeddin
     from pydantic_ai.embeddings import Embedder, infer_embedding_model
     from pydantic_ai.embeddings.settings import EmbeddingSettings
 
-    if cfg.base_url:
+    if cfg.provider == "mistral":
+        # pydantic-ai ships no pydantic_ai/embeddings/mistral.py -- verified absent
+        # in every release through 2.37 -- so infer_embedding_model("mistral:...")
+        # raises UserError: Unknown embeddings model. Second and last entry in the
+        # "no upstream backend" exception list; see the module docstring. Delete
+        # this branch the release after upstream ships a backend.
+        #
+        # MUST stay above the cfg.base_url branch: that branch is OpenAI-shaped, so
+        # a mistral: ref carrying a base_url used to build an OpenAIEmbeddingModel
+        # that authenticated with OPENAI_API_KEY and spoke the OpenAI wire format.
+        from rakam_systems_vectorstore.components.embedding_model.mistral_embedding_model import (
+            MistralEmbeddingModel,
+        )
+
+        model = MistralEmbeddingModel(
+            cfg.model_name,
+            base_url=_mistral_server_origin(cfg.base_url) if cfg.base_url else None,
+        )
+    elif cfg.base_url:
         # OpenAI-compatible endpoint (Ollama / local / compatible Azure).
         from pydantic_ai.embeddings.openai import OpenAIEmbeddingModel
         from pydantic_ai.providers.openai import OpenAIProvider

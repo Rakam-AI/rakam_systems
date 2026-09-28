@@ -47,7 +47,24 @@ dev = [
 # LLM providers
 llm-providers = [
     "openai>=1.37.0,<3.0.0",
-    "mistralai>=1.9.0,<2.0.0",
+    # >=1.9.11 is what pydantic-ai-slim[mistral] itself required while it was on
+    # the 1.x line, and the oldest release where mistralai.models.{MistralError,
+    # ResponseFormat, JSONSchema} are all present. <2.0.0 because mistralai 2.x
+    # dropped the top-level package -- `Mistral` moved to mistralai.client.sdk, so
+    # `from mistralai import Mistral` in mistral_gateway.py would fail outright.
+    "mistralai>=1.9.11,<2.0.0",
+    # The cap that PAIRS with the one above, and the reason it lives in this extra
+    # rather than in [project.dependencies]: pydantic_ai/providers/mistral.py
+    # switched from `from mistralai import Mistral` to `from mistralai.client
+    # import Mistral` in 1.76.0, tracking mistralai's 2.x repackaging. The two
+    # libraries must therefore agree on a major, and there are two coherent
+    # worlds: (pydantic-ai <1.76, mistralai 1.x) and (pydantic-ai >=1.76,
+    # mistralai 2.x). Pinning the FIRST here -- and only here -- keeps
+    # `MistralGateway`, which needs mistralai 1.x, working, while a bare install
+    # that wants none of these SDKs still resolves the full pydantic-ai range and
+    # reaches `mistral:` chat through the second world. Widening this is a
+    # mistralai-2.x migration, not a version bump.
+    "pydantic-ai<1.76.0",
     "tiktoken>=0.7.0,<1.0.0",
 ]
 

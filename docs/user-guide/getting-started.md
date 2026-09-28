@@ -50,7 +50,7 @@ pip install rakam-systems-agent[all] rakam-systems-vectorstore[all]
 |---------|---------|-----------------|
 | `rakam-systems-core` | Foundational interfaces and utilities. Required by all other packages. | `pydantic`, `PyYAML` |
 | `rakam-systems-agent` | AI agent framework powered by Pydantic AI. `[all]` adds LLM provider clients. | Core + `pydantic-ai`, `python-dotenv`; `[all]`: `openai`, `mistralai` |
-| `rakam-systems-vectorstore` | Vector storage and document processing. `[all]` adds all backends and loaders. | Core + Tools + `numpy`; `[all]`: `faiss-cpu`, `sentence-transformers`, `torch`, `pgvector`, `openai`, `cohere` |
+| `rakam-systems-vectorstore` | Vector storage and document processing. `[all]` adds all backends and loaders. | Core + Tools + `numpy`; `[all]`: `faiss-cpu`, `sentence-transformers`, `torch`, `pgvector`, `openai`, `cohere`, `mistralai` |
 | `rakam-systems-tools` | Evaluation framework and S3 utilities. | `pydantic`, `boto3`, `requests` |
 | `rakam-systems-cli` | Command-line interface (`rakam` command). | Tools + `typer` |
 
@@ -65,7 +65,7 @@ Create a `.env` file in your project root. Not all keys are required — they de
 # OpenAI — required for GPT models and OpenAI embeddings
 OPENAI_API_KEY=sk-your-openai-key
 
-# Mistral AI — required for Mistral models
+# Mistral AI — required for Mistral models and Mistral embeddings
 MISTRAL_API_KEY=your-mistral-key
 
 # Cohere — required for Cohere embeddings

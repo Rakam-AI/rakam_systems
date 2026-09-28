@@ -19,6 +19,7 @@ Available extras:
 | `local-embeddings` | `sentence-transformers`, `torch` |
 | `openai` | `openai` (for OpenAI embeddings) |
 | `cohere` | `cohere` (for Cohere embeddings) |
+| `mistral` | `mistralai` (for Mistral embeddings) |
 | `loaders` | `python-magic`, `beautifulsoup4`, `python-docx`, `pymupdf`, `docling`, `chonkie` |
 | `all` | Everything above |
 

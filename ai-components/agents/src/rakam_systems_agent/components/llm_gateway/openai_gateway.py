@@ -152,8 +152,15 @@ class OpenAIGateway(LLMGateway):
                 }
             )
 
+            # `usage` is None whenever the API omits the block (some proxies and
+            # compatible endpoints do), which lines 136-142 above already allow for.
+            # Without the guard this logging line raises AttributeError *after* a
+            # valid LLMResponse has been built and *before* it is returned, turning
+            # a successful call into a failure. mistral_gateway.py has always had
+            # the guard; openai-python's ChatCompletion.usage is Optional too.
             logger.info(
-                f"OpenAI response received: {usage.get('total_tokens', 'unknown')} tokens, "
+                f"OpenAI response received: "
+                f"{usage.get('total_tokens', 'unknown') if usage else 'unknown'} tokens, "
                 f"finish_reason={response.finish_reason}"
             )
 
